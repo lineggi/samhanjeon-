@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>三韓戰 · 삼한전</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -120,10 +120,12 @@ svg{width:100%;height:100%;display:block}
 .zoomctl{position:absolute;right:14px;bottom:14px;display:flex;flex-direction:column;gap:6px;z-index:30}
 .zoomctl button{width:34px;height:34px;font-size:18px;font-family:'Nanum Myeongjo';font-weight:800;cursor:pointer;border:1.5px solid var(--gold);background:rgba(29,22,13,.85);color:var(--gold);border-radius:4px;line-height:1;padding:0}
 .zoomctl button:hover{background:var(--gold);color:#15110c}
-#map{cursor:grab;touch-action:none}
+#map{cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#map *{touch-action:none}
 #map:active{cursor:grabbing}
 ::-webkit-scrollbar{width:9px}::-webkit-scrollbar-track{background:#120d07}::-webkit-scrollbar-thumb{background:#4a3a24;border-radius:5px}
 @media (max-width:760px){
+  .wrap{height:100dvh}
   .topbar{flex-wrap:wrap;gap:6px 12px;padding:8px 12px}
   .brand{font-size:21px}
   .brand small{display:none}
@@ -135,7 +137,7 @@ svg{width:100%;height:100%;display:block}
   #endturn{margin-left:auto}
   .main{flex-direction:column}
   .mapwrap{flex:1 1 auto;min-height:46vh;padding:2px}
-  .side{width:100%;flex:0 0 auto;max-height:46vh;border-left:none;border-top:2px solid var(--line);padding:12px 14px}
+  .side{width:100%;flex:0 0 auto;max-height:50vh;border-left:none;border-top:2px solid var(--line);padding:12px 14px calc(96px + env(safe-area-inset-bottom,0px))}
   .panel-title{font-size:19px}
   .battle{padding:15px}
   .bhead{gap:8px}
@@ -904,6 +906,7 @@ function zoomReset(){view={x:0,y:0,w:BASE_W,h:BASE_H};applyView();setZoom();}
 function pinchState(){const a=[...pointers.values()];const dx=a[0].x-a[1].x,dy=a[0].y-a[1].y;return{d:Math.hypot(dx,dy),cx:(a[0].x+a[1].x)/2,cy:(a[0].y+a[1].y)/2};}
 MAP.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,e.deltaY<0?0.82:1/0.82);},{passive:false});
 MAP.addEventListener('pointerdown',e=>{
+  try{MAP.setPointerCapture(e.pointerId);}catch(_){}
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.size===1){const ctm=MAP.getScreenCTM();panStart={sx:e.clientX,sy:e.clientY,ox:view.x,oy:view.y,k:ctm?1/ctm.a:1,moved:false};}
   else if(pointers.size===2){panStart=null;pinchStart=pinchState();}
