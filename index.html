@@ -906,7 +906,7 @@ function zoomReset(){view={x:0,y:0,w:BASE_W,h:BASE_H};applyView();setZoom();}
 function pinchState(){const a=[...pointers.values()];const dx=a[0].x-a[1].x,dy=a[0].y-a[1].y;return{d:Math.hypot(dx,dy),cx:(a[0].x+a[1].x)/2,cy:(a[0].y+a[1].y)/2};}
 MAP.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,e.deltaY<0?0.82:1/0.82);},{passive:false});
 MAP.addEventListener('pointerdown',e=>{
-  try{MAP.setPointerCapture(e.pointerId);}catch(_){}
+  suppressClick=false;
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.size===1){const ctm=MAP.getScreenCTM();panStart={sx:e.clientX,sy:e.clientY,ox:view.x,oy:view.y,k:ctm?1/ctm.a:1,moved:false};}
   else if(pointers.size===2){panStart=null;pinchStart=pinchState();}
@@ -918,7 +918,7 @@ window.addEventListener('pointermove',e=>{
     const ps=pinchState();
     if(ps.d>0&&pinchStart.d>0){zoomAt(ps.cx,ps.cy,pinchStart.d/ps.d);pinchStart=ps;}
   } else if(pointers.size===1&&panStart){
-    if(Math.abs(e.clientX-panStart.sx)+Math.abs(e.clientY-panStart.sy)>4)panStart.moved=true;
+    if(Math.abs(e.clientX-panStart.sx)+Math.abs(e.clientY-panStart.sy)>8)panStart.moved=true;
     view.x=panStart.ox-(e.clientX-panStart.sx)*panStart.k; view.y=panStart.oy-(e.clientY-panStart.sy)*panStart.k;
     clampPan(); applyView();
   }
