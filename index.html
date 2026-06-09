@@ -246,6 +246,8 @@ svg{width:100%;height:100%;display:block}
     <div class="stat"><span class="k">영토</span><span class="v" id="terrv">0</span></div>
     <div class="fbadge" id="fbadge"><span class="dot"></span><span id="fname">—</span></div>
     <button class="btn sm" id="helpbtn" title="도움말" onclick="showHelp()">❓</button>
+    <button class="btn sm" id="delegbtn" title="내정 일임(AI에게 맡기기)" onclick="delegateInternal()">🤖 일임</button>
+    <button class="btn sm" id="autobtn" title="매 턴 자동 일임" onclick="toggleAuto()">🔁 자동:끔</button>
     <button class="btn sm" id="skillbtn" title="세력 특기" onclick="activateSkill(player)" style="display:none"></button>
     <button class="btn sm" id="diplobtn" title="외교" onclick="showDiplomacy()">🕊 외교</button>
     <button class="btn sm" id="savebtn" title="저장" onclick="saveGame()">💾 저장</button>
@@ -326,7 +328,23 @@ const FACTION_SKILL={
   wa:{name:'해적 기습', icon:'🗡', dur:3, cd:6, atk:1.25, desc:'3턴간 공격 +25% (왜구 기습)'},
   china:{name:'대군 물량', icon:'⚔', dur:3, cd:6, atk:1.18, moraleRegen:5, desc:'3턴간 공격 +18%·매 합 사기 +5 (대국 물량)'},
 };
-let factionBuff={}, factionCd={}, diploUsed=false;
+let factionBuff={}, factionCd={}, diploUsed=false, autoDelegate=false;
+/* 내정 일괄 명령(AI 위임): 미행동 내 성에 합리적 내정을 자동 수행. 출병은 직접 한다 */
+function delegateInternal(silent){
+  if(!scenario){if(!silent)toast('게임을 먼저 시작하라');return 0;}
+  let n=0;
+  ownedBy(player).forEach(p=>{const st=pstate[p.id]; if(st.acted)return; const id=p.id;
+    if(st.gold>=300&&(st.pop||0)>=2000&&(st.food||0)>=4000&&st.troops<p.base*4.5){st.gold-=300;st.pop-=2000;st.troops+=2000;st.food-=4000;st.train=Math.max(30,st.train-8);st.acted=true;n++;}
+    else if(st.gold>=150&&st.train<85){st.gold-=150;st.train=Math.min(100,st.train+15);st.acted=true;n++;}
+    else if(st.gold>=400&&p.wall<3){st.gold-=400;p.wall++;st.acted=true;n++;}
+    else if(st.gold>=350&&(st.farm||0)<2){st.gold-=350;st.farm=(st.farm||0)+1;st.food=Math.min(foodCap(p),(st.food||0)+800);st.acted=true;n++;}
+    else st.acted=true; // 자원이 부족하면 보류(대기)
+  });
+  render(); if(!silent)toast(n>0?`🤖 내정을 일임했다 — ${n}성 처리(출병은 직접)`:'일임할 내정이 없다');
+  return n;
+}
+function toggleAuto(){autoDelegate=!autoDelegate; toast(autoDelegate?'매 턴 내정 자동 일임 — 켬':'자동 일임 — 끔'); render();}
+function updateAutoBtn(){const b=$('autobtn');if(b){b.textContent=`🔁 자동:${autoDelegate?'켬':'끔'}`;b.style.color=autoDelegate?'var(--gold)':'';}}
 function playerGold(){return ownedBy(player).reduce((s,p)=>s+pstate[p.id].gold,0);}
 function spendGold(amt){let left=amt;for(const p of ownedBy(player)){if(left<=0)break;const take=Math.min(pstate[p.id].gold,left);pstate[p.id].gold-=take;left-=take;}return left<=0;}
 function proposePeace(f){if(diploUsed){toast('이번 턴 외교는 이미 행사했다');return;}if(playerGold()<200){toast('금이 부족하다');return;}
@@ -795,7 +813,7 @@ function loadScenario(sc){
   if(sc.cname)FACTIONS.china.name=sc.cname;
   factionHanzi.china=sc.chanzi||'中';
   activeFactions=sc.factions.slice();
-  initDiplo(sc); factionBuff={}; factionCd={}; diploUsed=false;
+  initDiplo(sc); factionBuff={}; factionCd={}; diploUsed=false; autoDelegate=false;
 }
 /* 도움말 모달 */
 function showHelp(){
@@ -1714,6 +1732,7 @@ function finishTurn(){
     st.acted=false;});
   selected=null; render();
   const over=checkVictory();
+  if(autoDelegate&&!over)delegateInternal(true);   // 자동 일임
   saveGame(true);   // 매 턴 자동 저장(새로고침해도 이어하기 가능)
   if(!over){
     const evs=takeDueEvents();                         // 역사 이벤트(효과 적용)
@@ -1875,7 +1894,7 @@ function render(){
   $('fname').textContent=FACTIONS[player].name;
   $('fbadge').querySelector('.dot').style.background=fcolor(player);
   $('fbadge').style.color=fcolor(player);
-  updateSkillBtn();
+  updateSkillBtn(); updateAutoBtn();
   {const pend=ownedBy(player).filter(x=>!pstate[x.id].acted).length;const eb=$('endturn');if(eb)eb.textContent=pend>0?`턴 종료 ▶ 행동 ${pend}성`:'턴 종료 ▶';}
   renderMap();renderPanel();renderLegend();
 }
@@ -1947,7 +1966,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.19.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.20.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -1972,7 +1991,7 @@ function saveGame(silent){
     firedEvents:firedEvents.slice(),
     diplo:{...diplo},
     walls:Object.fromEntries(provinces.map(p=>[p.id,p.wall])),
-    factionBuff:{...factionBuff}, factionCd:{...factionCd}, diploUsed,
+    factionBuff:{...factionBuff}, factionCd:{...factionCd}, diploUsed, autoDelegate,
     cname:FACTIONS.china.name, chanzi:factionHanzi.china,
     owners:Object.fromEntries(provinces.map(p=>[p.id,p.owner])),
     pstate:JSON.parse(JSON.stringify(pstate)),
@@ -2001,7 +2020,7 @@ function loadGame(){
     lostThisTurn=data.lostThisTurn||[];
     firedEvents=data.firedEvents||(scenario.events?scenario.events.filter(e=>e.turn<=turn).map(e=>e.id):[]); // 구버전 저장본: 지난 이벤트는 본 것으로 처리
     if(data.diplo)diplo=data.diplo;   // 구버전 저장본은 loadScenario의 기본 외교 유지
-    factionBuff=data.factionBuff||{}; factionCd=data.factionCd||{}; diploUsed=!!data.diploUsed;
+    factionBuff=data.factionBuff||{}; factionCd=data.factionCd||{}; diploUsed=!!data.diploUsed; autoDelegate=!!data.autoDelegate;
     if(data.cname)FACTIONS.china.name=data.cname;
     if(data.chanzi)factionHanzi.china=data.chanzi;
     provinces.forEach(p=>{const s=pstate[p.id];if(s&&s.pop==null)s.pop=Math.round(p.base*(p.cap?6:4));if(s&&s.food==null)s.food=Math.round(s.troops*3)+1000;if(s&&s.farm==null)s.farm=0;}); // 구버전 저장본 백성·군량·둔전 보정
