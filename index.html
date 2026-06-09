@@ -201,6 +201,8 @@ svg{width:100%;height:100%;display:block}
     <div class="stat"><span class="k">금(金)</span><span class="v" id="goldv">0</span></div>
     <div class="stat"><span class="k">영토</span><span class="v" id="terrv">0</span></div>
     <div class="fbadge" id="fbadge"><span class="dot"></span><span id="fname">—</span></div>
+    <button class="btn sm" id="savebtn" title="저장" onclick="saveGame()">💾 저장</button>
+    <button class="btn sm" id="loadbtn" title="불러오기" onclick="loadGame()">📂 불러오기</button>
     <button class="btn" id="endturn">턴 종료 ▶</button>
   </div>
   <div class="main">
@@ -1114,6 +1116,7 @@ function finishTurn(){
   aiAnimating=false; turn++;
   provinces.forEach(p=>{const st=pstate[p.id];st.gold+=120+p.wall*40+Math.round(st.troops*0.01);st.acted=false;});
   selected=null; render(); checkVictory();
+  saveGame(true);   // 매 턴 자동 저장(새로고침해도 이어하기 가능)
   if(lostThisTurn.length) toast(`지난 한 해, ${lostThisTurn.join('·')}을(를) 잃었다!`);
   else toast(`${turn}년차 — 새로운 한 해가 밝았다`);
 }
@@ -1155,8 +1158,10 @@ function showEra(){
       <div class="ed">${s.desc}</div>
       <div class="ef">${tags}<span class="tag" style="color:#c8b890;border-color:#5a4a30">최강세: ${FACTIONS[dom].name}</span></div></div>`;
   });
+  const cont=hasSave()?`<button class="btn" style="margin-bottom:14px" onclick="loadGame()">📂 이어하기 (저장된 게임)</button>`:'';
   $('centerBox').innerHTML=`<h1>三韓戰<small>삼 한 전 · 한국 삼국시대</small></h1>
     <p>어느 시대에서 천하를 도모하겠는가?<br>고른 시대에 따라 각국의 영토·강성함·무장이 달라진다.</p>
+    ${cont}
     <div class="eragrid">${cards}</div>`;
   $('centerOverlay').classList.add('on');
 }
@@ -1185,6 +1190,49 @@ function showFactionPick(){
 }
 function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.classList.remove('active'));$('fp-'+f).classList.add('active');$('startBtn').disabled=false;}
 function beginGame(){player=chosenF;turn=1;selected=null;$('centerOverlay').classList.remove('on');render();toast(`${FACTIONS[player].name}, 천하를 도모하라`);}
+
+/* ============ 저장 / 불러오기 (localStorage) ============ */
+const SAVE_KEY='samhanjeon_save_v1';
+function hasSave(){try{return !!localStorage.getItem(SAVE_KEY);}catch(_){return false;}}
+function saveGame(silent){
+  if(!scenario){if(!silent)toast('게임을 먼저 시작하라');return;}
+  const data={
+    v:1, ts:Date.now(),
+    scenarioId:scenario.id, player, turn,
+    activeFactions:activeFactions.slice(),
+    lostThisTurn:lostThisTurn.slice(),
+    cname:FACTIONS.china.name, chanzi:factionHanzi.china,
+    owners:Object.fromEntries(provinces.map(p=>[p.id,p.owner])),
+    pstate:JSON.parse(JSON.stringify(pstate)),
+    gens:JSON.parse(JSON.stringify(generals)),
+  };
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+    if(!silent)toast(`저장 완료 — ${scenario.year} ${turn}턴`);}
+  catch(e){if(!silent)toast('저장 실패: 저장 공간이 부족하다');}
+  updateSaveBtns();
+}
+function loadGame(){
+  let data;
+  try{const raw=localStorage.getItem(SAVE_KEY);if(!raw){toast('저장된 게임이 없다');return;}data=JSON.parse(raw);}
+  catch(_){toast('저장 데이터를 읽을 수 없다');return;}
+  const sc=SCENARIOS.find(s=>s.id===data.scenarioId);
+  if(!sc){toast('저장된 시대를 찾을 수 없다');return;}
+  loadScenario(sc);                                   // 기본 상태 구성
+  provinces.forEach(p=>{ if(data.owners[p.id]!==undefined) p.owner=data.owners[p.id]; });
+  pstate=data.pstate;
+  generals=data.gens;
+  player=data.player; turn=data.turn;
+  activeFactions=data.activeFactions||sc.factions.slice();
+  lostThisTurn=data.lostThisTurn||[];
+  if(data.cname)FACTIONS.china.name=data.cname;
+  if(data.chanzi)factionHanzi.china=data.chanzi;
+  selected=null; attackMode=false; moveMode=false; moveDlg=null; aiAnimating=false;
+  $('centerOverlay').classList.remove('on'); $('battleOverlay').classList.remove('on');
+  if($('splash'))$('splash').style.display='none';
+  render();
+  toast(`불러오기 완료 — ${scenario.year} ${turn}턴`);
+}
+function updateSaveBtns(){const lb=$('loadbtn');if(lb)lb.disabled=!hasSave();}
 
 $('endturn').onclick=endTurn;
 
@@ -1265,6 +1313,7 @@ window.addEventListener('pointercancel',_endPtr);
 
 function dismissSplash(){const s=$('splash');if(!s||s.classList.contains('out'))return;s.classList.add('out');setTimeout(()=>{s.style.display='none';showEra();},600);}
 $('splash').addEventListener('click',dismissSplash);
+updateSaveBtns();
 </script>
 </body>
 </html>
