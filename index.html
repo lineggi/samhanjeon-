@@ -121,6 +121,9 @@ svg{width:100%;height:100%;display:block}
 .round{font-family:'Gugi';color:var(--gold);font-size:18px}
 /* 전투 연출(주스감) */
 .battle{position:relative}
+#b3dwrap{width:100%;height:170px;border-radius:6px;overflow:hidden;margin-bottom:12px;background:linear-gradient(180deg,#243018,#16100a);box-shadow:inset 0 0 24px rgba(0,0,0,.6)}
+#b3dwrap:empty{display:none}
+#b3dwrap canvas{display:block;width:100%!important;height:100%!important}
 @keyframes bshake{0%,100%{transform:translate(0,0)}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-3px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-2px)}}
 .battle.shake{animation:bshake .32s ease}
 .battle.shakehard{animation:bshake .5s ease}
@@ -1357,6 +1360,64 @@ function launchBattle(fromId,toId,opts){
   const froms=(opts&&opts.froms&&opts.froms.length)?opts.froms:[fromId];
   marchArmies(froms,toId,player,()=>openBattle(fromId,toId,opts),2000);
 }
+/* ===== Three.js 3D 전장 (CDN 로드, 실패 시 2D 폴백) ===== */
+const THREE_CDN='https://unpkg.com/three@0.160.0/build/three.module.js';
+let B3D=null;
+function hex(c){return parseInt(String(c).replace('#',''),16);}
+async function battle3dInit(){
+  const wrap=$('b3dwrap'); if(!wrap)return;
+  if(location.protocol==='file:'){wrap.style.display='none';return;} // 로컬 파일: CDN 불가 → 2D 폴백
+  try{
+    const THREE=await import(THREE_CDN);
+    if(!B||!$('b3dwrap'))return; // 전투가 이미 닫힘
+    const w=wrap.clientWidth||320, h=170;
+    const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1)); renderer.setSize(w,h);
+    wrap.innerHTML=''; wrap.appendChild(renderer.domElement);
+    const scene=new THREE.Scene(); scene.fog=new THREE.Fog(0x16100a,40,90);
+    const camera=new THREE.PerspectiveCamera(45,w/h,0.1,300); camera.position.set(0,17,30);
+    scene.add(new THREE.HemisphereLight(0xffe7b0,0x20180e,1.15));
+    const dl=new THREE.DirectionalLight(0xfff0c0,0.7); dl.position.set(12,24,10); scene.add(dl);
+    const terr=B.D.terr, gcol=terr==='산악'?0x46532f:terr==='강'?0x355552:0x57642f;
+    const ground=new THREE.Mesh(new THREE.PlaneGeometry(90,60),new THREE.MeshLambertMaterial({color:gcol}));
+    ground.rotation.x=-Math.PI/2; scene.add(ground);
+    const MAX=48, geo=new THREE.ConeGeometry(0.62,2.6,5);
+    const mk=(col,z)=>{const m=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({color:col}),MAX);m.userData={z};scene.add(m);return m;};
+    const armyA=mk(hex(fcolor(B.A.p.owner)),10), armyD=mk(hex(fcolor(B.D.p.owner)),-10);
+    // 성벽(수비측) 간단 표현
+    const wall=new THREE.Mesh(new THREE.BoxGeometry(30,4+B.D.wall*1.5,2),new THREE.MeshLambertMaterial({color:0x6a5a3a}));
+    wall.position.set(0,(4+B.D.wall*1.5)/2,-17); scene.add(wall);
+    // 깃발(양 진영 후방)
+    const banner=(col,z)=>{const grp=new THREE.Group();const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.13,9,6),new THREE.MeshLambertMaterial({color:0x3a2c1c}));pole.position.y=4.5;const flag=new THREE.Mesh(new THREE.PlaneGeometry(4.4,2.6),new THREE.MeshLambertMaterial({color:col,side:THREE.DoubleSide}));flag.position.set(2.2,7,0);grp.add(pole,flag);grp.position.set(0,0,z);scene.add(grp);return grp;};
+    banner(hex(fcolor(B.A.p.owner)),17); banner(hex(fcolor(B.D.p.owner)),-17);
+    B3D={THREE,renderer,scene,camera,armyA,armyD,dummy:new THREE.Object3D(),t0:performance.now(),clash:null};
+    battle3dLayout(armyA,B.A.troops,B.A.startT); battle3dLayout(armyD,B.D.troops,B.D.startT);
+    const loop=()=>{ if(!B3D)return; B3D.raf=requestAnimationFrame(loop);
+      const t=(performance.now()-B3D.t0)/1000; let shake=0;
+      if(B3D.clash){ const e=(performance.now()-B3D.clash.t0)/700;
+        if(e>=1){B3D.clash=null;armyA.position.set(0,0,0);armyD.position.set(0,0,0);}
+        else{ const s=Math.sin(Math.PI*e);                 // 돌격→격돌→후퇴
+          armyA.position.z=-s*(7+B3D.clash.a*5);            // 중앙으로 돌격(치고 박기)
+          armyD.position.z= s*(7+B3D.clash.d*5);
+          const j=Math.abs(Math.sin(e*Math.PI*7))*0.7; armyA.position.y=j; armyD.position.y=j; shake=s*0.7; } }
+      camera.position.x=Math.sin(t*0.18)*7+(Math.random()-0.5)*shake;
+      camera.position.y=16+Math.sin(t*0.5)*0.6+(Math.random()-0.5)*shake; camera.lookAt(0,2,-2);
+      renderer.render(scene,camera); };
+    loop();
+  }catch(e){ const wr=$('b3dwrap'); if(wr)wr.style.display='none'; B3D=null; } // 폴백: 2D 전투만
+}
+function battle3dLayout(mesh,tr,st){ if(!B3D)return; const {dummy}=B3D;
+  const n=Math.max(0,Math.min(48,Math.round(48*Math.sqrt(Math.max(0,tr)/Math.max(1,st)))));
+  mesh.count=n;
+  for(let i=0;i<n;i++){const col=i%8,row=Math.floor(i/8);
+    dummy.position.set((col-3.5)*2.3,1.3,mesh.userData.z+(mesh.userData.z>0?row*2.3:-row*2.3));
+    dummy.rotation.set(0,0,0); dummy.updateMatrix(); mesh.setMatrixAt(i,dummy.matrix);}
+  mesh.instanceMatrix.needsUpdate=true;
+}
+function battle3dUpdate(){ if(!B3D||!B)return; battle3dLayout(B3D.armyA,B.A.troops,B.A.startT); battle3dLayout(B3D.armyD,B.D.troops,B.D.startT); }
+function battle3dClash(dD,dA){ if(!B3D)return; // 양군 격돌(가한 피해가 클수록 더 밀어붙임)
+  B3D.clash={t0:performance.now(), a:Math.min(1,(dD||0)/Math.max(1,B.D.startT)*4), d:Math.min(1,(dA||0)/Math.max(1,B.A.startT)*4)}; }
+function battle3dDispose(){ if(!B3D)return; cancelAnimationFrame(B3D.raf); try{B3D.renderer.dispose();B3D.renderer.domElement.remove();}catch(_){}B3D=null; }
 function openBattle(fromId,toId,opts){
   B={from:fromId,to:toId,round:1,over:false,A:mkArmy(fromId,true),D:mkArmy(toId,false),log:[],
      rain:false,fog:false,ambush:false,evtCount:0,busy:false,pincer:false};
@@ -1380,7 +1441,10 @@ function openBattle(fromId,toId,opts){
   if(B.D.aides)blog('def',`⚔ 적 부장 ${B.D.aides}명 — 수비 보강`);
   if(B.A.skill)blog('atk',`⚑ ${B.A.g.name}의 비기 — ${B.A.skill.name}: ${B.A.skill.desc}`);
   if(B.D.skill)blog('def',`⚑ ${B.D.g.name}의 비기 — ${B.D.skill.name}: ${B.D.skill.desc}`);
-  renderBattle();$('battleOverlay').classList.add('on');
+  $('battleBox').innerHTML=`<div id="b3dwrap"></div><div id="bcontent"></div>`;
+  $('battleOverlay').classList.add('on');
+  battle3dInit();      // 3D 전장(실패 시 자동 폴백)
+  renderBattle();
 }
 function blog(c,t){B.log.unshift({c,t});}
 function bar(v,m,grad){const w=Math.max(0,Math.min(100,v/m*100));return `<div class="bar"><i style="width:${w}%;background:${grad}"></i></div>`;}
@@ -1417,7 +1481,7 @@ function renderBattle(){
   h+=`<div class="bfoot"><span style="font-size:11px;color:#7a6a4a">사기가 0이 되면 군은 무너진다</span>`;
   h+= B.over?`<button class="btn" onclick="closeBattle()">전장을 떠난다 ▶</button>`:`<button class="btn danger sm" onclick="retreat()">퇴각</button>`;
   h+=`</div>`;
-  $('battleBox').innerHTML=h;
+  ($('bcontent')||$('battleBox')).innerHTML=h;
 }
 function aiTactic(a,f){
   if(a.morale<30)return 'guard';
@@ -1503,6 +1567,7 @@ function resolveRound(tac,duelRes){
   if(ra.crit||rd.crit)crit=true;
   blog('atk',`▸ 아군 [${TACTICS[tac].n}] — 적 ${fmt(dDshown)}명 격파`);ra.log.forEach(([c,t])=>blog(c,t));
   blog('def',`▸ 적 [${TACTICS[dTac].n}] — 아군 ${fmt(dAshown)}명 손실`);rd.log.forEach(([c,t])=>blog(c,t));
+  battle3dClash(dDshown,dAshown); battle3dUpdate();   // 3D 격돌 액션 + 병력 반영
   if(D.troops<=0||D.morale<=0){endBattle('win');battleFx(dAshown,dDshown,true);return;}
   if(A.troops<=0||A.morale<=0){endBattle('lose');battleFx(dAshown,dDshown,true);return;}
   B.round++;
@@ -1596,7 +1661,7 @@ function endBattle(result){
   else{fromSt.troops=Math.max(500,Math.round(A.troops));fromSt.train=Math.max(25,fromSt.train-8);}
   renderBattle();render();checkVictory();
 }
-function closeBattle(){$('battleOverlay').classList.remove('on');B=null;render();}
+function closeBattle(){battle3dDispose();$('battleOverlay').classList.remove('on');B=null;render();}
 function captureModal(dg){
   $('centerBox').innerHTML=`<h1 style="font-size:32px">적장 포로<small>${dg.name} 사로잡다</small></h1>
     <div class="captured"><div class="face" style="width:62px;height:76px">${genPortrait(dg)}</div>
@@ -1973,7 +2038,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.21.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.0.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
