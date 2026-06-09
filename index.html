@@ -791,7 +791,7 @@ function loadScenario(sc){
   if(sc.garrison)provinces.forEach(p=>{const g=sc.garrison[p.owner];if(g!=null){
     const t=Array.isArray(g)?Math.round(g[0]+Math.random()*(g[1]-g[0])):g;
     pstate[p.id].troops=t; pstate[p.id].pop=Math.max(pstate[p.id].pop,Math.round(t*0.4)); pstate[p.id].food=Math.max(pstate[p.id].food,Math.round(t*3));}});
-  generals=sc.gens.map((g,i)=>({id:'G'+i,name:g[0],f:g[1],loc:g[2],lead:g[3],might:g[4],int:g[5],loyalty:72+Math.floor(Math.random()*18)}));
+  generals=sc.gens.map((g,i)=>({id:'G'+i,name:g[0],f:g[1],loc:g[2],lead:g[3],might:g[4],int:g[5],loyalty:72+Math.floor(Math.random()*18),exp:0}));
   if(sc.cname)FACTIONS.china.name=sc.cname;
   factionHanzi.china=sc.chanzi||'中';
   activeFactions=sc.factions.slice();
@@ -1048,7 +1048,7 @@ function renderPanel(){
   if(g){const sk=genSkill(g);const ly=g.loyalty==null?72:g.loyalty;info+=`<div class="gen"><div class="face">${genPortrait(g)}</div>
     <div class="ginfo"><div class="gname">${g.name}${sk?` <span style="font-size:11px;color:var(--gold)">⚑${sk.name}</span>`:''}</div>
     <div class="gstats"><span>통솔 <b>${g.lead}</b></span><span>무력 <b>${g.might}</b></span><span>지력 <b>${g.int}</b></span></div>
-    ${mine?`<div style="font-size:11px;margin-top:2px;color:${ly<30?'#ff7a6a':ly<55?'#caa72e':'#8fd0c4'}">충성 ${ly}${ly<30?' ⚠ 이탈 위험':''}</div>`:''}</div></div>`;
+    ${mine?`<div style="font-size:11px;margin-top:2px;color:${ly<30?'#ff7a6a':ly<55?'#caa72e':'#8fd0c4'}">충성 ${ly}${ly<30?' ⚠ 이탈 위험':''} <span style="color:#9c8c6a">· 수련 ${g.exp||0}/100</span></div>`:''}</div></div>`;
   }else if(seen){info+=`<div class="gen"><div class="face" style="background:#3a2c1c;color:#8a7a5a">無</div>
     <div class="ginfo"><div class="gname" style="color:#8a7a5a">무명 장수</div>
     <div class="gstats"><span>통솔 <b>60</b></span><span>무력 <b>60</b></span><span>지력 <b>60</b></span></div></div></div>`;}
@@ -1228,6 +1228,16 @@ const BATTLE_EVENTS=[
   {id:'supply',name:'🔥 적 보급이 끊겼다', apply:()=>{B.D.morale=Math.max(0,B.D.morale-14);}, log:'적의 사기가 흔들린다 (적 사기 -14)'},
   {id:'rally', name:'🚩 아군 사기 충천', apply:()=>{B.A.morale=Math.min(100,B.A.morale+14);}, log:'함성이 전장을 뒤덮는다 (아군 사기 +14)'},
 ];
+/* 장수 경험치·성장: 100마다 최고 능력치 +1(99 상한). 플레이어 장수 성장 시 알림 */
+function gainExp(g,amt){
+  if(!g||!g.id)return; g.exp=(g.exp||0)+amt;
+  while(g.exp>=100){g.exp-=100;
+    const stats=['lead','might','int'].filter(s=>g[s]<99);
+    if(!stats.length)break;
+    const s=stats.reduce((a,b)=>g[b]>g[a]?b:a); const old=g[s]; g[s]=Math.min(99,g[s]+1);
+    if(g.f===player){const nm={lead:'통솔',might:'무력',int:'지력'}[s];toast(`⭐ ${g.name} 성장! ${nm} ${old}→${g[s]}`);}
+  }
+}
 function genSkill(g){
   if(!g||!g.id) return null;
   const m=g.might,i=g.int,l=g.lead;
@@ -1533,6 +1543,8 @@ function duelPick(mv){
 }
 function endBattle(result){
   B.over=true;const A=B.A,D=B.D,fromSt=pstate[B.from],toSt=pstate[B.to];fromSt.acted=true;
+  gainExp(A.g, result==='win'?45:result==='lose'?18:10);           // 공격 장수 경험치
+  if(result!=='win')gainExp(D.g, 30);                               // 수성 성공 방어 장수
   if(result==='win'){
     blog('crit',`★ ${D.p.name} 함락! 그대가 성을 차지한다.`);
     turnEvents.push({atk:player,def:D.p.owner,castle:D.p.name,pincer:!!B.pincer});
@@ -1632,6 +1644,7 @@ function aiBattle(fromId,toId,opts){
   B=Bsave;
   const fromSt=pstate[fromId],toSt=pstate[toId];
   const won=(D.troops<=0||D.morale<=0)&&A.troops>0&&A.morale>0;
+  gainExp(A.g, won?40:15); if(!won)gainExp(D.g, 28);   // AI 전투 경험치
   if(won){
     const occupy=Math.max(700,Math.round(A.troops)),ag=genAt(fromId),attacker=prov(fromId).owner,defender=prov(toId).owner,wasPlayer=defender===player;
     turnEvents.push({atk:attacker,def:defender,castle:prov(toId).name,pincer:!!(opts&&opts.pincer)});
@@ -1918,7 +1931,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.15.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.16.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -1966,7 +1979,7 @@ function loadGame(){
     loadScenario(sc);                                 // 기본 상태 구성
     provinces.forEach(p=>{ if(data.owners&&data.owners[p.id]!==undefined) p.owner=data.owners[p.id]; if(data.walls&&data.walls[p.id]!=null) p.wall=data.walls[p.id]; });
     if(data.pstate)pstate=data.pstate;
-    if(data.gens){generals=data.gens;generals.forEach(g=>{if(g.loyalty==null)g.loyalty=72;});}
+    if(data.gens){generals=data.gens;generals.forEach(g=>{if(g.loyalty==null)g.loyalty=72;if(g.exp==null)g.exp=0;});}
     player=data.player||player; turn=data.turn||1;
     activeFactions=data.activeFactions||sc.factions.slice();
     lostThisTurn=data.lostThisTurn||[];
