@@ -459,7 +459,7 @@ const SCENARIOS=[
   desc:'연개소문이 고구려를 장악하고, 당의 대군이 요동으로 밀려든다. 안시성에서 양만춘이 맞선다. 백제는 의자왕·계백이 버티고, 신라는 김유신을 앞세워 통일을 향해 나아간다. 가야는 이미 신라에 병합되었다.',
   factions:['goguryeo','baekje','silla','china','wa'],
   cname:'당', chanzi:'唐',
-  str:{goguryeo:1.2,baekje:1.05,silla:0.9,china:1.4,wa:0.95},
+  str:{goguryeo:1.2,baekje:1.05,silla:0.9,china:1.8,wa:0.95},
   own:{
    yodong:'goguryeo',bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',
    ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',
@@ -892,10 +892,10 @@ function confirmAttack(pincer){
   const c=pincerCtx; if(!c)return;
   $('centerOverlay').classList.remove('on'); attackMode=false;
   if(!pincer){pincerCtx=null;launchBattle(c.main,c.target);return;}
-  let extra=0;const names=[];
-  c.sup.forEach(s=>{const give=Math.floor(pstate[s].troops*0.5);if(give<=0)return;extra+=give;pstate[s].troops-=give;pstate[s].acted=true;names.push(prov(s).name);});
+  let extra=0;const names=[],froms=[c.main];
+  c.sup.forEach(s=>{const give=Math.floor(pstate[s].troops*0.5);if(give<=0)return;extra+=give;pstate[s].troops-=give;pstate[s].acted=true;names.push(prov(s).name);froms.push(s);});
   pincerCtx=null;
-  launchBattle(c.main,c.target,{pincer:true,extra,names});
+  launchBattle(c.main,c.target,{pincer:true,extra,names,froms});
 }
 function startMove(id){if(pstate[id].acted)return;
   if(!adj(id).some(t=>prov(t).owner===player)){toast('이동 가능한 인접 아군 성이 없다');return;}
@@ -1054,9 +1054,16 @@ function marchArmy(fromId,toId,fac,cb,dur){
   }
   requestAnimationFrame(fr);
 }
+/* 여러 성에서 동시 진군 → 모두 도착하면 cb */
+function marchArmies(froms,toId,fac,cb,dur){
+  const list=[...new Set(froms)]; let n=list.length,done=0;
+  if(n===0){cb();return;}
+  list.forEach(f=>marchArmy(f,toId,fac,()=>{if(++done===n)cb();},dur));
+}
 function launchBattle(fromId,toId,opts){
   attackMode=false; render();
-  marchArmy(fromId,toId,player,()=>openBattle(fromId,toId,opts),2000);
+  const froms=(opts&&opts.froms&&opts.froms.length)?opts.froms:[fromId];
+  marchArmies(froms,toId,player,()=>openBattle(fromId,toId,opts),2000);
 }
 function openBattle(fromId,toId,opts){
   B={from:fromId,to:toId,round:1,over:false,A:mkArmy(fromId,true),D:mkArmy(toId,false),log:[],
@@ -1299,7 +1306,16 @@ function planAiTurn(){
       const st=pstate[p.id];if(st.acted)return;
       const targets=adj(p.id).map(prov).filter(t=>t.owner!==f);
       const weak=targets.filter(t=>pstate[t.id].troops<st.troops*0.85).sort((a,b)=>pstate[a.id].troops-pstate[b.id].troops);
-      if(weak.length&&st.troops>2500&&Math.random()<0.7){moves.push({from:p.id,to:weak[0].id,fac:f});}
+      if(weak.length&&st.troops>2500&&Math.random()<0.7){
+        const t=weak[0];
+        // 협공: 같은 세력의 또 다른 인접 성(미행동·병력 보유)이 합세
+        const sup=adj(t.id).filter(x=>prov(x).owner===f && x!==p.id && !pstate[x].acted && pstate[x].troops>1200);
+        if(sup.length&&Math.random()<0.6){
+          let extra=0;const names=[],froms=[p.id];
+          sup.forEach(s=>{const give=Math.floor(pstate[s].troops*0.5);if(give<=0)return;extra+=give;pstate[s].troops-=give;pstate[s].acted=true;names.push(prov(s).name);froms.push(s);});
+          moves.push({from:p.id,to:t.id,fac:f,pincer:true,extra,names,froms});
+        } else moves.push({from:p.id,to:t.id,fac:f});
+      }
       else if(st.gold>=300&&(st.pop||0)>=1800&&Math.random()<0.6){st.gold-=300;st.pop-=1800;st.troops+=1800;}
       else if(st.gold>=150&&st.train<100){st.gold-=150;st.train=Math.min(100,st.train+15);}
       st.acted=true;
@@ -1312,18 +1328,21 @@ function playAiMoves(moves,i,done){
   const m=moves[i];
   if(prov(m.from).owner!==m.fac || prov(m.to).owner===m.fac){playAiMoves(moves,i+1,done);return;}
   render();
-  marchArmy(m.from,m.to,m.fac,()=>{
-    aiBattle(m.from,m.to); render();
+  const froms=(m.froms&&m.froms.length)?m.froms.filter(x=>prov(x).owner===m.fac):[m.from];
+  marchArmies(froms,m.to,m.fac,()=>{
+    aiBattle(m.from,m.to,m.pincer?{pincer:true,extra:m.extra}:null); render();
     setTimeout(()=>playAiMoves(moves,i+1,done),180);
   },850);
 }
-function aiBattle(fromId,toId){
-  let A=mkArmy(fromId,true),D=mkArmy(toId,false);A.startT=A.troops;D.startT=D.troops;
-  const Bsave=B;B={D};
+function aiBattle(fromId,toId,opts){
+  let A=mkArmy(fromId,true),D=mkArmy(toId,false);
+  if(opts&&opts.pincer){A.troops+=opts.extra||0;D.morale=Math.max(8,D.morale-15);}
+  A.startT=A.troops;D.startT=D.troops;
+  const Bsave=B;B={D,pincer:!!(opts&&opts.pincer)};
   for(let i=0;i<14&&A.troops>0&&D.troops>0&&A.morale>0&&D.morale>0;i++){
     const ta=aiTactic(A,D),td=aiTactic(D,A);A._g=D._g=false;
     const ra=resolveTactic(A,D,ta,true),rd=resolveTactic(D,A,td,false);
-    let dD=ra.dmg,dA=rd.dmg+ra.self;if(D._g)dD*=.4;if(A._g)dA*=.4;
+    let dD=ra.dmg,dA=rd.dmg+ra.self;if(opts&&opts.pincer)dD*=1.12;if(D._g)dD*=.4;if(A._g)dA*=.4;
     if(D.unit&&D.unit.defMul)dD*=D.unit.defMul; if(A.unit&&A.unit.defMul)dA*=A.unit.defMul;
     D.troops=Math.max(0,D.troops-dD);A.troops=Math.max(0,A.troops-dA);
     D.morale=Math.max(0,D.morale-dD/D.startT*60*((D.unit&&D.unit.moraleFrail)||1));A.morale=Math.max(0,A.morale-dA/A.startT*60*((A.unit&&A.unit.moraleFrail)||1));
@@ -1453,7 +1472,7 @@ function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.cla
 function beginGame(){player=chosenF;turn=1;selected=null;$('centerOverlay').classList.remove('on');render();toast(`${FACTIONS[player].name}, 천하를 도모하라`);}
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.4.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.5.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
