@@ -288,6 +288,16 @@ const FACTIONS={
   wa:{name:'왜',color:'#3f7d8c'}
 };
 let factionHanzi={goguryeo:'高句麗',baekje:'百濟',silla:'新羅',gaya:'伽倻',china:'中',wa:'倭'};
+/* ============ 국가별 병종(고유 특성) ============ */
+const UNITS={
+  goguryeo:{name:'개마무사', icon:'🐎', tac:'charge', atkMul:1.30, desc:'중장기병 — 돌격 위력 +30%'},
+  baekje:{name:'백제 궁수', icon:'🏹', tac:'volley', atkMul:1.30, desc:'정예 궁병 — 궁격 위력 +30%'},
+  silla:{name:'화랑', icon:'⚜', tac:'duel', duelEdge:1, moraleRegen:7, desc:'일기토 유리, 매 합 사기 +7'},
+  gaya:{name:'가야 판갑보병', icon:'🛡', defMul:0.80, desc:'철판갑 — 받는 피해 -20%'},
+  china:{name:'연 철기', icon:'⚔', allMul:1.12, desc:'대군 — 모든 전법 위력 +12%'},
+  wa:{name:'왜병', icon:'🗡', tac:'charge', atkMul:1.22, moraleFrail:1.35, desc:'사나운 돌격 +22%, 단 사기 손실 큼'},
+};
+function unitOf(fac){return UNITS[fac]||null;}
 const TERRAIN_BONUS={평야:{atk:1.12},산악:{atk:0.9},강:{atk:0.98}};
 
 /* ============ 성 (영토 크기 비례: 고14 · 백9 · 신10 · 가5) ============ */
@@ -796,6 +806,7 @@ function renderPanel(){
     <div class="row"><span class="lab">성벽</span><span class="val" style="font-size:13px">${'■'.repeat(p.wall)}${'□'.repeat(4-p.wall)}</span></div>
     <div class="row"><span class="lab">금(金)</span><span class="val">${fmt(st.gold)}</span></div>
     <div class="row"><span class="lab">세수(/턴)</span><span class="val" style="font-size:12px;color:#9c8c6a">+${fmt(60+p.wall*25+Math.round((st.pop||0)*0.02))}</span></div>
+    ${unitOf(p.owner)?`<div class="row"><span class="lab">병종(兵種)</span><span class="val" style="font-size:12px;color:#8fd0c4" title="${unitOf(p.owner).desc}">${unitOf(p.owner).icon} ${unitOf(p.owner).name}</span></div>`:''}
   </div>`;
   if(g){const sk=genSkill(g);info+=`<div class="gen"><div class="face">${genPortrait(g)}</div>
     <div class="ginfo"><div class="gname">${g.name}${sk?` <span style="font-size:11px;color:var(--gold)">⚑${sk.name}</span>`:''}</div>
@@ -943,7 +954,7 @@ function genSkill(g){
   return {name:'노련',type:'veteran',desc:'모든 전법 위력 +10%'};
 }
 function mkArmy(pid,attacking){const st=pstate[pid],g=genAt(pid),p=prov(pid);
-  return{pid,p,g:g||{name:'무명 장수',lead:60,might:60,int:60,id:null},skill:genSkill(g),troops:st.troops,morale:50+st.train/2,train:st.train,wall:attacking?0:p.wall,terr:p.terr,attacking};}
+  return{pid,p,g:g||{name:'무명 장수',lead:60,might:60,int:60,id:null},skill:genSkill(g),unit:unitOf(p.owner),troops:st.troops,morale:50+st.train/2,train:st.train,wall:attacking?0:p.wall,terr:p.terr,attacking};}
 const SVGNS='http://www.w3.org/2000/svg';
 function bannerSVG(fac){
   const col=fcolor(fac);
@@ -1012,6 +1023,8 @@ function openBattle(fromId,toId){
   B.A.startT=B.A.troops;B.D.startT=B.D.troops;
   blog('sys',`${prov(fromId).name}의 군이 ${prov(toId).name}으로 진군한다!`);
   blog('sys',`지형: ${B.D.terr} · 성벽 ${B.D.wall} — ${B.D.terr==='산악'?'수비 유리':B.D.terr==='강'?'수비 약간 유리':'공격 유리'}`);
+  if(B.A.unit)blog('atk',`${B.A.unit.icon} 아군 병종 — ${B.A.unit.name}: ${B.A.unit.desc}`);
+  if(B.D.unit)blog('def',`${B.D.unit.icon} 적 병종 — ${B.D.unit.name}: ${B.D.unit.desc}`);
   if(B.A.skill)blog('atk',`⚑ ${B.A.g.name}의 비기 — ${B.A.skill.name}: ${B.A.skill.desc}`);
   if(B.D.skill)blog('def',`⚑ ${B.D.g.name}의 비기 — ${B.D.skill.name}: ${B.D.skill.desc}`);
   renderBattle();$('battleOverlay').classList.add('on');
@@ -1026,6 +1039,7 @@ function renderBattle(){
       <div class="bgen"><div class="bface">${A.g.id?genPortrait(A.g):'<span class="noface">無</span>'}</div>
         <div class="bgi"><div class="who">${A.g.name}</div>
         ${A.skill?`<div class="bsk" title="${A.skill.desc}">⚑ ${A.skill.name}</div>`:`<div class="bsk none">비기 없음</div>`}
+        ${A.unit?`<div class="bsk" style="color:#8fd0c4" title="${A.unit.desc}">${A.unit.icon} ${A.unit.name}</div>`:''}
         <div class="bst">통${A.g.lead} 무${A.g.might} 지${A.g.int}</div></div></div>
       <div class="metric"><div class="ml"><span>병력</span><b>${fmt(A.troops)}</b></div>${bar(A.troops,A.startT,'linear-gradient(90deg,#7a1f1a,var(--gold))')}</div>
       <div class="metric"><div class="ml"><span>사기</span><b>${Math.round(A.morale)}</b></div>${bar(A.morale,100,'linear-gradient(90deg,#3a5a8c,#5aa8d8)')}</div>
@@ -1035,6 +1049,7 @@ function renderBattle(){
       <div class="bgen"><div class="bface">${D.g.id?genPortrait(D.g):'<span class="noface">無</span>'}</div>
         <div class="bgi"><div class="who">${D.g.name}</div>
         ${D.skill?`<div class="bsk" title="${D.skill.desc}">⚑ ${D.skill.name}</div>`:`<div class="bsk none">비기 없음</div>`}
+        ${D.unit?`<div class="bsk" style="color:#8fd0c4" title="${D.unit.desc}">${D.unit.icon} ${D.unit.name}</div>`:''}
         <div class="bst">통${D.g.lead} 무${D.g.might} 지${D.g.int}</div></div></div>
       <div class="metric"><div class="ml"><span>병력</span><b>${fmt(D.troops)}</b></div>${bar(D.troops,D.startT,'linear-gradient(90deg,#7a1f1a,'+fcolor(D.p.owner)+')')}</div>
       <div class="metric"><div class="ml"><span>사기</span><b>${Math.round(D.morale)}</b></div>${bar(D.morale,100,'linear-gradient(90deg,#3a5a8c,#5aa8d8)')}</div>
@@ -1080,7 +1095,10 @@ function resolveTactic(att,def,tac,isAtk,duelRes){
   if(sk==='charge'&&tac==='charge')skMul*=1.25;
   if(sk==='archer'&&tac==='volley')skMul*=1.25;
   if(sk==='strategist'&&tac==='scheme')skMul*=1.3;
-  dmg*=skMul*terrMul*(isAtk&&def.wall>0?(1-def.wall*0.06):1);
+  // 병종 공격 보정
+  const u=att.unit; let uMul=1;
+  if(u){ if(u.allMul)uMul*=u.allMul; if(u.tac===tac&&u.atkMul)uMul*=u.atkMul; }
+  dmg*=skMul*uMul*terrMul*(isAtk&&def.wall>0?(1-def.wall*0.06):1);
   return{dmg:Math.max(0,dmg),self:Math.max(0,self),log,crit};
 }
 function playTactic(tac){
@@ -1107,10 +1125,18 @@ function resolveRound(tac,duelRes){
   if(D._g)dD*=0.4; if(A._g)dA*=0.4;
   if(D.skill&&D.skill.type==='wall')dD*=0.75;
   if(A.skill&&A.skill.type==='wall')dA*=0.75;
+  // 병종 방어 보정(판갑 등)
+  if(D.unit&&D.unit.defMul)dD*=D.unit.defMul;
+  if(A.unit&&A.unit.defMul)dA*=A.unit.defMul;
   D.troops=Math.max(0,D.troops-dD);A.troops=Math.max(0,A.troops-dA);
-  D.morale=Math.max(0,D.morale-dD/D.startT*60);A.morale=Math.max(0,A.morale-dA/A.startT*60);
+  // 사기 손실(왜병 등은 손실 가중)
+  D.morale=Math.max(0,D.morale-dD/D.startT*60*((D.unit&&D.unit.moraleFrail)||1));
+  A.morale=Math.max(0,A.morale-dA/A.startT*60*((A.unit&&A.unit.moraleFrail)||1));
   if(A.skill&&A.skill.type==='inspire')A.morale=Math.min(100,A.morale+8);
   if(D.skill&&D.skill.type==='inspire')D.morale=Math.min(100,D.morale+8);
+  // 병종 사기 회복(화랑)
+  if(A.unit&&A.unit.moraleRegen)A.morale=Math.min(100,A.morale+A.unit.moraleRegen);
+  if(D.unit&&D.unit.moraleRegen)D.morale=Math.min(100,D.morale+D.unit.moraleRegen);
   if(ra.crit||rd.crit)crit=true;
   blog('atk',`▸ 아군 [${TACTICS[tac].n}] — 적 ${fmt(dD)}명 격파`);ra.log.forEach(([c,t])=>blog(c,t));
   blog('def',`▸ 적 [${TACTICS[dTac].n}] — 아군 ${fmt(dA)}명 손실`);rd.log.forEach(([c,t])=>blog(c,t));
@@ -1170,6 +1196,8 @@ function duelPick(mv){
   if(!duel)return;
   const foeMv=['slash','thrust','guard'][Math.floor(Math.random()*3)];
   let pr=mightDie(duel.me.might), fr=mightDie(duel.foe.might);
+  if(B.A.unit&&B.A.unit.duelEdge)pr+=B.A.unit.duelEdge;   // 화랑: 일기토 유리
+  if(B.D.unit&&B.D.unit.duelEdge)fr+=B.D.unit.duelEdge;
   let adv='';
   if(DUEL_MOVES[mv].b===DUEL_MOVES[foeMv].n){pr+=2;adv=`상성! ${DUEL_MOVES[mv].n}이(가) ${DUEL_MOVES[foeMv].n}을(를) 누른다`;}
   else if(DUEL_MOVES[foeMv].b===DUEL_MOVES[mv].n){fr+=2;adv=`적의 ${DUEL_MOVES[foeMv].n}에 ${DUEL_MOVES[mv].n}이(가) 눌린다`;}
@@ -1249,8 +1277,10 @@ function aiBattle(fromId,toId){
     const ta=aiTactic(A,D),td=aiTactic(D,A);A._g=D._g=false;
     const ra=resolveTactic(A,D,ta,true),rd=resolveTactic(D,A,td,false);
     let dD=ra.dmg,dA=rd.dmg+ra.self;if(D._g)dD*=.4;if(A._g)dA*=.4;
+    if(D.unit&&D.unit.defMul)dD*=D.unit.defMul; if(A.unit&&A.unit.defMul)dA*=A.unit.defMul;
     D.troops=Math.max(0,D.troops-dD);A.troops=Math.max(0,A.troops-dA);
-    D.morale=Math.max(0,D.morale-dD/D.startT*60);A.morale=Math.max(0,A.morale-dA/A.startT*60);
+    D.morale=Math.max(0,D.morale-dD/D.startT*60*((D.unit&&D.unit.moraleFrail)||1));A.morale=Math.max(0,A.morale-dA/A.startT*60*((A.unit&&A.unit.moraleFrail)||1));
+    if(A.unit&&A.unit.moraleRegen)A.morale=Math.min(100,A.morale+A.unit.moraleRegen);if(D.unit&&D.unit.moraleRegen)D.morale=Math.min(100,D.morale+D.unit.moraleRegen);
   }
   B=Bsave;
   const fromSt=pstate[fromId],toSt=pstate[toId];
@@ -1376,7 +1406,7 @@ function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.cla
 function beginGame(){player=chosenF;turn=1;selected=null;$('centerOverlay').classList.remove('on');render();toast(`${FACTIONS[player].name}, 천하를 도모하라`);}
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.2.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.3.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
