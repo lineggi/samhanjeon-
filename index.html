@@ -941,9 +941,14 @@ function renderMap(){
   h+=`<rect x="0" y="0" width="560" height="660" fill="rgba(22,42,58,.30)"/>`;
   // 육지(한반도+만주+산동+왜)
   MAP_PATHS.forEach(d=>{ h+=`<path d="${d}" fill="rgba(120,95,55,.13)" stroke="#5a4a30" stroke-width="0.8" opacity=".8"/>`; });
-  // 영토 음영(소속색 번짐) — 육지로 클립
-  h+=`<g clip-path="url(#landclip)" filter="url(#terrblur)" opacity="0.30">`;
-  provinces.forEach(p=>{ const c=D[p.id]; h+=`<circle cx="${c.x}" cy="${c.y}" r="33" fill="${fcolor(p.owner)}"/>`; });
+  // 영토 음영(소속색 번짐) — 육지로 클립. 내 세력 영역은 더 진하고 넓게 강조
+  h+=`<g clip-path="url(#landclip)" filter="url(#terrblur)">`;
+  provinces.forEach(p=>{ if(!p.owner)return; const c=D[p.id]; const me=p.owner===player;
+    h+=`<circle cx="${c.x}" cy="${c.y}" r="${me?40:31}" fill="${fcolor(p.owner)}" opacity="${me?0.52:0.24}"/>`; });
+  h+=`</g>`;
+  // 내 세력 경계 강조(번짐 위에 옅은 테두리 느낌)
+  h+=`<g clip-path="url(#landclip)" filter="url(#terrblur)" opacity="0.4">`;
+  ownedBy(player).forEach(p=>{ const c=D[p.id]; h+=`<circle cx="${c.x}" cy="${c.y}" r="22" fill="none" stroke="${fcolor(player)}" stroke-width="9"/>`; });
   h+=`</g>`;
   // 주변 세력
   NEIGHBORS.forEach(([n,x,y])=>{h+=`<text class="neighbor" x="${x}" y="${y}">${n}</text>`;});
@@ -1942,7 +1947,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.18.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.19.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
