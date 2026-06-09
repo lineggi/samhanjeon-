@@ -997,16 +997,25 @@ function renderMap(){
   h+=`<rect x="0" y="0" width="560" height="660" fill="rgba(22,42,58,.30)"/>`;
   // 육지(한반도+만주+산동+왜)
   MAP_PATHS.forEach(d=>{ h+=`<path d="${d}" fill="rgba(120,95,55,.13)" stroke="#5a4a30" stroke-width="0.8" opacity=".8"/>`; });
-  // 영토 — 보로노이 영역 채색(육지로 클립). 각 지점은 가장 가까운 성의 세력 색
+  // 영토 — 보로노이 영역(성 주변 반경 제한) + 같은 세력 인접 성을 띠로 연결(끊기지 않게)
   const sites=provinces.filter(p=>p.owner).map(p=>({owner:p.owner,x:D[p.id].x,y:D[p.id].y,cap:p.cap}));
   const cells=voronoiCells(sites);
-  h+=`<g clip-path="url(#landclip)">`;
-  cells.forEach(c=>{ if(c.poly.length<3)return; const me=c.owner===player;
-    h+=`<polygon points="${c.poly.map(pt=>pt[0].toFixed(1)+','+pt[1].toFixed(1)).join(' ')}" fill="${fcolor(c.owner)}" fill-opacity="${me?0.62:0.34}" stroke="#15110c" stroke-width="0.5" stroke-opacity="0.35"/>`; });
-  // 내 세력 영역 경계 강조선
-  h+=`</g><g clip-path="url(#landclip)">`;
-  cells.filter(c=>c.owner===player).forEach(c=>{ if(c.poly.length<3)return;
-    h+=`<polygon points="${c.poly.map(pt=>pt[0].toFixed(1)+','+pt[1].toFixed(1)).join(' ')}" fill="none" stroke="${fcolor(player)}" stroke-width="1.6" stroke-opacity="0.85"/>`; });
+  const poly=c=>`<polygon points="${c.poly.map(pt=>pt[0].toFixed(1)+','+pt[1].toFixed(1)).join(' ')}" fill="${fcolor(c.owner)}"/>`;
+  // 같은 세력 인접 성 연결 띠(같은 색이라 겹쳐도 그룹 불투명도로 이음새 없음)
+  const links=fac=>EDGES.map(([a,b])=>{const pa=prov(a),pb=prov(b);if(!pa||!pb||pa.owner!==fac||pb.owner!==fac)return'';const A=D[a],B=D[b];return `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="${fcolor(fac)}" stroke-width="${fac===player?30:24}" stroke-linecap="round"/>`;}).join('');
+  // 비-플레이어 영토: 그룹 불투명도 1회 적용(같은 색 겹침 이음새 방지)
+  h+=`<g clip-path="url(#landclip)" opacity="0.32">`;
+  activeFactions.filter(f=>f!==player).forEach(f=>{h+=links(f);});
+  cells.forEach(c=>{ if(c.owner===player||c.poly.length<3)return; h+=poly(c); });
+  h+=`</g>`;
+  // 내 세력 영토(더 진하게)
+  h+=`<g clip-path="url(#landclip)" opacity="0.58">`;
+  h+=links(player);
+  cells.forEach(c=>{ if(c.owner!==player||c.poly.length<3)return; h+=poly(c); });
+  h+=`</g>`;
+  // 세력 경계 얇은 음영선
+  h+=`<g clip-path="url(#landclip)" opacity="0.4">`;
+  cells.forEach(c=>{ if(c.poly.length<3)return; h+=`<polygon points="${c.poly.map(pt=>pt[0].toFixed(1)+','+pt[1].toFixed(1)).join(' ')}" fill="none" stroke="#15110c" stroke-width="0.6"/>`; });
   h+=`</g>`;
   // 주변 세력
   NEIGHBORS.forEach(([n,x,y])=>{h+=`<text class="neighbor" x="${x}" y="${y}">${n}</text>`;});
@@ -2015,7 +2024,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.24.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.25.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
