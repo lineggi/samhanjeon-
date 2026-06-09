@@ -978,6 +978,7 @@ function renderMap(){
     const showName=z>=1.5||p.cap||isSel, showTroop=isSel||z>=6;
     h+=`<g class="prov" onclick="clickProv('${p.id}')">`;
     if(isSel)h+=`<circle class="sel-ring" cx="${px}" cy="${py}" r="${r+7*ns}" style="stroke-width:${2.5*ns}px"/>`;
+    if(p.owner===player&&!st.acted&&!isSel&&!aiAnimating)h+=`<circle cx="${px}" cy="${py}" r="${r+4*ns}" fill="none" stroke="var(--gold)" stroke-width="${1.4*ns}" stroke-dasharray="${2*ns} ${2.4*ns}" opacity="0.7"/>`; // 미행동 표시(정적)
     if(targetable)h+=`<circle cx="${px}" cy="${py}" r="${r+7*ns}" fill="none" stroke="var(--blood)" stroke-width="${2.5*ns}" stroke-dasharray="${3*ns} ${3*ns}"><animate attributeName="r" values="${r+7*ns};${r+12*ns};${r+7*ns}" dur="1.1s" repeatCount="indefinite"/></circle>`;
     if(moveTarget)h+=`<circle cx="${px}" cy="${py}" r="${r+7*ns}" fill="none" stroke="#46b39d" stroke-width="${2.5*ns}" stroke-dasharray="${3*ns} ${3*ns}"><animate attributeName="r" values="${r+7*ns};${r+12*ns};${r+7*ns}" dur="1.1s" repeatCount="indefinite"/></circle>`;
     h+=`<circle class="pcore" cx="${px}" cy="${py}" r="${r}" fill="${col}" stroke="#15110c" stroke-width="${2*ns}" opacity=".96"/>`;
@@ -1870,6 +1871,7 @@ function render(){
   $('fbadge').querySelector('.dot').style.background=fcolor(player);
   $('fbadge').style.color=fcolor(player);
   updateSkillBtn();
+  {const pend=ownedBy(player).filter(x=>!pstate[x.id].acted).length;const eb=$('endturn');if(eb)eb.textContent=pend>0?`턴 종료 ▶ 행동 ${pend}성`:'턴 종료 ▶';}
   renderMap();renderPanel();renderLegend();
 }
 
@@ -1940,7 +1942,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.17.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.18.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
