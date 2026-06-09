@@ -321,6 +321,9 @@ function unitOf(fac){
 const FACTION_SKILL={
   silla:{name:'세속오계', icon:'⚜', dur:3, cd:6, atk:1.15, moraleRegen:10, desc:'3턴간 공격 +15%·매 합 사기 +10 (임전무퇴)'},
   baekje:{name:'결사대', icon:'🗡', dur:3, cd:6, atk:1.30, desc:'3턴간 공격 +30% (황산벌 결사 정신)'},
+  gaya:{name:'철벽진', icon:'🛡', dur:3, cd:6, def:0.80, desc:'3턴간 받는 피해 -20% (가야 철벽 수성)'},
+  wa:{name:'해적 기습', icon:'🗡', dur:3, cd:6, atk:1.25, desc:'3턴간 공격 +25% (왜구 기습)'},
+  china:{name:'대군 물량', icon:'⚔', dur:3, cd:6, atk:1.18, moraleRegen:5, desc:'3턴간 공격 +18%·매 합 사기 +5 (대국 물량)'},
 };
 let factionBuff={}, factionCd={};
 function activeSkill(fac){return (factionBuff[fac]>0)?FACTION_SKILL[fac]:null;}
@@ -1380,6 +1383,8 @@ function resolveRound(tac,duelRes){
   // 병종 방어 보정(판갑 등)
   if(D.unit&&D.unit.defMul)dD*=D.unit.defMul;
   if(A.unit&&A.unit.defMul)dA*=A.unit.defMul;
+  // 세력 특기 방어(가야 철벽진 등) — 받는 피해 감소
+  {const fA=activeSkill(A.p.owner);if(fA&&fA.def)dA*=fA.def;const fD=activeSkill(D.p.owner);if(fD&&fD.def)dD*=fD.def;}
   // 실제 사상자는 잔여 병력을 넘지 않도록(표기/수치 음수 방지)
   const dDshown=Math.min(Math.round(dD),D.troops), dAshown=Math.min(Math.round(dA),A.troops);
   D.troops=Math.max(0,D.troops-dD);A.troops=Math.max(0,A.troops-dA);
@@ -1560,6 +1565,7 @@ function aiBattle(fromId,toId,opts){
     const ra=resolveTactic(A,D,ta,true),rd=resolveTactic(D,A,td,false);
     let dD=ra.dmg,dA=rd.dmg+ra.self;if(opts&&opts.pincer)dD*=1.12;if(D._g)dD*=.4;if(A._g)dA*=.4;
     if(D.unit&&D.unit.defMul)dD*=D.unit.defMul; if(A.unit&&A.unit.defMul)dA*=A.unit.defMul;
+    {const fA=activeSkill(A.p.owner);if(fA&&fA.def)dA*=fA.def;const fD=activeSkill(D.p.owner);if(fD&&fD.def)dD*=fD.def;}
     D.troops=Math.max(0,D.troops-dD);A.troops=Math.max(0,A.troops-dA);
     D.morale=Math.max(0,D.morale-dD/D.startT*60*((D.unit&&D.unit.moraleFrail)||1));A.morale=Math.max(0,A.morale-dA/A.startT*60*((A.unit&&A.unit.moraleFrail)||1));
     if(A.unit&&A.unit.moraleRegen)A.morale=Math.min(100,A.morale+A.unit.moraleRegen);if(D.unit&&D.unit.moraleRegen)D.morale=Math.min(100,D.morale+D.unit.moraleRegen);
