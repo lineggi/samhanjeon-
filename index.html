@@ -473,13 +473,33 @@ const SCENARIOS=[
    ['김유신','silla','geumseong',95,92,90],['김춘추','silla','hanseong',84,70,94],['관창','silla','daeya',72,86,60],['알천','silla','samnyeon',86,88,78],
    ['이세민','china','yongseong',93,90,92],['이세적','china','youzhou',88,90,84],['설인귀','china','cheongju',86,94,76],
    ['고토쿠','wa','fukuoka',74,68,78],['소가','wa','tsushima',76,80,70],
+  ],
+  // 당은 성마다 10만 대군, 고구려는 성마다 1~2만
+  garrison:{china:100000, goguryeo:[10000,20000]},
+  events:[
+   {id:'u_decree', turn:1, title:'당 태종의 친정(親征)',
+    text:'645년, 당 태종 이세민이 “고구려는 반드시 무너뜨린다”며 몸소 수십만 대군을 이끌고 요동으로 향한다. 요수 너머로 당의 깃발이 끝없이 펼쳐진다. 한편 평양에서는 연개소문이 정권을 틀어쥐고 결사항전을 외친다.'},
+   {id:'u_war1', turn:2, title:'제1차 여당전쟁 발발 — 당, 고구려를 침공하다',
+    text:'당군이 요수를 건너 개모성·요동성을 함락하고 백암성마저 무너뜨린다. 고구려는 천리장성에 의지해 필사적으로 막아선다.',
+    effect:()=>{['youzhou','linyu','yongseong'].forEach(id=>{if(pstate[id])pstate[id].train=Math.min(100,pstate[id].train+15);});}},
+   {id:'u_ansi', turn:3, title:'안시성 공방전 — 양만춘의 분전',
+    text:'당의 대군이 안시성을 겹겹이 포위하고 토산까지 쌓아 올린다. 그러나 성주 양만춘의 결사 항전에 성벽은 끝내 무너지지 않는다.',
+    cond:()=>prov('ansi')&&prov('ansi').owner==='goguryeo',
+    effect:()=>{if(pstate['ansi']){pstate['ansi'].troops+=15000;pstate['ansi'].train=Math.min(100,pstate['ansi'].train+25);}}},
+   {id:'u_retreat', turn:6, title:'당군의 회군 — 안시성의 승리',
+    text:'겨울이 닥치고 보급이 끊기자, 당 태종은 끝내 안시성을 넘지 못한 채 군을 돌린다. 고구려가 제1차 여당전쟁을 막아냈다.',
+    cond:()=>prov('ansi')&&prov('ansi').owner==='goguryeo',
+    effect:()=>{['youzhou','linyu','yongseong','cheongju','deungju'].forEach(id=>{if(pstate[id])pstate[id].troops=Math.round(pstate[id].troops*0.6);});}},
+   {id:'u_fall', turn:6, title:'요동 함락 — 당의 진격',
+    text:'안시성이 무너지며 요동 방어선이 붕괴한다. 당의 대군이 거침없이 남하하니, 고구려의 운명은 풍전등화에 놓인다.',
+    cond:()=>!(prov('ansi')&&prov('ansi').owner==='goguryeo')},
   ]
  }
 ];
 
 /* ============ 런타임 ============ */
 let provinces=[], pstate={}, generals=[];
-let player='goguryeo', turn=1, selected=null, attackMode=false, scenario=null, activeFactions=[], zoomScale=1, lastD={}, aiAnimating=false, lostThisTurn=[], moveMode=false, genMoveMode=false, turnEvents=[];
+let player='goguryeo', turn=1, selected=null, attackMode=false, scenario=null, activeFactions=[], zoomScale=1, lastD={}, aiAnimating=false, lostThisTurn=[], moveMode=false, genMoveMode=false, turnEvents=[], firedEvents=[], pendingModals=[];
 const $=id=>document.getElementById(id);
 function adj(id){const r=new Set();EDGES.forEach(([a,b])=>{if(a===id)r.add(b);if(b===id)r.add(a)});return [...r];}
 function prov(id){return provinces.find(p=>p.id===id);}
@@ -632,6 +652,10 @@ function loadScenario(sc){
   pstate={};
   provinces.forEach(p=>{const m=sc.str[p.owner]||1;
     pstate[p.id]={troops:Math.round(p.base*m), pop:Math.round(p.base*(p.cap?6:4)), train:p.cap?70:55, gold:p.cap?500:340, acted:false};});
+  // 시나리오별 성 주둔병 고정/범위 지정 (예: 당 10만, 고구려 1~2만)
+  if(sc.garrison)provinces.forEach(p=>{const g=sc.garrison[p.owner];if(g!=null){
+    const t=Array.isArray(g)?Math.round(g[0]+Math.random()*(g[1]-g[0])):g;
+    pstate[p.id].troops=t; pstate[p.id].pop=Math.max(pstate[p.id].pop,Math.round(t*0.4));}});
   generals=sc.gens.map((g,i)=>({id:'G'+i,name:g[0],f:g[1],loc:g[2],lead:g[3],might:g[4],int:g[5]}));
   if(sc.cname)FACTIONS.china.name=sc.cname;
   factionHanzi.china=sc.chanzi||'中';
@@ -1383,9 +1407,40 @@ function finishTurn(){
   const over=checkVictory();
   saveGame(true);   // 매 턴 자동 저장(새로고침해도 이어하기 가능)
   if(!over){
-    if(!showTurnReport()) toast(`${turn}년차 — 새로운 한 해가 밝았다 (전선의 변동 없음)`);
+    const evs=takeDueEvents();                         // 역사 이벤트(효과 적용)
+    pendingModals=[];
+    if(turnEvents.length)pendingModals.push(renderTurnReportModal);
+    evs.forEach(e=>pendingModals.push(()=>renderEventModal(e)));
+    if(pendingModals.length){render();advanceModals();}
+    else toast(`${turn}년차 — 새로운 한 해가 밝았다 (전선의 변동 없음)`);
   }
   turnEvents=[];   // 보고 후 초기화(다음 턴 누적 시작)
+}
+/* 역사 이벤트: 조건 통과분 효과 적용 후, 표시할 이벤트 목록 반환 */
+function takeDueEvents(){
+  if(!scenario||!scenario.events)return [];
+  const out=[];
+  scenario.events.forEach(e=>{
+    if(e.turn<=turn && !firedEvents.includes(e.id)){
+      firedEvents.push(e.id);
+      if(e.cond&&!e.cond())return;     // 조건 불충족 시 발생하지 않음(다시 발생도 안 함)
+      if(e.effect){try{e.effect();}catch(_){}}
+      out.push(e);
+    }
+  });
+  return out;
+}
+/* 모달 큐: 전황 보고 → 이벤트들 순차 표시 */
+function advanceModals(){
+  if(!pendingModals.length){$('centerOverlay').classList.remove('on');render();return;}
+  (pendingModals.shift())();
+}
+function renderEventModal(e){
+  $('centerBox').innerHTML=`<div style="font-size:12px;color:#9c8c6a;letter-spacing:3px;margin-bottom:4px">史 · ${scenario.year}</div>
+    <h1 style="font-size:30px">${e.title}</h1>
+    <p style="line-height:1.85;max-width:470px;margin:16px auto;text-align:left;color:#e0d4b4">${e.text}</p>
+    <button class="btn" onclick="advanceModals()">계속 ▶</button>`;
+  $('centerOverlay').classList.add('on');
 }
 function checkVictory(){
   const owners=new Set(provinces.map(p=>p.owner));
@@ -1402,8 +1457,7 @@ function checkVictory(){
   return false;
 }
 /* 턴 종료 전황 보고 — 누가 어디를 함락했는지 */
-function showTurnReport(){
-  if(!turnEvents.length)return false;
+function renderTurnReportModal(){
   const rows=turnEvents.map(e=>{
     const tag=e.atk===player?'<span style="color:#6fe07a">아군 점령</span>'
       :e.def===player?'<span style="color:#ff7a6a">상실!</span>':'';
@@ -1419,9 +1473,8 @@ function showTurnReport(){
     </div>`;}).join('');
   $('centerBox').innerHTML=`<h1 style="font-size:30px">戰況<small>${turn}년차 전황 보고</small></h1>
     <div style="text-align:left;max-width:440px;margin:14px auto;display:flex;flex-direction:column;gap:7px;max-height:50vh;overflow-y:auto">${rows}</div>
-    <button class="btn" onclick="closeCenter()">확인 ▶</button>`;
+    <button class="btn" onclick="advanceModals()">확인 ▶</button>`;
   $('centerOverlay').classList.add('on');
-  return true;
 }
 
 /* ============ 렌더 ============ */
@@ -1497,10 +1550,14 @@ function showFactionPick(){
     <button class="btn" id="startBtn" disabled onclick="beginGame()">출진(出陣) ▶</button>`;
 }
 function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.classList.remove('active'));$('fp-'+f).classList.add('active');$('startBtn').disabled=false;}
-function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];$('centerOverlay').classList.remove('on');render();toast(`${FACTIONS[player].name}, 천하를 도모하라`);}
+function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEvents=[];$('centerOverlay').classList.remove('on');render();
+  const evs=takeDueEvents();   // 1턴(개전) 이벤트
+  if(evs.length){pendingModals=evs.map(e=>()=>renderEventModal(e));advanceModals();}
+  else toast(`${FACTIONS[player].name}, 천하를 도모하라`);
+}
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.6.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.7.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -1522,6 +1579,7 @@ function saveGame(silent){
     scenarioId:scenario.id, player, turn,
     activeFactions:activeFactions.slice(),
     lostThisTurn:lostThisTurn.slice(),
+    firedEvents:firedEvents.slice(),
     cname:FACTIONS.china.name, chanzi:factionHanzi.china,
     owners:Object.fromEntries(provinces.map(p=>[p.id,p.owner])),
     pstate:JSON.parse(JSON.stringify(pstate)),
@@ -1548,11 +1606,12 @@ function loadGame(){
     player=data.player||player; turn=data.turn||1;
     activeFactions=data.activeFactions||sc.factions.slice();
     lostThisTurn=data.lostThisTurn||[];
+    firedEvents=data.firedEvents||(scenario.events?scenario.events.filter(e=>e.turn<=turn).map(e=>e.id):[]); // 구버전 저장본: 지난 이벤트는 본 것으로 처리
     if(data.cname)FACTIONS.china.name=data.cname;
     if(data.chanzi)factionHanzi.china=data.chanzi;
     provinces.forEach(p=>{const s=pstate[p.id];if(s&&s.pop==null)s.pop=Math.round(p.base*(p.cap?6:4));}); // 구버전 저장본 백성 보정
   }catch(err){toast('저장본이 손상되어 불러올 수 없다');return;}
-  selected=null; attackMode=false; moveMode=false; genMoveMode=false; moveDlg=null; aiAnimating=false; B=null; duel=null; turnEvents=[];
+  selected=null; attackMode=false; moveMode=false; genMoveMode=false; moveDlg=null; aiAnimating=false; B=null; duel=null; turnEvents=[]; pendingModals=[];
   $('centerOverlay').classList.remove('on'); $('battleOverlay').classList.remove('on');
   if($('splash'))$('splash').style.display='none';
   render();
