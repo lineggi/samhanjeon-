@@ -67,6 +67,12 @@ svg{width:100%;height:100%;display:block}
 .hint{font-size:11px;color:#7a6a4a;text-align:center;margin-top:12px;line-height:1.6}
 .overlay{position:fixed;inset:0;background:rgba(8,5,2,.86);backdrop-filter:blur(3px);z-index:200;display:none;align-items:center;justify-content:center}
 .overlay.on{display:flex}
+@keyframes modalIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+.overlay.on>.battle,.overlay.on>.center-modal,.overlay.on>.duel-modal{animation:modalIn .26s cubic-bezier(.2,.7,.2,1) both}
+@keyframes numBump{0%{transform:scale(1)}35%{transform:scale(1.3);color:var(--gold)}100%{transform:scale(1)}}
+.stat .v.bump{animation:numBump .35s ease}
+@keyframes skillFire{0%{box-shadow:0 0 0 rgba(201,162,39,0)}40%{box-shadow:0 0 22px rgba(201,162,39,.85)}100%{box-shadow:0 0 0 rgba(201,162,39,0)}}
+#skillbtn.skillFire{animation:skillFire .6s ease}
 .splash{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;cursor:pointer;
   background:radial-gradient(circle at 50% 35%,#2a2014 0%,transparent 60%),#0c0905;}
 .splash.out{opacity:0;pointer-events:none;transition:opacity .6s ease}
@@ -333,6 +339,7 @@ function activateSkill(fac){
   if((factionBuff[fac]||0)>0){toast(`${sk.name}이(가) 이미 발동 중이다`);return;}
   factionBuff[fac]=sk.dur; factionCd[fac]=sk.cd+sk.dur;
   toast(`${sk.icon} ${sk.name} 발동! ${sk.desc}`); render();
+  const bt=$('skillbtn');if(bt){bt.classList.remove('skillFire');void bt.offsetWidth;bt.classList.add('skillFire');setTimeout(()=>bt.classList.remove('skillFire'),600);}
 }
 /* ============ 외교 ============ */
 const DIPLO_INIT={
@@ -1717,11 +1724,12 @@ function renderTurnReportModal(){
 }
 
 /* ============ 렌더 ============ */
+function setStat(id,val){const el=$(id);if(!el)return;if(el.textContent!==''&&el.dataset.v!==undefined&&el.dataset.v!==String(val)){el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');}el.dataset.v=val;el.textContent=val;}
 function render(){
-  $('turnv').textContent=turn;
+  setStat('turnv',turn);
   const owned=ownedBy(player);
-  $('goldv').textContent=fmt(owned.reduce((s,p)=>s+pstate[p.id].gold,0));
-  $('terrv').textContent=owned.length+' / '+provinces.length;
+  setStat('goldv',fmt(owned.reduce((s,p)=>s+pstate[p.id].gold,0)));
+  setStat('terrv',owned.length+' / '+provinces.length);
   $('erav').textContent=scenario?scenario.year:'—';
   $('fname').textContent=FACTIONS[player].name;
   $('fbadge').querySelector('.dot').style.background=fcolor(player);
@@ -1797,7 +1805,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.13.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.14.0-dev';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
