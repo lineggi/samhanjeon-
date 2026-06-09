@@ -33,6 +33,29 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;
 .btn:hover{background:var(--gold);color:#15110c;box-shadow:0 0 16px rgba(201,162,39,.4)}
 .btn:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(1)}
 .btn.sm{padding:6px 12px;font-size:12px}
+.menuwrap{position:relative}
+.menupop{position:absolute;right:0;top:calc(100% + 6px);min-width:172px;background:linear-gradient(180deg,#221a10,#171109);border:1.5px solid var(--gold);border-radius:6px;padding:6px;display:none;flex-direction:column;gap:3px;z-index:120;box-shadow:0 12px 34px rgba(0,0,0,.7)}
+.menupop.on{display:flex}
+.menupop button{font-family:'Pretendard';font-weight:700;font-size:13px;text-align:left;cursor:pointer;border:none;background:transparent;color:var(--paper);padding:10px 12px;border-radius:4px;letter-spacing:.5px;transition:.12s}
+.menupop button:hover{background:rgba(201,162,39,.16);color:var(--gold)}
+.menupop button:disabled{opacity:.4;cursor:not-allowed}
+/* 현재 행동 안내 배너(공격/이동/장수이동 모드) */
+.modebar{display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,rgba(158,43,39,.22),rgba(158,43,39,.06));border:1.5px solid var(--crimson);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:700;color:#f0d0c0;animation:modalIn .2s ease both}
+.modebar.move{background:linear-gradient(90deg,rgba(70,179,157,.2),rgba(70,179,157,.05));border-color:#46b39d;color:#cdeee6}
+.modebar .mb-x{margin-left:auto;flex:0 0 auto;cursor:pointer;border:1px solid currentColor;border-radius:4px;padding:4px 9px;font-size:12px;font-weight:800}
+.modebar .mb-x:hover{background:rgba(255,255,255,.12)}
+/* 행동 섹션 라벨 */
+.actsec{font-size:11px;letter-spacing:2px;color:#8a7a5a;font-weight:800;margin:12px 0 6px;display:flex;align-items:center;gap:8px}
+.actsec::after{content:"";flex:1;height:1px;background:#3a2c1c}
+/* 초보 안내(빈 패널) */
+.guide{font-size:13px;line-height:1.95;color:#c8b890}
+.guide .g-step{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed #2a2114}
+.guide .g-n{flex:0 0 auto;width:23px;height:23px;border-radius:50%;background:var(--gold);color:#15110c;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.guide .g-t b{color:var(--paper)}
+.tut-step{display:flex;gap:13px;align-items:flex-start;text-align:left;margin:13px 0;padding:13px;border:1px solid #3a2c1c;border-radius:7px;background:rgba(231,216,182,.03)}
+.tut-step .ts-ic{font-size:26px;flex:0 0 auto;line-height:1}
+.tut-step .ts-h{font-weight:800;color:var(--gold);font-size:15px;margin-bottom:3px}
+.tut-step .ts-d{font-size:13px;color:#c8b890;line-height:1.65}
 .btn.danger{border-color:var(--crimson);color:#e3a09c}
 .btn.danger:hover{background:var(--crimson);color:#fff;box-shadow:0 0 16px rgba(158,43,39,.5)}
 .main{flex:1;display:flex;overflow:hidden}
@@ -248,13 +271,18 @@ svg{width:100%;height:100%;display:block}
     <div class="stat"><span class="k">금(金)</span><span class="v" id="goldv">0</span></div>
     <div class="stat"><span class="k">영토</span><span class="v" id="terrv">0</span></div>
     <div class="fbadge" id="fbadge"><span class="dot"></span><span id="fname">—</span></div>
-    <button class="btn sm" id="helpbtn" title="도움말" onclick="showHelp()">❓</button>
-    <button class="btn sm" id="delegbtn" title="전권 일임(내정+압도적 우세 시 자동 공략)" onclick="delegateInternal()">🤖 일임</button>
-    <button class="btn sm" id="autobtn" title="매 턴 자동 일임" onclick="toggleAuto()">🔁 자동:끔</button>
     <button class="btn sm" id="skillbtn" title="세력 특기" onclick="activateSkill(player)" style="display:none"></button>
-    <button class="btn sm" id="diplobtn" title="외교" onclick="showDiplomacy()">🕊 외교</button>
-    <button class="btn sm" id="savebtn" title="저장" onclick="saveGame()">💾 저장</button>
-    <button class="btn sm" id="loadbtn" title="불러오기" onclick="loadGame()">📂 불러오기</button>
+    <button class="btn sm" id="delegbtn" title="전권 일임 — 내정을 자동 처리하고, 압도적 우세 시 공략까지" onclick="delegateInternal()">🤖 일임</button>
+    <div class="menuwrap">
+      <button class="btn sm" id="menubtn" title="메뉴" onclick="toggleMenu(event)">☰ 메뉴</button>
+      <div class="menupop" id="menupop">
+        <button id="autobtn" onclick="toggleAuto();closeMenu()">🔁 자동 일임: 끔</button>
+        <button id="diplobtn" onclick="showDiplomacy();closeMenu()">🕊 외교</button>
+        <button id="savebtn" onclick="saveGame();closeMenu()">💾 저장하기</button>
+        <button id="loadbtn" onclick="loadGame();closeMenu()">📂 불러오기</button>
+        <button id="helpbtn" onclick="showHelp();closeMenu()">❓ 도움말 / 조작법</button>
+      </div>
+    </div>
     <button class="btn" id="endturn">턴 종료 ▶</button>
   </div>
   <div class="main">
@@ -268,8 +296,8 @@ svg{width:100%;height:100%;display:block}
       </div>
     </div>
     <div class="side" id="side">
-      <div class="panel-title">군막(軍幕)</div>
-      <div class="panel-sub">지도를 눌러 성을 선택하라</div>
+      <div class="panel-title" id="paneltitle">군막(軍幕)</div>
+      <div class="panel-sub" id="panelsub">지도를 눌러 성을 선택하라</div>
       <div id="panelbody"></div>
       <div class="hint" id="hint">아군 성을 누르면 모병·훈련·출병을<br>지시할 수 있다. 적 성을 누르면 정세를 본다.</div>
     </div>
@@ -365,7 +393,11 @@ function delegateReport(rep){
   $('centerOverlay').classList.add('on');
 }
 function toggleAuto(){autoDelegate=!autoDelegate; toast(autoDelegate?'매 턴 내정 자동 일임 — 켬':'자동 일임 — 끔'); render();}
-function updateAutoBtn(){const b=$('autobtn');if(b){b.textContent=`🔁 자동:${autoDelegate?'켬':'끔'}`;b.style.color=autoDelegate?'var(--gold)':'';}}
+function updateAutoBtn(){const b=$('autobtn');if(b){b.textContent=`🔁 자동 일임: ${autoDelegate?'켬':'끔'}`;b.style.color=autoDelegate?'var(--gold)':'';}}
+/* 상단 메뉴 드롭다운 */
+function toggleMenu(e){if(e)e.stopPropagation();const m=$('menupop');if(m)m.classList.toggle('on');}
+function closeMenu(){const m=$('menupop');if(m)m.classList.remove('on');}
+document.addEventListener('click',e=>{const m=$('menupop');if(m&&m.classList.contains('on')&&!e.target.closest('.menuwrap'))m.classList.remove('on');});
 function playerGold(){return ownedBy(player).reduce((s,p)=>s+pstate[p.id].gold,0);}
 function spendGold(amt){let left=amt;for(const p of ownedBy(player)){if(left<=0)break;const take=Math.min(pstate[p.id].gold,left);pstate[p.id].gold-=take;left-=take;}return left<=0;}
 function proposePeace(f){if(diploUsed){toast('이번 턴 외교는 이미 행사했다');return;}if(playerGold()<200){toast('금이 부족하다');return;}
@@ -876,6 +908,23 @@ function loadScenario(sc){
   initDiplo(sc); factionBuff={}; factionCd={}; diploUsed=false; autoDelegate=false;
   eliminatedFactions=[]; eliminatedThisTurn=[]; marchQueue=[];
 }
+/* 첫 플레이 1회 조작 안내 */
+const TUT_KEY='samhanjeon_tut_v1';
+function tutorialSeen(){try{return !!localStorage.getItem(TUT_KEY);}catch(_){return false;}}
+function renderTutorialModal(){
+  const step=(ic,h,d)=>`<div class="tut-step"><div class="ts-ic">${ic}</div><div><div class="ts-h">${h}</div><div class="ts-d">${d}</div></div></div>`;
+  $('centerBox').innerHTML=`<h1 style="font-size:34px">시작하기<small>30초 조작 안내</small></h1>
+    <div style="max-width:480px;margin:8px auto 0">
+      ${step('🏯','① 내 성을 누른다','지도에서 <b>밝게 빛나는 성</b>이 내 성. 누르면 오른쪽(모바일은 아래)에 명령 버튼이 뜬다.')}
+      ${step('🏯','② 힘을 키운다','<b>징용</b>(병력)·<b>훈련</b>(사기)·<b>축성</b>(수비)·<b>둔전</b>(군량). 성마다 매 턴 <b>한 번</b> 명령할 수 있다.')}
+      ${step('⚔','③ 출병해 공략한다','<b>⚔ 출병</b>을 누르고 <b>인접한 적 성</b>을 고른다. 보낼 병력 수도 직접 정한다.')}
+      ${step('⏭','④ 턴을 마친다','할 일을 끝내면 <b>턴 종료</b>. 번거로우면 <b>🤖 일임</b>이 알아서 내정을 처리한다.')}
+      ${step('🏁','목표','전체 성의 <b>2/3</b>를 차지하면 천하 통일 — 승리!')}
+    </div>
+    <button class="btn" style="margin-top:18px" onclick="dismissTutorial()">알겠다, 시작! ▶</button>`;
+  $('centerOverlay').classList.add('on');
+}
+function dismissTutorial(){try{localStorage.setItem(TUT_KEY,'1');}catch(_){}advanceModals();}
 /* 도움말 모달 */
 function showHelp(){
   const sec=(t,b)=>`<div style="margin:10px 0 2px;color:var(--gold);font-weight:800;font-size:14px">${t}</div><div style="font-size:12.5px;color:#d8c9a6;line-height:1.7">${b}</div>`;
@@ -1099,8 +1148,23 @@ function renderLegend(){
 /* ============ 패널 ============ */
 function renderPanel(){
   const pb=$('panelbody');
-  if(!selected){pb.innerHTML='';$('hint').style.display='block';return;}
   $('hint').style.display='none';
+  {const pt=$('paneltitle'),ps=$('panelsub');
+   if(selected&&prov(selected)){const sp=prov(selected),sm=sp.owner===player;
+     if(pt)pt.textContent=sp.name; if(ps)ps.textContent=`${sp.sub} · ${sp.owner?FACTIONS[sp.owner].name:'무주공산'}${sm?' · 내 영토':''}`;}
+   else{if(pt)pt.textContent='군막(軍幕)'; if(ps)ps.textContent='지도를 눌러 성을 선택하라';}}
+  if(!selected){
+    const mine=scenario?ownedBy(player).length:0, pend=scenario?ownedBy(player).filter(x=>!pstate[x.id].acted).length:0;
+    pb.innerHTML=`<div class="guide">
+      <div style="font-size:13px;color:#b8a880;margin-bottom:4px">지도에서 <b style="color:var(--gold)">성</b>을 눌러 시작하세요.</div>
+      <div class="g-step"><span class="g-n">1</span><span class="g-t"><b>내 성</b>(밝게 빛나는 성)을 눌러 <b>모병·훈련·축성</b>으로 힘을 키운다</span></div>
+      <div class="g-step"><span class="g-n">2</span><span class="g-t"><b>⚔ 출병</b>으로 인접한 <b>적 성</b>을 공략한다 (보낼 병력 선택 가능)</span></div>
+      <div class="g-step"><span class="g-n">3</span><span class="g-t">할 일을 마치면 <b>턴 종료</b> — 귀찮으면 <b>🤖 일임</b>이 알아서 해준다</span></div>
+      <div class="g-step" style="border:none"><span class="g-n">🏁</span><span class="g-t">전체 성의 <b>2/3</b>를 차지하면 천하 패권 달성!</span></div>
+      ${scenario?`<div style="margin-top:10px;font-size:12px;color:#9c8c6a">현재 내 영토 <b style="color:var(--gold)">${mine}성</b>${pend>0?` · 이번 턴 행동할 성 <b style="color:var(--gold)">${pend}곳</b>`:' · 모든 성이 명을 받았다'}</div>`:''}
+    </div>`;
+    return;
+  }
   const p=prov(selected), st=pstate[selected], mine=p.owner===player;
   const seen=mine||adj(selected).some(t=>prov(t).owner===player); // 정찰: 내 성 또는 인접
   const g=seen?genAt(selected):null;
@@ -1150,20 +1214,30 @@ function renderPanel(){
   let act='';
   if(mine){const acted=st.acted;
     const friendly=adj(p.id).some(t=>prov(t).owner===player);
-    act=`<div class="panel-actions"><div class="actions">
-      <button class="btn sm" ${acted||st.gold<300||(st.pop||0)<2000?'disabled':''} onclick="doRecruit('${p.id}')">징용 +2000<br><small style="font-weight:400">금 300 · 백성 2000</small></button>
-      <button class="btn sm" ${acted||st.gold<150||st.train>=100?'disabled':''} onclick="doTrain('${p.id}')">훈련 +15<br><small style="font-weight:400">금 150</small></button>
-      <button class="btn sm danger" ${acted?'disabled':''} onclick="startAttack('${p.id}')">⚔ 출병</button>
-      <button class="btn sm" ${acted||!friendly?'disabled':''} onclick="startMove('${p.id}')">⇄ 병력 이동</button>
-      <button class="btn sm" style="grid-column:1/3" ${acted||!friendly||!g?'disabled':''} onclick="startGenMove('${p.id}')">將 장수 이동${g?'':' <small style="font-weight:400">(장수 없음)</small>'}</button>
-      <button class="btn sm" ${acted||st.gold<400||p.wall>=4?'disabled':''} onclick="doBuildWall('${p.id}')">🧱 축성 ${p.wall>=4?'(최대)':'+1'}<br><small style="font-weight:400">금 400</small></button>
-      <button class="btn sm" ${acted||st.gold<350?'disabled':''} onclick="doBuildFarm('${p.id}')">🌾 둔전 Lv${st.farm||0}→${(st.farm||0)+1}<br><small style="font-weight:400">금 350 · 군량생산↑</small></button>
-    </div>`;
-    if(acted)act+=`<div class="hint" style="display:block;color:#7a6a4a">이 성은 이번 턴에 이미 명을 받았다.</div>`;
+    act=`<div class="panel-actions">
+      <div class="actsec">⚔ 군사</div>
+      <div class="actions">
+        <button class="btn sm danger" style="grid-column:1/3" ${acted?'disabled':''} title="인접한 적 성을 골라 공략한다" onclick="startAttack('${p.id}')">⚔ 출병 — 적 성 공략</button>
+        <button class="btn sm" ${acted||!friendly?'disabled':''} title="${friendly?'인접 아군 성으로 병력 이동':'인접한 아군 성이 없다'}" onclick="startMove('${p.id}')">⇄ 병력 이동</button>
+        <button class="btn sm" ${acted||!g?'disabled':''} title="${g?'다른 아군 성으로 장수 이동(먼 성은 여러 턴)':'이 성에 장수가 없다'}" onclick="startGenMove('${p.id}')">將 장수 이동</button>
+      </div>
+      <div class="actsec">🏯 내정</div>
+      <div class="actions">
+        <button class="btn sm" ${acted||st.gold<300||(st.pop||0)<2000?'disabled':''} title="${(st.pop||0)<2000?'백성이 부족하다':st.gold<300?'금이 부족하다':'백성을 병사로'}" onclick="doRecruit('${p.id}')">⚑ 징용 +2000<br><small style="font-weight:400">금 300 · 백성 2000</small></button>
+        <button class="btn sm" ${acted||st.gold<150||st.train>=100?'disabled':''} title="${st.train>=100?'이미 최고 훈련도':st.gold<150?'금이 부족하다':'사기·훈련도 상승'}" onclick="doTrain('${p.id}')">🥁 훈련 +15<br><small style="font-weight:400">금 150</small></button>
+        <button class="btn sm" ${acted||st.gold<400||p.wall>=4?'disabled':''} title="${p.wall>=4?'이미 최대 성벽':st.gold<400?'금이 부족하다':'수비력 강화'}" onclick="doBuildWall('${p.id}')">🧱 축성 ${p.wall>=4?'(최대)':'+1'}<br><small style="font-weight:400">금 400</small></button>
+        <button class="btn sm" ${acted||st.gold<350?'disabled':''} title="${st.gold<350?'금이 부족하다':'군량 생산 +20%'}" onclick="doBuildFarm('${p.id}')">🌾 둔전 Lv${(st.farm||0)+1}<br><small style="font-weight:400">금 350</small></button>
+      </div>`;
+    if(acted)act+=`<div class="hint" style="display:block;color:#8fb89a">✔ 이 성은 이번 턴 명을 마쳤다.</div>`;
     act+=`</div>`;
-  }else{act=`<div class="hint" style="display:block">적의 성이다. 인접한 아군 성에서 출병해 공략하라.</div>`;}
-  pb.innerHTML=`<div class="panel-info">${info}</div>`+act;
+  }else{act=`<div class="hint" style="display:block">🚩 적의 성이다. 인접한 <b style="color:var(--paper)">아군 성</b>을 골라 <b style="color:#e3a09c">⚔ 출병</b>으로 공략하라.</div>`;}
+  let mb='';
+  if(attackMode)mb=`<div class="modebar">⚔<span>공격할 <b>인접 적 성</b>을 지도에서 고르세요</span><span class="mb-x" onclick="cancelMode()">취소</span></div>`;
+  else if(moveMode)mb=`<div class="modebar move">⇄<span>병력을 옮길 <b>인접 아군 성</b>을 고르세요</span><span class="mb-x" onclick="cancelMode()">취소</span></div>`;
+  else if(genMoveMode)mb=`<div class="modebar move">將<span>장수를 보낼 <b>아군 성</b>을 고르세요 <small style="color:#9c8c6a">· 먼 성은 여러 턴</small></span><span class="mb-x" onclick="cancelMode()">취소</span></div>`;
+  pb.innerHTML=mb+`<div class="panel-info">${info}</div>`+act;
 }
+function cancelMode(){attackMode=moveMode=genMoveMode=false;render();}
 
 function clickProv(id){
   if(aiAnimating)return;
@@ -2256,12 +2330,14 @@ function showFactionPick(){
 function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.classList.remove('active'));$('fp-'+f).classList.add('active');$('startBtn').disabled=false;}
 function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEvents=[];marchQueue=[];eliminatedFactions=[];eliminatedThisTurn=[];$('centerOverlay').classList.remove('on');render();
   const evs=takeDueEvents();   // 1턴(개전) 이벤트
-  if(evs.length){pendingModals=evs.map(e=>()=>renderEventModal(e));advanceModals();}
+  pendingModals=evs.map(e=>()=>renderEventModal(e));
+  if(!tutorialSeen())pendingModals.unshift(renderTutorialModal);  // 첫 플레이 1회 조작 안내
+  if(pendingModals.length)advanceModals();
   else toast(`${FACTIONS[player].name}, 천하를 도모하라`);
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.3.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.4.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
