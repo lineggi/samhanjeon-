@@ -136,6 +136,15 @@ svg{width:100%;height:100%;display:block}
 .tac .cbadge{display:inline-block;margin-top:4px;font-size:9px;color:#8a7a5a}
 /* 일기토 미니게임 */
 .duel-modal{width:min(560px,94vw);text-align:center;background:radial-gradient(circle at 50% 0%,#3a2418,#120d07);border:2px solid var(--blood);border-radius:6px;padding:26px;box-shadow:0 0 60px rgba(0,0,0,.85)}
+/* 일기토 3D 주사위 (CSS 3D, 라이브러리 없음) */
+.dicerow{display:flex;align-items:center;justify-content:center;gap:30px;margin:14px 0 6px;min-height:60px}
+.die3d{width:46px;height:46px;perspective:240px;display:inline-block}
+.die3d .cube{width:100%;height:100%;position:relative;transform-style:preserve-3d;transform:rotateX(-25deg) rotateY(-25deg);transition:transform .85s cubic-bezier(.2,.85,.3,1)}
+.die3d .df{position:absolute;width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-family:'Gugi';font-size:25px;font-weight:800;color:#2a1d10;background:linear-gradient(135deg,#f6e08c,#caa72e);border:1.5px solid #8c6a18;border-radius:7px;box-shadow:inset 0 0 7px rgba(0,0,0,.35)}
+.die3d .f1{transform:translateZ(23px)} .die3d .f6{transform:rotateY(180deg) translateZ(23px)}
+.die3d .f2{transform:rotateY(90deg) translateZ(23px)} .die3d .f5{transform:rotateY(-90deg) translateZ(23px)}
+.die3d .f3{transform:rotateX(90deg) translateZ(23px)} .die3d .f4{transform:rotateX(-90deg) translateZ(23px)}
+.dvs{font-family:'Gugi';color:var(--blood);font-size:20px}
 .duel-modal h2{font-family:'Gugi';color:var(--gold);font-size:30px;margin-bottom:4px}
 .duelvs{display:flex;align-items:center;justify-content:space-around;margin:14px 0}
 .dface{width:74px;height:92px;border-radius:4px;overflow:hidden;border:2px solid #4a3a24}
@@ -1562,6 +1571,11 @@ function startDuel(cb){
   duel={cb,pa:0,pd:0,round:1,me:B.A.g,foe:B.D.g,msg:'장수 대 장수 — 무력이 높을수록 주사위가 강하다'};
   renderDuel();$('centerOverlay').classList.add('on');
 }
+const DIE_ROT={1:[0,0],2:[0,-90],3:[-90,0],4:[90,0],5:[0,90],6:[0,180]};
+function dieCube(id){return `<div class="die3d"><div class="cube" id="${id}">`+
+  [1,2,3,4,5,6].map(v=>`<div class="df f${v}">${v}</div>`).join('')+`</div></div>`;}
+function rollDie(id,v,spins){const c=$(id);if(!c)return;const r=DIE_ROT[Math.max(1,Math.min(6,v))]||[0,0];
+  c.style.transform=`rotateX(${r[0]+360*(spins||2)}deg) rotateY(${r[1]+360*(spins||2)}deg)`;}
 function renderDuel(){
   const me=duel.me,foe=duel.foe;
   const face=g=>g.id?genPortrait(g):'<span class="noface" style="font-family:Gugi;color:#8a7a5a">無</span>';
@@ -1571,6 +1585,7 @@ function renderDuel(){
       <div><div class="dscore">${duel.pa} : ${duel.pd}</div><div style="font-size:11px;color:#7a6a4a">3선 2승</div></div>
       <div><div class="dface">${face(foe)}</div><div class="dwho" style="color:${fcolor(B.D.p.owner)}">${foe.name}</div><div style="font-size:11px;color:#9c8c6a">무력 ${foe.might}</div></div>
     </div>
+    <div class="dicerow">${dieCube('dieMe')}<span class="dvs">VS</span>${dieCube('dieFoe')}</div>
     <div class="dlog">${duel.msg}</div>
     <div class="duelchoice">
       <div class="dch" onclick="duelPick('slash')">베기<small>▶ 찌르기에 강</small></div>
@@ -1578,16 +1593,19 @@ function renderDuel(){
       <div class="dch" onclick="duelPick('guard')">막기<small>▶ 베기에 강</small></div>
     </div></div>`;
   $('centerBox').innerHTML=h;
+  requestAnimationFrame(()=>{rollDie('dieMe',duel.dieMe||1,duel.spinMe||0);rollDie('dieFoe',duel.dieFoe||1,duel.spinFoe||0);});
 }
 function duelPick(mv){
   if(!duel)return;
   const foeMv=['slash','thrust','guard'][Math.floor(Math.random()*3)];
-  let pr=mightDie(duel.me.might), fr=mightDie(duel.foe.might);
+  const baseP=mightDie(duel.me.might), baseF=mightDie(duel.foe.might);   // 3D 주사위에 표시할 기본 굴림(1~6)
+  let pr=baseP, fr=baseF;
   if(B.A.unit&&B.A.unit.duelEdge)pr+=B.A.unit.duelEdge;   // 화랑: 일기토 유리
   if(B.D.unit&&B.D.unit.duelEdge)fr+=B.D.unit.duelEdge;
   let adv='';
   if(DUEL_MOVES[mv].b===DUEL_MOVES[foeMv].n){pr+=2;adv=`상성! ${DUEL_MOVES[mv].n}이(가) ${DUEL_MOVES[foeMv].n}을(를) 누른다`;}
   else if(DUEL_MOVES[foeMv].b===DUEL_MOVES[mv].n){fr+=2;adv=`적의 ${DUEL_MOVES[foeMv].n}에 ${DUEL_MOVES[mv].n}이(가) 눌린다`;}
+  duel.dieMe=baseP; duel.dieFoe=baseF; duel.spinMe=(duel.spinMe||0)+2; duel.spinFoe=(duel.spinFoe||0)+2; // 매 굴림 회전 누적
   let res;
   if(pr>fr){duel.pa++;res='win';}else if(fr>pr){duel.pd++;res='lose';}else res='draw';
   duel.msg=`${duel.me.name} [${DUEL_MOVES[mv].n}] <span class="die">⚅${pr}</span> vs ${duel.foe.name} [${DUEL_MOVES[foeMv].n}] <span class="die">⚅${fr}</span>${adv?` — ${adv}`:''} · ${res==='win'?'이 합 승!':res==='lose'?'이 합 패…':'맞붙었다'}`;
@@ -1997,7 +2015,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.23.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.24.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
