@@ -245,6 +245,7 @@ svg{width:100%;height:100%;display:block}
     <div class="stat"><span class="k">금(金)</span><span class="v" id="goldv">0</span></div>
     <div class="stat"><span class="k">영토</span><span class="v" id="terrv">0</span></div>
     <div class="fbadge" id="fbadge"><span class="dot"></span><span id="fname">—</span></div>
+    <button class="btn sm" id="helpbtn" title="도움말" onclick="showHelp()">❓</button>
     <button class="btn sm" id="skillbtn" title="세력 특기" onclick="activateSkill(player)" style="display:none"></button>
     <button class="btn sm" id="diplobtn" title="외교" onclick="showDiplomacy()">🕊 외교</button>
     <button class="btn sm" id="savebtn" title="저장" onclick="saveGame()">💾 저장</button>
@@ -780,6 +781,25 @@ function loadScenario(sc){
   factionHanzi.china=sc.chanzi||'中';
   activeFactions=sc.factions.slice();
   initDiplo(sc); factionBuff={}; factionCd={};
+}
+/* 도움말 모달 */
+function showHelp(){
+  const sec=(t,b)=>`<div style="margin:10px 0 2px;color:var(--gold);font-weight:800;font-size:14px">${t}</div><div style="font-size:12.5px;color:#d8c9a6;line-height:1.7">${b}</div>`;
+  $('centerBox').innerHTML=`<h1 style="font-size:30px">도움말<small>삼한전 — 천하 통일의 길</small></h1>
+    <div style="text-align:left;max-width:480px;margin:10px auto;max-height:62vh;overflow-y:auto">
+    ${sec('🎯 목표','모든 성을 차지해 천하를 통일하라. 매 턴 성마다 한 번 명을 내릴 수 있다.')}
+    ${sec('🏯 성 운영','징용(금·백성→병력) · 훈련(사기) · 🧱축성(성벽↑ 수비) · 🌾둔전(군량 생산↑). 병력 이동·장수 이동으로 전선을 정비한다.')}
+    ${sec('⚔ 전투 전법 상성','돌격 ▶ 궁격 ▶ 계략 ▶ 돌격. 적 전법을 받아치면 위력↑·사기 타격. 일기토는 무력 대결(3선2승), 수비는 피해 경감.')}
+    ${sec('🪖 병종','세력 고유: 고구려 개마무사(돌격), 백제 궁수(궁격), 신라 화랑(일기토), 가야 판갑(방어), 당 부병(전법+쇠뇌), 왜병(돌격).')}
+    ${sec('✦ 세력 특기','신라 세속오계·백제 결사대·가야 철벽진·왜 해적기습·중국 대군물량(상단 버튼, 쿨다운). 고구려는 수비 시 청야전술(적 사기 절반·병력↓).')}
+    ${sec('🌾 군량·보급·계절','병력은 군량을 소비한다. 자국 도성과 길이 끊긴 고립 성은 보급 단절→기근. 봄·가을 풍요, 겨울 보급난.')}
+    ${sec('🌫 정찰','내 영토에 인접한 적 성만 병력·장수가 보인다. 그 외는 안갯속.')}
+    ${sec('🦅 협공','적 성이 내 성 2곳 이상과 닿으면 협공(합세 병력·적 사기↓). 고구려는 천리장성으로 연결된다.')}
+    ${sec('🕊 외교','동맹은 서로 공격하지 않는다. 동맹을 치면 즉시 파기. 시대마다 초기 관계가 다르다.')}
+    ${sec('💾 저장','매 턴 자동 저장되어 새로고침해도 이어할 수 있다. 시작 화면에서 이어하기.')}
+    </div>
+    <button class="btn" onclick="closeCenter()">알겠다 ▶</button>`;
+  $('centerOverlay').classList.add('on');
 }
 /* 외교 현황 모달 */
 function showDiplomacy(){
