@@ -618,7 +618,7 @@ function isSupplied(id){const owner=prov(id).owner;if(!owner)return false;const 
   while(q.length){const c=q.shift();if(prov(c).cap&&prov(c).owner===owner)return true;
     for(const n of adj(c))if(!seen.has(n)&&prov(n).owner===owner){seen.add(n);q.push(n);}}
   return false;}
-let starveThisTurn=[];
+let starveThisTurn=[], defectThisTurn=[];
 function prov(id){return provinces.find(p=>p.id===id);}
 // 한 성에 같은 세력 장수 여러 명 배치 가능. genAt=주장(통솔 최고)
 function gensAt(id){const o=prov(id)&&prov(id).owner;return generals.filter(g=>g.loc===id&&g.f===o);}
@@ -776,7 +776,7 @@ function loadScenario(sc){
   if(sc.garrison)provinces.forEach(p=>{const g=sc.garrison[p.owner];if(g!=null){
     const t=Array.isArray(g)?Math.round(g[0]+Math.random()*(g[1]-g[0])):g;
     pstate[p.id].troops=t; pstate[p.id].pop=Math.max(pstate[p.id].pop,Math.round(t*0.4)); pstate[p.id].food=Math.max(pstate[p.id].food,Math.round(t*3));}});
-  generals=sc.gens.map((g,i)=>({id:'G'+i,name:g[0],f:g[1],loc:g[2],lead:g[3],might:g[4],int:g[5]}));
+  generals=sc.gens.map((g,i)=>({id:'G'+i,name:g[0],f:g[1],loc:g[2],lead:g[3],might:g[4],int:g[5],loyalty:72+Math.floor(Math.random()*18)}));
   if(sc.cname)FACTIONS.china.name=sc.cname;
   factionHanzi.china=sc.chanzi||'中';
   activeFactions=sc.factions.slice();
@@ -1023,9 +1023,10 @@ function renderPanel(){
     ${unitOf(p.owner)?`<div class="row"><span class="lab">병종(兵種)</span><span class="val" style="font-size:12px;color:#8fd0c4" title="${unitOf(p.owner).desc}">${unitOf(p.owner).icon} ${unitOf(p.owner).name}</span></div>`:''}
   </div>`;
   }
-  if(g){const sk=genSkill(g);info+=`<div class="gen"><div class="face">${genPortrait(g)}</div>
+  if(g){const sk=genSkill(g);const ly=g.loyalty==null?72:g.loyalty;info+=`<div class="gen"><div class="face">${genPortrait(g)}</div>
     <div class="ginfo"><div class="gname">${g.name}${sk?` <span style="font-size:11px;color:var(--gold)">⚑${sk.name}</span>`:''}</div>
-    <div class="gstats"><span>통솔 <b>${g.lead}</b></span><span>무력 <b>${g.might}</b></span><span>지력 <b>${g.int}</b></span></div></div></div>`;
+    <div class="gstats"><span>통솔 <b>${g.lead}</b></span><span>무력 <b>${g.might}</b></span><span>지력 <b>${g.int}</b></span></div>
+    ${mine?`<div style="font-size:11px;margin-top:2px;color:${ly<30?'#ff7a6a':ly<55?'#caa72e':'#8fd0c4'}">충성 ${ly}${ly<30?' ⚠ 이탈 위험':''}</div>`:''}</div></div>`;
   }else if(seen){info+=`<div class="gen"><div class="face" style="background:#3a2c1c;color:#8a7a5a">無</div>
     <div class="ginfo"><div class="gname" style="color:#8a7a5a">무명 장수</div>
     <div class="gstats"><span>통솔 <b>60</b></span><span>무력 <b>60</b></span><span>지력 <b>60</b></span></div></div></div>`;}
@@ -1520,7 +1521,7 @@ function endBattle(result){
     toSt.food=Math.round(occupy*2)+Math.round((toSt.food||0)*0.4); fromSt.food=Math.max(0,Math.round((fromSt.food||0)-occupy*1.5)); // 군량: 원정 보급 소모·적 비축 일부 소실
     if(ag)ag.loc=B.to;
     // 주장 외 적 부장들: 30% 투항, 아니면 흩어짐
-    generals.forEach(g=>{if(g.loc===B.to&&g.f!==player&&g.id!==D.g.id){if(Math.random()<0.3)g.f=player;else g._gone=true;}});
+    generals.forEach(g=>{if(g.loc===B.to&&g.f!==player&&g.id!==D.g.id){if(Math.random()<0.3){g.f=player;g.loyalty=44+Math.floor(Math.random()*10);}else g._gone=true;}});
     generals=generals.filter(g=>!g._gone);
     const dg=generals.find(g=>g.id===D.g.id);
     setTimeout(()=>{if(dg)captureModal(dg);},60);
@@ -1540,7 +1541,7 @@ function captureModal(dg){
   $('centerOverlay').classList.add('on');
 }
 function recruitGen(id){const g=generals.find(x=>x.id===id);
-  if(Math.random()<0.55){g.f=player;g.loc=B?B.to:g.loc;toast(`${g.name}이(가) 충성을 맹세했다!`);}
+  if(Math.random()<0.55){g.f=player;g.loc=B?B.to:g.loc;g.loyalty=45+Math.floor(Math.random()*12);toast(`${g.name}이(가) 충성을 맹세했다!`);}
   else{toast(`${g.name}은(는) 끝내 굴복하지 않았다…`);generals=generals.filter(x=>x.id!==id);}
   closeCenter();render();}
 function closeCenter(){$('centerOverlay').classList.remove('on');render();}
@@ -1617,7 +1618,7 @@ function aiBattle(fromId,toId,opts){
     toSt.food=Math.round(occupy*2)+Math.round((toSt.food||0)*0.4); fromSt.food=Math.max(0,Math.round((fromSt.food||0)-occupy*1.5));
     if(ag)ag.loc=toId;
     // 함락된 성의 모든 적 장수: 40% 투항, 아니면 제거
-    generals.forEach(g=>{if(g.loc===toId&&g.f!==attacker){if(Math.random()<0.4)g.f=attacker;else g._gone=true;}});
+    generals.forEach(g=>{if(g.loc===toId&&g.f!==attacker){if(Math.random()<0.4){g.f=attacker;g.loyalty=44+Math.floor(Math.random()*10);}else g._gone=true;}});
     generals=generals.filter(g=>!g._gone);
     if(wasPlayer)lostThisTurn.push(prov(toId).name);
   }else{fromSt.troops=Math.max(300,Math.round(A.troops));}
@@ -1635,7 +1636,24 @@ function endTurn(){
 function finishTurn(){
   aiAnimating=false; turn++;
   activeFactions.forEach(f=>{if(factionBuff[f]>0)factionBuff[f]--;if(factionCd[f]>0)factionCd[f]--;}); // 특기 지속/쿨다운 경과
-  starveThisTurn=[];
+  starveThisTurn=[]; defectThisTurn=[];
+  // 장수 충성도: 세력이 강하면 오르고 쇠하면 떨어진다. 낮으면 인접 적 세력으로 이탈
+  {const terr={}; activeFactions.forEach(f=>terr[f]=ownedBy(f).length);
+   const avg=Object.values(terr).reduce((a,b)=>a+b,0)/(activeFactions.length||1);
+   generals.slice().forEach(g=>{
+     if(g.loyalty==null)g.loyalty=72;
+     const my=terr[g.f]||0;
+     g.loyalty=Math.max(0,Math.min(100, g.loyalty + (my<=0?-20: my>=avg?2: -4) ));
+     if(g.loyalty<25 && Math.random()<(25-g.loyalty)/90){
+       // 인접 적 세력(소유 성) 찾기
+       const foe=adj(g.loc).map(prov).find(t=>t.owner&&t.owner!==g.f);
+       const from=g.f;
+       if(foe){g.f=foe.owner;g.loc=foe.id;g.loyalty=48;
+         defectThisTurn.push({name:g.name,from,to:foe.owner});}
+       else {g._gone=true; defectThisTurn.push({name:g.name,from,to:null});}
+     }
+   });
+   generals=generals.filter(g=>!g._gone);}
   provinces.forEach(p=>{const st=pstate[p.id];
     const maxPop=Math.round(p.base*(p.cap?9:6));
     st.pop=Math.min(maxPop,st.pop+Math.round(st.pop*0.02)+40);   // 백성 자연 증가
@@ -1656,7 +1674,7 @@ function finishTurn(){
   if(!over){
     const evs=takeDueEvents();                         // 역사 이벤트(효과 적용)
     pendingModals=[];
-    if(turnEvents.length||starveThisTurn.length)pendingModals.push(renderTurnReportModal);
+    if(turnEvents.length||starveThisTurn.length||defectThisTurn.some(d=>d.from===player||d.to===player))pendingModals.push(renderTurnReportModal);
     evs.forEach(e=>pendingModals.push(()=>renderEventModal(e)));
     if(pendingModals.length){render();advanceModals();}
     else toast(`${turn}년차 — 새로운 한 해가 밝았다 (전선의 변동 없음)`);
@@ -1782,7 +1800,12 @@ function renderTurnReportModal(){
   const starve=starveThisTurn.map(s=>`<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #4a2c14;border-radius:5px;background:rgba(255,122,106,.06)">
       <span>🌾</span><b style="color:var(--paper)">${s.name}</b><span style="color:#9c8c6a">군량 고갈 — 병력</span>
       <span style="color:#ff7a6a;font-weight:700">-${fmt(s.lost)}</span><span style="color:#9c8c6a">탈영</span></div>`).join('');
-  const body=(rows||'')+(starve?`<div style="font-size:12px;color:#9c8c6a;margin-top:4px">기근</div>`+starve:'')||'<div style="color:#9c8c6a">전선의 변동이 없다</div>';
+  const defs=defectThisTurn.filter(d=>d.from===player||d.to===player).map(d=>{
+    const join=d.to===player;
+    return `<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #3a2c1c;border-radius:5px;background:rgba(201,162,39,.05)">
+      <span>${join?'🤝':'🏃'}</span><b style="color:var(--paper)">${d.name}</b>
+      <span style="margin-left:auto;color:${join?'#6fe07a':'#ff7a6a'};font-weight:700">${join?(FACTIONS[d.from]?FACTIONS[d.from].name+'에서 귀순':'귀순'):(d.to?FACTIONS[d.to].name+'으로 이탈':'낙향')}</span></div>`;}).join('');
+  const body=(rows||'')+(starve?`<div style="font-size:12px;color:#9c8c6a;margin-top:4px">기근</div>`+starve:'')+(defs?`<div style="font-size:12px;color:#9c8c6a;margin-top:4px">장수 동향</div>`+defs:'')||'<div style="color:#9c8c6a">전선의 변동이 없다</div>';
   $('centerBox').innerHTML=`<h1 style="font-size:30px">戰況<small>${turn}년차 전황 보고</small></h1>
     <div style="text-align:left;max-width:440px;margin:14px auto;display:flex;flex-direction:column;gap:7px;max-height:50vh;overflow-y:auto">${body}</div>
     <button class="btn" onclick="advanceModals()">확인 ▶</button>`;
@@ -1920,7 +1943,7 @@ function loadGame(){
     loadScenario(sc);                                 // 기본 상태 구성
     provinces.forEach(p=>{ if(data.owners&&data.owners[p.id]!==undefined) p.owner=data.owners[p.id]; if(data.walls&&data.walls[p.id]!=null) p.wall=data.walls[p.id]; });
     if(data.pstate)pstate=data.pstate;
-    if(data.gens)generals=data.gens;
+    if(data.gens){generals=data.gens;generals.forEach(g=>{if(g.loyalty==null)g.loyalty=72;});}
     player=data.player||player; turn=data.turn||1;
     activeFactions=data.activeFactions||sc.factions.slice();
     lostThisTurn=data.lostThisTurn||[];
@@ -1931,7 +1954,7 @@ function loadGame(){
     if(data.chanzi)factionHanzi.china=data.chanzi;
     provinces.forEach(p=>{const s=pstate[p.id];if(s&&s.pop==null)s.pop=Math.round(p.base*(p.cap?6:4));if(s&&s.food==null)s.food=Math.round(s.troops*3)+1000;if(s&&s.farm==null)s.farm=0;}); // 구버전 저장본 백성·군량·둔전 보정
   }catch(err){toast('저장본이 손상되어 불러올 수 없다');return;}
-  selected=null; attackMode=false; moveMode=false; genMoveMode=false; moveDlg=null; aiAnimating=false; B=null; duel=null; turnEvents=[]; pendingModals=[]; starveThisTurn=[];
+  selected=null; attackMode=false; moveMode=false; genMoveMode=false; moveDlg=null; aiAnimating=false; B=null; duel=null; turnEvents=[]; pendingModals=[]; starveThisTurn=[]; defectThisTurn=[];
   $('centerOverlay').classList.remove('on'); $('battleOverlay').classList.remove('on');
   if($('splash'))$('splash').style.display='none';
   render();
