@@ -434,7 +434,27 @@ function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clear
 function _hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 function _mb(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function shade(hex,amt){let c=hex.replace('#','');if(c.length===3)c=c.split('').map(x=>x+x).join('');let r=parseInt(c.slice(0,2),16),g=parseInt(c.slice(2,4),16),b=parseInt(c.slice(4,6),16);const f=x=>Math.max(0,Math.min(255,Math.round(x+amt))).toString(16).padStart(2,'0');return '#'+f(r)+f(g)+f(b);}
+/* 장수 일러스트 매니페스트: 이름→이미지 경로. 항목이 있으면 그 일러스트를, 없으면 절차적 SVG로 폴백.
+   예) '광개토대왕':'assets/portraits/광개토대왕.webp'  (이미지를 추가할 때마다 한 줄씩 등록) */
+const PORTRAITS={
+  // '광개토대왕':'assets/portraits/광개토대왕.webp',
+};
 function genPortrait(g){
+  const src=g&&g.name?PORTRAITS[g.name]:null;
+  if(src){
+    const dg=JSON.stringify(g).replace(/"/g,'&quot;');
+    return `<img class="genimg" src="${src}" alt="${g.name}" loading="lazy" decoding="async" `
+      +`style="width:100%;height:100%;object-fit:cover;display:block" `
+      +`data-g="${dg}" onerror="portraitFallback(this)">`;
+  }
+  return genPortraitSVG(g);
+}
+/* 이미지 로드 실패 시 절차적 SVG로 자동 대체 */
+function portraitFallback(img){
+  try{img.outerHTML=genPortraitSVG(JSON.parse(img.getAttribute('data-g')));}
+  catch(_){img.replaceWith(Object.assign(document.createElement('div'),{textContent:'無',style:'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#3a2c1c;color:#8a7a5a;font-family:Gugi'}));}
+}
+function genPortraitSVG(g){
   const rng=_mb(_hash(g.name+'|'+g.lead+g.might+g.int)), R=a=>a[Math.floor(rng()*a.length)], rr=(lo,hi)=>lo+rng()*(hi-lo);
   const fac=fcolor(g.f), u='p'+(_hash(g.name)%99999);
   const isKing=/왕/.test(g.name)&&!/태자/.test(g.name);
