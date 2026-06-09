@@ -995,7 +995,7 @@ function renderMap(){
   // 육지(한반도+만주+산동+왜)
   MAP_PATHS.forEach(d=>{ h+=`<path d="${d}" fill="rgba(120,95,55,.13)" stroke="#5a4a30" stroke-width="0.8" opacity=".8"/>`; });
   // 영토 — 땅 전체 보로노이 분할(빈공간0). 부여성 등 변경 성만 실제 영역으로 제한. goo로 둥글게
-  const CAPR={}; // 제한 없음 — 고구려가 만주~북부 육지를 꽉 채우도록(역사 지도처럼), 바다는 land clip이 막음
+  const CAPR={buyeo:34, chaek:40}; // 북방 변경 성 영역 제한 — 고구려 영토를 북방 경계선까지만(빈 북방 미점유)
   const sites=provinces.filter(p=>p.owner).map(p=>({owner:p.owner,x:D[p.id].x,y:D[p.id].y,capR:CAPR[p.id]||0}));
   const cells=voronoiCells(sites);
   const poly=c=>`<polygon points="${c.poly.map(pt=>pt[0].toFixed(1)+','+pt[1].toFixed(1)).join(' ')}"`;
@@ -2009,7 +2009,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.29.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.30.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
