@@ -928,9 +928,10 @@ function renderMap(){
   const z=zoomScale, ns=Math.pow(z,-0.5);
   const labelItems=[];
   provinces.forEach(p=>{
-    const st=pstate[p.id], col=fcolor(p.owner), g=genAt(p.id);
+    const scout=!p.owner||p.owner===player||adj(p.id).some(t=>prov(t).owner===player); // 정찰 여부
+    const st=pstate[p.id], col=fcolor(p.owner), g=scout?genAt(p.id):null;
     const c=D[p.id], px=c.x, py=c.y;
-    const r=(6.5+Math.min(5.5,st.troops/1500))*ns;
+    const r=(6.5+Math.min(5.5,(scout?st.troops:3000)/1500))*ns;
     const isSel=selected===p.id, targetable=attackMode&&p.owner!==player&&adj(selected).includes(p.id);
     const moveTarget=(moveMode||genMoveMode)&&p.owner===player&&p.id!==selected&&adj(selected).includes(p.id);
     const showName=z>=1.5||p.cap||isSel, showTroop=isSel||z>=6;
@@ -941,7 +942,7 @@ function renderMap(){
     h+=`<circle class="pcore" cx="${px}" cy="${py}" r="${r}" fill="${col}" stroke="#15110c" stroke-width="${2*ns}" opacity=".96"/>`;
     if(p.cap)h+=`<circle cx="${px}" cy="${py}" r="${r-4*ns}" fill="none" stroke="#15110c" stroke-width="${1.2*ns}" opacity=".5"/>`;
     if(g){const ng=gensAt(p.id).length;h+=`<circle cx="${px+r*0.7}" cy="${py-r*0.7}" r="${6*ns}" fill="#15110c" stroke="${col}" stroke-width="${1.6*ns}"/><text x="${px+r*0.7}" y="${py-r*0.7+2.6*ns}" font-size="${7*ns}" fill="${col}" text-anchor="middle" font-family="Gugi">將</text>${ng>1?`<text x="${px+r*0.7+6*ns}" y="${py-r*0.7-4*ns}" font-size="${6*ns}" fill="var(--gold)" text-anchor="middle" font-family="Pretendard" font-weight="800" paint-order="stroke" stroke="#15110c" stroke-width="${1.5*ns}">${ng}</text>`:''}`;}
-    if(showTroop)h+=`<text class="psub" x="${px}" y="${py+r+5.5*ns}" style="font-size:${7*ns}px;stroke-width:${2*ns}px">${fmtK(st.troops)}</text>`;
+    if(showTroop)h+=`<text class="psub" x="${px}" y="${py+r+5.5*ns}" style="font-size:${7*ns}px;stroke-width:${2*ns}px">${scout?fmtK(st.troops):'?'}</text>`;
     h+=`</g>`;
     if(showName)labelItems.push({x:px,y:py,r,text:p.name,col,sel:isSel});
   });
@@ -969,8 +970,21 @@ function renderPanel(){
   const pb=$('panelbody');
   if(!selected){pb.innerHTML='';$('hint').style.display='block';return;}
   $('hint').style.display='none';
-  const p=prov(selected), st=pstate[selected], g=genAt(selected), mine=p.owner===player;
-  let info=`<div class="card" style="border-color:${fcolor(p.owner)}">
+  const p=prov(selected), st=pstate[selected], mine=p.owner===player;
+  const seen=mine||adj(selected).some(t=>prov(t).owner===player); // 정찰: 내 성 또는 인접
+  const g=seen?genAt(selected):null;
+  let info;
+  if(!seen){
+    info=`<div class="card" style="border-color:${fcolor(p.owner)}">
+      <div><span style="font-family:Gugi;font-size:23px;color:${fcolor(p.owner)}">${p.name}</span>
+      <span style="font-size:11px;color:#8a7a5a;margin-left:6px">${p.sub} · ${FACTIONS[p.owner].name}${p.cap?' · 都城':''}</span></div>
+      <div class="row"><span class="lab">병력</span><span class="val" style="color:#8a7a5a">？ 미정찰</span></div>
+      <div class="row" style="margin-top:8px"><span class="lab">지형</span><span class="val" style="font-size:13px">${p.terr}</span></div>
+      <div class="row"><span class="lab">성벽</span><span class="val" style="font-size:13px">${'■'.repeat(p.wall)}${'□'.repeat(4-p.wall)}</span></div>
+      <div class="hint" style="display:block;color:#7a6a4a;margin-top:6px">🌫 정찰되지 않은 적 성 — 병력·장수가 안갯속에 있다. 인접한 아군 성이 있어야 정탐된다.</div>
+    </div>`;
+  } else {
+  info=`<div class="card" style="border-color:${fcolor(p.owner)}">
     <div><span style="font-family:Gugi;font-size:23px;color:${fcolor(p.owner)}">${p.name}</span>
     <span style="font-size:11px;color:#8a7a5a;margin-left:6px">${p.sub} · ${FACTIONS[p.owner].name}${p.cap?' · 都城':''}</span></div>
     <div class="row"><span class="lab">병력</span><span class="val">${fmt(st.troops)}</span></div>
@@ -988,10 +1002,11 @@ function renderPanel(){
     <div class="row"><span class="lab">세수(/턴)</span><span class="val" style="font-size:12px;color:#9c8c6a">+${fmt(60+p.wall*25+Math.round((st.pop||0)*0.02))}</span></div>
     ${unitOf(p.owner)?`<div class="row"><span class="lab">병종(兵種)</span><span class="val" style="font-size:12px;color:#8fd0c4" title="${unitOf(p.owner).desc}">${unitOf(p.owner).icon} ${unitOf(p.owner).name}</span></div>`:''}
   </div>`;
+  }
   if(g){const sk=genSkill(g);info+=`<div class="gen"><div class="face">${genPortrait(g)}</div>
     <div class="ginfo"><div class="gname">${g.name}${sk?` <span style="font-size:11px;color:var(--gold)">⚑${sk.name}</span>`:''}</div>
     <div class="gstats"><span>통솔 <b>${g.lead}</b></span><span>무력 <b>${g.might}</b></span><span>지력 <b>${g.int}</b></span></div></div></div>`;
-  }else{info+=`<div class="gen"><div class="face" style="background:#3a2c1c;color:#8a7a5a">無</div>
+  }else if(seen){info+=`<div class="gen"><div class="face" style="background:#3a2c1c;color:#8a7a5a">無</div>
     <div class="ginfo"><div class="gname" style="color:#8a7a5a">무명 장수</div>
     <div class="gstats"><span>통솔 <b>60</b></span><span>무력 <b>60</b></span><span>지력 <b>60</b></span></div></div></div>`;}
   // 같은 성의 부장(주장 외) 목록
