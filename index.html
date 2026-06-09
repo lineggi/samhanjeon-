@@ -479,7 +479,7 @@ const SCENARIOS=[
 
 /* ============ 런타임 ============ */
 let provinces=[], pstate={}, generals=[];
-let player='goguryeo', turn=1, selected=null, attackMode=false, scenario=null, activeFactions=[], zoomScale=1, lastD={}, aiAnimating=false, lostThisTurn=[], moveMode=false, genMoveMode=false;
+let player='goguryeo', turn=1, selected=null, attackMode=false, scenario=null, activeFactions=[], zoomScale=1, lastD={}, aiAnimating=false, lostThisTurn=[], moveMode=false, genMoveMode=false, turnEvents=[];
 const $=id=>document.getElementById(id);
 function adj(id){const r=new Set();EDGES.forEach(([a,b])=>{if(a===id)r.add(b);if(b===id)r.add(a)});return [...r];}
 function prov(id){return provinces.find(p=>p.id===id);}
@@ -1269,6 +1269,7 @@ function endBattle(result){
   B.over=true;const A=B.A,D=B.D,fromSt=pstate[B.from],toSt=pstate[B.to];fromSt.acted=true;
   if(result==='win'){
     blog('crit',`★ ${D.p.name} 함락! 그대가 성을 차지한다.`);
+    turnEvents.push({atk:player,def:D.p.owner,castle:D.p.name,pincer:!!B.pincer});
     const occupy=Math.max(800,Math.round(A.troops));
     fromSt.troops=Math.max(300,Math.round(fromSt.troops-A.startT)+300);
     const ag=genAt(B.from);D.p.owner=player;
@@ -1352,7 +1353,8 @@ function aiBattle(fromId,toId,opts){
   const fromSt=pstate[fromId],toSt=pstate[toId];
   const won=(D.troops<=0||D.morale<=0)&&A.troops>0&&A.morale>0;
   if(won){
-    const occupy=Math.max(700,Math.round(A.troops)),ag=genAt(fromId),attacker=prov(fromId).owner,wasPlayer=prov(toId).owner===player;
+    const occupy=Math.max(700,Math.round(A.troops)),ag=genAt(fromId),attacker=prov(fromId).owner,defender=prov(toId).owner,wasPlayer=defender===player;
+    turnEvents.push({atk:attacker,def:defender,castle:prov(toId).name,pincer:!!(opts&&opts.pincer)});
     prov(toId).owner=attacker;fromSt.troops=Math.max(300,Math.round(fromSt.troops-A.startT)+300);
     toSt.troops=occupy;toSt.train=Math.min(85,Math.round(A.morale));
     const dg=generals.find(g=>g.loc===toId&&g.f!==attacker);if(ag)ag.loc=toId;
@@ -1377,10 +1379,13 @@ function finishTurn(){
     st.pop=Math.min(maxPop,st.pop+Math.round(st.pop*0.02)+40);   // 백성 자연 증가
     st.gold+=60+p.wall*25+Math.round(st.pop*0.02);               // 수입 = 백성 세금 + 성벽 교역 + 기본
     st.acted=false;});
-  selected=null; render(); checkVictory();
+  selected=null; render();
+  const over=checkVictory();
   saveGame(true);   // 매 턴 자동 저장(새로고침해도 이어하기 가능)
-  if(lostThisTurn.length) toast(`지난 한 해, ${lostThisTurn.join('·')}을(를) 잃었다!`);
-  else toast(`${turn}년차 — 새로운 한 해가 밝았다`);
+  if(!over){
+    if(!showTurnReport()) toast(`${turn}년차 — 새로운 한 해가 밝았다 (전선의 변동 없음)`);
+  }
+  turnEvents=[];   // 보고 후 초기화(다음 턴 누적 시작)
 }
 function checkVictory(){
   const owners=new Set(provinces.map(p=>p.owner));
@@ -1389,11 +1394,34 @@ function checkVictory(){
       <small>${win?FACTIONS[w].name+'의 깃발이 삼한을 덮다':FACTIONS[w].name+'에게 무릎 꿇다'}</small></h1>
       <p>${win?`마침내 한반도의 모든 성이 그대의 손에 들어왔다.<br>삼국의 시대는 끝나고, 그대의 시대가 열렸다.`:`그대의 모든 성이 함락되었다. 야망은 여기서 멈춘다.`}</p>
       <button class="btn" onclick="location.reload()">다시 시작</button>`;
-    $('centerOverlay').classList.add('on');return;}
+    $('centerOverlay').classList.add('on');return true;}
   if(ownedBy(player).length===0){
     $('centerBox').innerHTML=`<h1 style="color:var(--crimson);font-size:44px">敗 亡<small>그대의 마지막 성이 무너졌다</small></h1>
       <p>${FACTIONS[player].name}의 깃발은 모두 내려졌다.</p><button class="btn" onclick="location.reload()">다시 시작</button>`;
-    $('centerOverlay').classList.add('on');}
+    $('centerOverlay').classList.add('on');return true;}
+  return false;
+}
+/* 턴 종료 전황 보고 — 누가 어디를 함락했는지 */
+function showTurnReport(){
+  if(!turnEvents.length)return false;
+  const rows=turnEvents.map(e=>{
+    const tag=e.atk===player?'<span style="color:#6fe07a">아군 점령</span>'
+      :e.def===player?'<span style="color:#ff7a6a">상실!</span>':'';
+    return `<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #2a2114;border-radius:5px;background:rgba(231,216,182,.03)">
+      <span style="color:${fcolor(e.atk)};font-weight:800">${FACTIONS[e.atk].name}</span>
+      <span style="color:#7a6a4a">▶</span>
+      <span style="color:${fcolor(e.def)};font-weight:700">${FACTIONS[e.def].name}</span>
+      <span style="color:#9c8c6a">의</span>
+      <b style="color:var(--paper)">${e.castle}</b>
+      <span style="color:#9c8c6a">함락</span>
+      ${e.pincer?'<span style="color:var(--gold);font-size:11px">🦅협공</span>':''}
+      <span style="margin-left:auto;font-size:11px">${tag}</span>
+    </div>`;}).join('');
+  $('centerBox').innerHTML=`<h1 style="font-size:30px">戰況<small>${turn}년차 전황 보고</small></h1>
+    <div style="text-align:left;max-width:440px;margin:14px auto;display:flex;flex-direction:column;gap:7px;max-height:50vh;overflow-y:auto">${rows}</div>
+    <button class="btn" onclick="closeCenter()">확인 ▶</button>`;
+  $('centerOverlay').classList.add('on');
+  return true;
 }
 
 /* ============ 렌더 ============ */
@@ -1469,10 +1497,10 @@ function showFactionPick(){
     <button class="btn" id="startBtn" disabled onclick="beginGame()">출진(出陣) ▶</button>`;
 }
 function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.classList.remove('active'));$('fp-'+f).classList.add('active');$('startBtn').disabled=false;}
-function beginGame(){player=chosenF;turn=1;selected=null;$('centerOverlay').classList.remove('on');render();toast(`${FACTIONS[player].name}, 천하를 도모하라`);}
+function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];$('centerOverlay').classList.remove('on');render();toast(`${FACTIONS[player].name}, 천하를 도모하라`);}
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.5.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.6.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -1524,7 +1552,7 @@ function loadGame(){
     if(data.chanzi)factionHanzi.china=data.chanzi;
     provinces.forEach(p=>{const s=pstate[p.id];if(s&&s.pop==null)s.pop=Math.round(p.base*(p.cap?6:4));}); // 구버전 저장본 백성 보정
   }catch(err){toast('저장본이 손상되어 불러올 수 없다');return;}
-  selected=null; attackMode=false; moveMode=false; genMoveMode=false; moveDlg=null; aiAnimating=false; B=null; duel=null;
+  selected=null; attackMode=false; moveMode=false; genMoveMode=false; moveDlg=null; aiAnimating=false; B=null; duel=null; turnEvents=[];
   $('centerOverlay').classList.remove('on'); $('battleOverlay').classList.remove('on');
   if($('splash'))$('splash').style.display='none';
   render();
