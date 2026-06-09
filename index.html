@@ -1129,52 +1129,73 @@ $('endturn').onclick=endTurn;
 /* ============ 지도 확대(휠)·이동(드래그) ============ */
 const MAP=$('map'), BASE_W=560, BASE_H=660;
 let view={x:0,y:0,w:BASE_W,h:BASE_H}, suppressClick=false, _zraf=0;
-const pointers=new Map(); let panStart=null, pinchStart=null;
-function applyView(){MAP.setAttribute('viewBox',`${view.x.toFixed(1)} ${view.y.toFixed(1)} ${view.w.toFixed(1)} ${view.h.toFixed(1)}`);}
+const pointers=new Map(); let panStart=null, pinch=null;
+const MINW=BASE_W/30;
+function applyView(){MAP.setAttribute('viewBox',`${view.x.toFixed(2)} ${view.y.toFixed(2)} ${view.w.toFixed(2)} ${view.h.toFixed(2)}`);}
 function setZoom(){zoomScale=BASE_W/view.w; if(_zraf)return; _zraf=requestAnimationFrame(()=>{_zraf=0;renderMap();});}
 function clampPan(){view.x=Math.max(0,Math.min(BASE_W-view.w,view.x));view.y=Math.max(0,Math.min(BASE_H-view.h,view.y));}
-function clientToSvg(cx,cy){const pt=MAP.createSVGPoint();pt.x=cx;pt.y=cy;return pt.matrixTransform(MAP.getScreenCTM().inverse());}
-function zoomAt(cx,cy,factor){
-  const p=clientToSvg(cx,cy);
-  const minW=BASE_W/30;
-  let nw=Math.max(minW,Math.min(BASE_W,view.w*factor)), f=nw/view.w;
-  view.x=p.x-(p.x-view.x)*f; view.y=p.y-(p.y-view.y)*f;
+
+/* rAF 배칭: 한 프레임에 최대 한 번만 viewBox 갱신(고주사율 기기 잰크 방지) */
+let _praf=0,_needZoom=false;
+function flush(){_praf=0;clampPan();applyView();if(_needZoom){_needZoom=false;setZoom();}}
+function schedule(zoom){if(zoom)_needZoom=true;if(!_praf)_praf=requestAnimationFrame(flush);}
+
+function zoomAt(cx,cy,factor){ // 휠/버튼 확대 (클라이언트 좌표 기준)
+  const r=MAP.getBoundingClientRect();
+  const sx=view.x+(cx-r.left)*view.w/r.width, sy=view.y+(cy-r.top)*view.h/r.height;
+  let nw=Math.max(MINW,Math.min(BASE_W,view.w*factor)), f=nw/view.w;
+  view.x=sx-(sx-view.x)*f; view.y=sy-(sy-view.y)*f;
   view.w=nw; view.h=BASE_H*(nw/BASE_W);
   clampPan(); applyView(); setZoom();
 }
 function zoomBtn(factor){const r=MAP.getBoundingClientRect();zoomAt(r.left+r.width/2,r.top+r.height/2,factor);}
 function zoomReset(){view={x:0,y:0,w:BASE_W,h:BASE_H};applyView();setZoom();}
-function pinchState(){const a=[...pointers.values()];const dx=a[0].x-a[1].x,dy=a[0].y-a[1].y;return{d:Math.hypot(dx,dy),cx:(a[0].x+a[1].x)/2,cy:(a[0].y+a[1].y)/2};}
 MAP.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,e.deltaY<0?0.82:1/0.82);},{passive:false});
-function beginPan(p){const ctm=MAP.getScreenCTM();panStart={sx:p.x,sy:p.y,ox:view.x,oy:view.y,k:ctm?1/ctm.a:1,moved:false};}
-let _praf=0;
-function flushPan(){_praf=0;clampPan();applyView();}
+
+function beginPan(p){const r=MAP.getBoundingClientRect();panStart={sx:p.x,sy:p.y,ox:view.x,oy:view.y,k:view.w/r.width,moved:false};}
+/* 핀치 시작: 두 손가락 중심 아래의 지도 좌표를 앵커로 고정 → 확대·이동을 하나의 변환으로 처리 */
+function beginPinch(){
+  const a=[...pointers.values()];
+  const cx=(a[0].x+a[1].x)/2, cy=(a[0].y+a[1].y)/2;
+  const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+  const r=MAP.getBoundingClientRect();
+  pinch={d0:Math.max(d,1),vw0:view.w,r,anchorX:view.x+(cx-r.left)*view.w/r.width,anchorY:view.y+(cy-r.top)*view.h/r.height,moved:false};
+}
 MAP.addEventListener('pointerdown',e=>{
   suppressClick=false;
   try{MAP.setPointerCapture(e.pointerId);}catch(_){}
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pointers.size===1){beginPan({x:e.clientX,y:e.clientY});}
-  else if(pointers.size===2){panStart=null;pinchStart=pinchState();}
+  if(pointers.size===1){pinch=null;beginPan({x:e.clientX,y:e.clientY});}
+  else if(pointers.size===2){panStart=null;beginPinch();}
 });
 window.addEventListener('pointermove',e=>{
   if(!pointers.has(e.pointerId))return;
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pointers.size>=2&&pinchStart){
-    const ps=pinchState();
-    if(ps.d>0&&pinchStart.d>0){zoomAt(ps.cx,ps.cy,pinchStart.d/ps.d);pinchStart=ps;}
-  } else if(pointers.size===1&&panStart){
+  if(pointers.size>=2){ // 핀치: 확대+이동 동시 처리(손가락 아래 지점이 따라옴)
+    if(!pinch)beginPinch();
+    const a=[...pointers.values()];
+    const cx=(a[0].x+a[1].x)/2, cy=(a[0].y+a[1].y)/2;
+    const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    if(d<=0)return;
+    pinch.moved=true; suppressClick=true;
+    const nw=Math.max(MINW,Math.min(BASE_W,pinch.vw0*pinch.d0/d));
+    view.w=nw; view.h=BASE_H*(nw/BASE_W);
+    view.x=pinch.anchorX-(cx-pinch.r.left)*view.w/pinch.r.width;
+    view.y=pinch.anchorY-(cy-pinch.r.top)*view.h/pinch.r.height;
+    schedule(true);
+  } else if(pointers.size===1&&panStart){ // 한 손가락: 이동만
     if(Math.abs(e.clientX-panStart.sx)+Math.abs(e.clientY-panStart.sy)>8)panStart.moved=true;
     view.x=panStart.ox-(e.clientX-panStart.sx)*panStart.k; view.y=panStart.oy-(e.clientY-panStart.sy)*panStart.k;
-    if(!_praf)_praf=requestAnimationFrame(flushPan);
+    schedule(false);
   }
 });
 function _endPtr(e){
-  if(panStart&&panStart.moved)suppressClick=true;
+  if((panStart&&panStart.moved)||(pinch&&pinch.moved))suppressClick=true;
   try{MAP.releasePointerCapture(e.pointerId);}catch(_){}
   pointers.delete(e.pointerId);
-  if(pointers.size<2)pinchStart=null;
+  if(pointers.size<2)pinch=null;
   if(pointers.size===0)panStart=null;
-  else if(pointers.size===1){const last=[...pointers.values()][0];beginPan(last);} // 핀치 후 남은 손가락으로 팬 이어가기
+  else if(pointers.size===1){beginPan([...pointers.values()][0]);} // 핀치 후 남은 손가락으로 끊김 없이 팬 전환
 }
 window.addEventListener('pointerup',_endPtr);
 window.addEventListener('pointercancel',_endPtr);
