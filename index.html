@@ -113,6 +113,34 @@ svg{width:100%;height:100%;display:block}
 .blog .atk{color:#e8c97a}.blog .def{color:#d89a96}.blog .sys{color:#8aa8a0;font-style:italic}.blog .crit{color:#ffd24a;font-weight:700}
 .bfoot{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
 .round{font-family:'Gugi';color:var(--gold);font-size:18px}
+/* 전투 연출(주스감) */
+.battle{position:relative}
+@keyframes bshake{0%,100%{transform:translate(0,0)}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-3px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-2px)}}
+.battle.shake{animation:bshake .32s ease}
+.battle.shakehard{animation:bshake .5s ease}
+@keyframes dmgfloat{0%{opacity:0;transform:translate(-50%,8px) scale(.7)}15%{opacity:1}100%{opacity:0;transform:translate(-50%,-46px) scale(1.15)}}
+.dmgfloat{position:absolute;left:50%;top:34%;transform:translateX(-50%);font-family:'Gugi';font-weight:800;font-size:30px;color:#ff5a3c;text-shadow:0 2px 8px #000,0 0 14px rgba(255,90,60,.6);pointer-events:none;z-index:5;animation:dmgfloat 1.1s ease forwards}
+.dmgfloat.atk{color:#ffd24a;text-shadow:0 2px 8px #000,0 0 14px rgba(255,210,74,.6)}
+.dmgfloat.big{font-size:42px}
+@keyframes critflash{0%{opacity:0}10%{opacity:.85}100%{opacity:0}}
+.critflash{position:absolute;inset:0;pointer-events:none;z-index:4;border-radius:6px;background:radial-gradient(circle at 50% 40%,rgba(255,210,74,.5),transparent 60%);animation:critflash .55s ease forwards}
+.evt{text-align:center;margin:0 0 10px;padding:7px 10px;border:1px dashed var(--gold);border-radius:5px;background:rgba(201,162,39,.08);color:#f0d98a;font-weight:700;font-size:13px}
+.cti{font-size:11px;color:#b8a880;text-align:center;margin:-6px 0 12px;letter-spacing:.5px}
+.cti b{color:var(--gold)}
+.tac .cbadge{display:inline-block;margin-top:4px;font-size:9px;color:#8a7a5a}
+/* 일기토 미니게임 */
+.duel-modal{width:min(560px,94vw);text-align:center;background:radial-gradient(circle at 50% 0%,#3a2418,#120d07);border:2px solid var(--blood);border-radius:6px;padding:26px;box-shadow:0 0 60px rgba(0,0,0,.85)}
+.duel-modal h2{font-family:'Gugi';color:var(--gold);font-size:30px;margin-bottom:4px}
+.duelvs{display:flex;align-items:center;justify-content:space-around;margin:14px 0}
+.dface{width:74px;height:92px;border-radius:4px;overflow:hidden;border:2px solid #4a3a24}
+.dwho{font-weight:800;font-size:14px;margin-top:6px}
+.dscore{font-family:'Gugi';font-size:30px;color:var(--gold)}
+.duelchoice{display:flex;gap:10px;justify-content:center;margin:14px 0}
+.dch{cursor:pointer;border:1.5px solid #4a3a24;border-radius:6px;padding:12px 16px;background:rgba(231,216,182,.04);font-weight:800;transition:.12s}
+.dch:hover{border-color:var(--gold);background:rgba(201,162,39,.12);transform:translateY(-2px)}
+.dch small{display:block;font-size:9.5px;color:#9c8c6a;font-weight:400;margin-top:2px}
+.dlog{min-height:42px;font-size:13px;color:#e8c97a;margin:8px 0}
+.die{display:inline-block;min-width:26px;font-family:'Gugi';color:#ffd24a}
 .center-modal{width:min(720px,94vw);max-height:94vh;overflow-y:auto;text-align:center;background:linear-gradient(180deg,#1d160d,#120d07);border:2px solid var(--gold);border-radius:6px;padding:32px;box-shadow:0 0 60px rgba(0,0,0,.8)}
 .center-modal h1{font-family:'Gugi';font-size:48px;color:var(--gold);text-shadow:0 4px 20px rgba(0,0,0,.6)}
 .center-modal h1 small{display:block;font-family:'Pretendard';font-size:14px;color:#9c8c6a;letter-spacing:6px;margin-top:6px}
@@ -858,6 +886,23 @@ function doMove(fromId,toId,moved){
 /* ============ 전투 ============ */
 let B=null;
 const TACTICS={charge:{n:'돌격',d:'무력 강타. 반격 큼'},volley:{n:'궁격',d:'안정적. 반격 적음'},scheme:{n:'계략',d:'지력 대결. 성공 시 강타'},duel:{n:'일기토',d:'장수 대결. 사기 급변'},guard:{n:'수비',d:'피해경감+사기회복'}};
+/* 전법 상성: 돌격▶궁격▶계략▶돌격 (이기면 위력↑·적 사기 타격) */
+const COUNTER={charge:'volley',volley:'scheme',scheme:'charge'};
+const CNAME={charge:'돌격',volley:'궁격',scheme:'계략'};
+/* 무력이 높을수록 6에 가까운 주사위(1~6) */
+function mightDie(might){
+  const bias=Math.max(0,Math.min(1,(might-40)/60));        // 무40→0, 무100→1
+  const v=Math.random()*(1-0.55*bias)+0.55*bias;            // 고무일수록 상한 쪽으로
+  return Math.max(1,Math.min(6,Math.floor(v*6)+1));
+}
+/* 전장 돌발 이벤트 풀 */
+const BATTLE_EVENTS=[
+  {id:'rain', name:'⛆ 폭우가 쏟아진다', apply:()=>{B.rain=true;}, log:'활시위가 젖어 궁격의 위력이 크게 떨어진다'},
+  {id:'fog',  name:'🌫 짙은 안개', apply:()=>{B.fog=true;}, log:'시야가 가려 계략이 잘 통하고 일기토는 어려워진다'},
+  {id:'ambush',name:'🗡 매복의 호기!', apply:()=>{B.ambush=true;}, log:'다음 공격의 위력이 크게 오른다'},
+  {id:'supply',name:'🔥 적 보급이 끊겼다', apply:()=>{B.D.morale=Math.max(0,B.D.morale-14);}, log:'적의 사기가 흔들린다 (적 사기 -14)'},
+  {id:'rally', name:'🚩 아군 사기 충천', apply:()=>{B.A.morale=Math.min(100,B.A.morale+14);}, log:'함성이 전장을 뒤덮는다 (아군 사기 +14)'},
+];
 function genSkill(g){
   if(!g||!g.id) return null;
   const m=g.might,i=g.int,l=g.lead;
@@ -933,7 +978,8 @@ function launchBattle(fromId,toId){
   marchArmy(fromId,toId,player,()=>openBattle(fromId,toId),2000);
 }
 function openBattle(fromId,toId){
-  B={from:fromId,to:toId,round:1,over:false,A:mkArmy(fromId,true),D:mkArmy(toId,false),log:[]};
+  B={from:fromId,to:toId,round:1,over:false,A:mkArmy(fromId,true),D:mkArmy(toId,false),log:[],
+     rain:false,fog:false,ambush:false,evtCount:0,busy:false};
   B.A.startT=B.A.troops;B.D.startT=B.D.troops;
   blog('sys',`${prov(fromId).name}의 군이 ${prov(toId).name}으로 진군한다!`);
   blog('sys',`지형: ${B.D.terr} · 성벽 ${B.D.wall} — ${B.D.terr==='산악'?'수비 유리':B.D.terr==='강'?'수비 약간 유리':'공격 유리'}`);
@@ -964,8 +1010,12 @@ function renderBattle(){
       <div class="metric"><div class="ml"><span>병력</span><b>${fmt(D.troops)}</b></div>${bar(D.troops,D.startT,'linear-gradient(90deg,#7a1f1a,'+fcolor(D.p.owner)+')')}</div>
       <div class="metric"><div class="ml"><span>사기</span><b>${Math.round(D.morale)}</b></div>${bar(D.morale,100,'linear-gradient(90deg,#3a5a8c,#5aa8d8)')}</div>
     </div></div>`;
-  h+=`<div class="terr"><span class="round">제 ${B.round} 합</span> · 공격측 전법을 택하라</div><div class="tactics">`;
-  for(const k in TACTICS){h+=`<div class="tac ${dis}" onclick="${B.over?'':`playTactic('${k}')`}"><div class="tn">${TACTICS[k].n}</div><div class="td">${TACTICS[k].d}</div></div>`;}
+  const weather=[B.rain?'⛆폭우':'',B.fog?'🌫안개':'',B.ambush?'🗡매복호기':''].filter(Boolean).join(' · ');
+  if(weather)h+=`<div class="evt">${weather}</div>`;
+  h+=`<div class="terr"><span class="round">제 ${B.round} 합</span> · 공격측 전법을 택하라</div>`;
+  h+=`<div class="cti">상성 <b>돌격 ▶ 궁격 ▶ 계략 ▶ 돌격</b> — 적 전법을 받아치면 위력↑·사기 타격</div><div class="tactics">`;
+  const cbadge={charge:'➤궁격',volley:'➤계략',scheme:'➤돌격'};
+  for(const k in TACTICS){h+=`<div class="tac ${dis}" onclick="${B.over?'':`playTactic('${k}')`}"><div class="tn">${TACTICS[k].n}</div><div class="td">${TACTICS[k].d}</div>${cbadge[k]?`<div class="cbadge">${cbadge[k]}</div>`:''}</div>`;}
   h+=`</div><div class="blog">${B.log.map(l=>`<div class="le ${l.c}">${l.t}</div>`).join('')}</div>`;
   h+=`<div class="bfoot"><span style="font-size:11px;color:#7a6a4a">사기가 0이 되면 군은 무너진다</span>`;
   h+= B.over?`<button class="btn" onclick="closeBattle()">전장을 떠난다 ▶</button>`:`<button class="btn danger sm" onclick="retreat()">퇴각</button>`;
@@ -980,18 +1030,19 @@ function aiTactic(a,f){
   return Math.random()<0.5?'volley':'charge';
 }
 function rint(a,b){return a+Math.floor(Math.random()*(b-a+1));}
-function resolveTactic(att,def,tac,isAtk){
+function resolveTactic(att,def,tac,isAtk,duelRes){
   const terrMul=isAtk?TERRAIN_BONUS[B.D.terr].atk:(1/TERRAIN_BONUS[B.D.terr].atk);
   const base=att.troops*(0.04+att.morale/1400)*(0.7+att.g.lead/200);
   const sk=att.skill?att.skill.type:null;
-  let dmg=0,self=0,log=[];const r=()=>0.8+Math.random()*0.4;
+  let dmg=0,self=0,log=[],crit=false;const r=()=>0.8+Math.random()*0.4;
   if(tac==='charge'){dmg=base*1.45*(0.7+att.g.might/200)*r();self=base*0.32*r();att.morale=Math.min(100,att.morale+4);}
-  else if(tac==='volley'){dmg=base*0.95*r();self=base*0.12*r();}
-  else if(tac==='scheme'){const win=(att.g.int+(sk==='strategist'?12:0)+rint(-15,15))>def.g.int;
-    if(win){dmg=base*1.7*(0.6+att.g.int/200)*r();def.morale=Math.max(0,def.morale-18);log.push([isAtk?'atk':'def',`${att.g.name}의 계략 적중! 적진을 불사른다 <span class="crit">(사기 -18)</span>`]);}
+  else if(tac==='volley'){dmg=base*0.95*r()*(B.rain?0.5:1);self=base*0.12*r();}
+  else if(tac==='scheme'){const win=(att.g.int+(sk==='strategist'?12:0)+(B.fog?10:0)+rint(-15,15))>def.g.int;
+    if(win){dmg=base*1.7*(0.6+att.g.int/200)*r();def.morale=Math.max(0,def.morale-18);crit=true;log.push([isAtk?'atk':'def',`${att.g.name}의 계략 적중! 적진을 불사른다 <span class="crit">(사기 -18)</span>`]);}
     else{self=base*0.25*r();att.morale=Math.max(0,att.morale-8);log.push([isAtk?'def':'atk',`${att.g.name}의 계략이 간파당했다 (사기 -8)`]);}}
-  else if(tac==='duel'){if(def.g.id){const d=(att.g.might+rint(-12,12))-def.g.might;
-    if(d>0){def.morale=Math.max(0,def.morale-20);att.morale=Math.min(100,att.morale+12);log.push([isAtk?'atk':'def',`<span class="crit">${att.g.name}이(가) 일기토에서 ${def.g.name}을(를) 제압!</span> (적 사기 -20)`]);}
+  else if(tac==='duel'){if(def.g.id){
+    const win=duelRes?duelRes.win:((att.g.might+rint(-12,12))-def.g.might>0);
+    if(win){def.morale=Math.max(0,def.morale-20);att.morale=Math.min(100,att.morale+12);crit=true;log.push([isAtk?'atk':'def',`<span class="crit">${att.g.name}이(가) 일기토에서 ${def.g.name}을(를) 제압!</span> (적 사기 -20)`]);}
     else{att.morale=Math.max(0,att.morale-12);def.morale=Math.min(100,def.morale+8);log.push([isAtk?'def':'atk',`${att.g.name}이(가) 일기토에서 밀렸다 (사기 -12)`]);}}
     else{att.morale=Math.max(0,att.morale-4);log.push(['sys',`${def.p.name}에 맞설 장수가 없어 일기토가 무산됐다`]);}}
   else if(tac==='guard'){dmg=base*0.25*r();att.morale=Math.min(100,att.morale+12);att._g=true;}
@@ -1001,12 +1052,29 @@ function resolveTactic(att,def,tac,isAtk){
   if(sk==='archer'&&tac==='volley')skMul*=1.25;
   if(sk==='strategist'&&tac==='scheme')skMul*=1.3;
   dmg*=skMul*terrMul*(isAtk&&def.wall>0?(1-def.wall*0.06):1);
-  return{dmg:Math.max(0,dmg),self:Math.max(0,self),log};
+  return{dmg:Math.max(0,dmg),self:Math.max(0,self),log,crit};
 }
 function playTactic(tac){
-  if(B.over)return;const A=B.A,D=B.D,dTac=aiTactic(D,A);A._g=D._g=false;
-  const ra=resolveTactic(A,D,tac,true), rd=resolveTactic(D,A,dTac,false);
+  if(B.over||B.busy)return;
+  // 플레이어가 일기토 선택 + 적 장수 존재 → 미니게임으로
+  if(tac==='duel'){
+    if(B.fog){toast('짙은 안개로 일기토를 벌일 수 없다');return;}
+    if(B.D.g.id){startDuel(res=>resolveRound(tac,res));return;}
+  }
+  resolveRound(tac,null);
+}
+function resolveRound(tac,duelRes){
+  const A=B.A,D=B.D,dTac=aiTactic(D,A);A._g=D._g=false;
+  let crit=false;
+  const ra=resolveTactic(A,D,tac,true,duelRes), rd=resolveTactic(D,A,dTac,false,null);
   let dD=ra.dmg, dA=rd.dmg+ra.self;
+  // 전법 상성
+  if(COUNTER[tac]===dTac){dD*=1.4;D.morale=Math.max(0,D.morale-10);crit=true;
+    blog('atk',`<span class="crit">상성 적중! ${CNAME[tac]}이(가) ${CNAME[dTac]}을(를) 제압한다 (위력↑·적 사기 -10)</span>`);}
+  else if(COUNTER[dTac]===tac){dA*=1.4;A.morale=Math.max(0,A.morale-10);
+    blog('def',`<span class="crit">적의 ${CNAME[dTac]}에 ${CNAME[tac]}이(가) 받아쳐졌다 (피해↑·사기 -10)</span>`);}
+  // 매복 호기(1회 한정 위력 +60%)
+  if(B.ambush){dD*=1.6;B.ambush=false;crit=true;blog('atk',`<span class="crit">매복의 일격! 적진이 무너진다</span>`);}
   if(D._g)dD*=0.4; if(A._g)dA*=0.4;
   if(D.skill&&D.skill.type==='wall')dD*=0.75;
   if(A.skill&&A.skill.type==='wall')dA*=0.75;
@@ -1014,13 +1082,78 @@ function playTactic(tac){
   D.morale=Math.max(0,D.morale-dD/D.startT*60);A.morale=Math.max(0,A.morale-dA/A.startT*60);
   if(A.skill&&A.skill.type==='inspire')A.morale=Math.min(100,A.morale+8);
   if(D.skill&&D.skill.type==='inspire')D.morale=Math.min(100,D.morale+8);
+  if(ra.crit||rd.crit)crit=true;
   blog('atk',`▸ 아군 [${TACTICS[tac].n}] — 적 ${fmt(dD)}명 격파`);ra.log.forEach(([c,t])=>blog(c,t));
   blog('def',`▸ 적 [${TACTICS[dTac].n}] — 아군 ${fmt(dA)}명 손실`);rd.log.forEach(([c,t])=>blog(c,t));
-  if(D.troops<=0||D.morale<=0){endBattle('win');return;}
-  if(A.troops<=0||A.morale<=0){endBattle('lose');return;}
-  B.round++;renderBattle();
+  if(D.troops<=0||D.morale<=0){endBattle('win');battleFx(dA,dD,true);return;}
+  if(A.troops<=0||A.morale<=0){endBattle('lose');battleFx(dA,dD,true);return;}
+  B.round++;
+  rollEvent();
+  renderBattle();
+  battleFx(dA,dD,crit);
+}
+/* 합 시작 시 25% 확률 돌발 이벤트(2합부터, 1전투 최대 2회) */
+function rollEvent(){
+  if((B.evtCount||0)>=2||B.round<2||Math.random()>=0.25)return;
+  const ev=BATTLE_EVENTS[Math.floor(Math.random()*BATTLE_EVENTS.length)];
+  if(ev.id==='ambush'&&B.ambush)return;
+  ev.apply(); B.evtCount=(B.evtCount||0)+1; B.lastEvent=ev.name;
+  blog('sys',`${ev.name} — ${ev.log}`);
+}
+/* 연출: 데미지 숫자 + 화면 흔들림 + 크리티컬 플래시 */
+function battleFx(dA,dD,crit){
+  const box=$('battleBox'); if(!box)return;
+  const big=Math.max(dA,dD)>B.A.startT*0.12||crit;
+  box.classList.remove('shake','shakehard');void box.offsetWidth;
+  box.classList.add(big?'shakehard':'shake');
+  if(crit){const f=document.createElement('div');f.className='critflash';box.appendChild(f);setTimeout(()=>f.remove(),600);}
+  const float=(side,val,cls)=>{if(val<1)return;const el=document.createElement('div');el.className=`dmgfloat ${cls}${big?' big':''}`;el.style.left=side==='A'?'27%':'73%';el.textContent='-'+fmt(val);box.appendChild(el);setTimeout(()=>el.remove(),1100);};
+  float('D',dD,'atk'); float('A',dA,'');
 }
 function retreat(){blog('sys','그대의 군이 퇴각한다…');endBattle('retreat');}
+
+/* ===== 일기토 미니게임 (3선 2승 · 무력 가중 주사위) ===== */
+const DUEL_MOVES={slash:{n:'베기',b:'찌르기'},thrust:{n:'찌르기',b:'막기'},guard:{n:'막기',b:'베기'}};
+let duel=null;
+function startDuel(cb){
+  B.busy=true;
+  duel={cb,pa:0,pd:0,round:1,me:B.A.g,foe:B.D.g,msg:'장수 대 장수 — 무력이 높을수록 주사위가 강하다'};
+  renderDuel();$('centerOverlay').classList.add('on');
+}
+function renderDuel(){
+  const me=duel.me,foe=duel.foe;
+  const face=g=>g.id?genPortrait(g):'<span class="noface" style="font-family:Gugi;color:#8a7a5a">無</span>';
+  let h=`<div class="duel-modal"><h2>一騎討<small style="display:block;font-size:12px;color:#9c8c6a;letter-spacing:3px">일 기 토</small></h2>
+    <div class="duelvs">
+      <div><div class="dface">${face(me)}</div><div class="dwho" style="color:${fcolor(player)}">${me.name}</div><div style="font-size:11px;color:#9c8c6a">무력 ${me.might}</div></div>
+      <div><div class="dscore">${duel.pa} : ${duel.pd}</div><div style="font-size:11px;color:#7a6a4a">3선 2승</div></div>
+      <div><div class="dface">${face(foe)}</div><div class="dwho" style="color:${fcolor(B.D.p.owner)}">${foe.name}</div><div style="font-size:11px;color:#9c8c6a">무력 ${foe.might}</div></div>
+    </div>
+    <div class="dlog">${duel.msg}</div>
+    <div class="duelchoice">
+      <div class="dch" onclick="duelPick('slash')">베기<small>▶ 찌르기에 강</small></div>
+      <div class="dch" onclick="duelPick('thrust')">찌르기<small>▶ 막기에 강</small></div>
+      <div class="dch" onclick="duelPick('guard')">막기<small>▶ 베기에 강</small></div>
+    </div></div>`;
+  $('centerBox').innerHTML=h;
+}
+function duelPick(mv){
+  if(!duel)return;
+  const foeMv=['slash','thrust','guard'][Math.floor(Math.random()*3)];
+  let pr=mightDie(duel.me.might), fr=mightDie(duel.foe.might);
+  let adv='';
+  if(DUEL_MOVES[mv].b===DUEL_MOVES[foeMv].n){pr+=2;adv=`상성! ${DUEL_MOVES[mv].n}이(가) ${DUEL_MOVES[foeMv].n}을(를) 누른다`;}
+  else if(DUEL_MOVES[foeMv].b===DUEL_MOVES[mv].n){fr+=2;adv=`적의 ${DUEL_MOVES[foeMv].n}에 ${DUEL_MOVES[mv].n}이(가) 눌린다`;}
+  let res;
+  if(pr>fr){duel.pa++;res='win';}else if(fr>pr){duel.pd++;res='lose';}else res='draw';
+  duel.msg=`${duel.me.name} [${DUEL_MOVES[mv].n}] <span class="die">⚅${pr}</span> vs ${duel.foe.name} [${DUEL_MOVES[foeMv].n}] <span class="die">⚅${fr}</span>${adv?` — ${adv}`:''} · ${res==='win'?'이 합 승!':res==='lose'?'이 합 패…':'맞붙었다'}`;
+  if(duel.pa>=2||duel.pd>=2){
+    const win=duel.pa>=2;const cb=duel.cb;
+    duel.msg+=`<br><b style="color:var(--gold)">${win?duel.me.name+' 승리!':duel.foe.name+'에게 패배…'}</b>`;
+    renderDuel();
+    setTimeout(()=>{$('centerOverlay').classList.remove('on');duel=null;B.busy=false;cb({win});},900);
+  } else { if(res!=='draw')duel.round++; renderDuel(); }
+}
 function endBattle(result){
   B.over=true;const A=B.A,D=B.D,fromSt=pstate[B.from],toSt=pstate[B.to];fromSt.acted=true;
   if(result==='win'){
