@@ -79,9 +79,19 @@ function ageEN(g) {
   return 'a young to middle-aged';
 }
 const FAC_EN = { goguryeo: 'Goguryeo (deep blue/gold)', baekje: 'Baekje (green/gold)', silla: 'Silla (crimson/gold)', gaya: 'Gaya (purple/gold)', china: 'Chinese Yan (gray/black)', wa: 'Wa/Yamato (white/red)' };
+/* 세력별 고증 참조 — 실제 공개 유물·고분벽화 기반(저작권 무관) */
+const FAC_REF = {
+  goguryeo: 'historically grounded in 4th-7th century Goguryeo: lamellar scale armor and feathered jeolpung cap as seen in Anak Tomb No.3 and Muyongchong tomb murals, heavy cavalry (gaemamusa) aesthetic',
+  baekje: 'historically grounded in Baekje: refined gilt-bronze crown ornaments from the Tomb of King Muryeong, motifs of the Baekje gilt-bronze incense burner, elegant courtly attire',
+  silla: 'historically grounded in Silla: ornate gold crown with comma-shaped jade (gogok) from Cheonmachong/Hwangnam Daechong, gold ornaments and belt',
+  gaya: 'historically grounded in Gaya: iron plate armor (pan-gap) and iron helmet, ingot-iron warrior aesthetic',
+  china: 'historically grounded in 4th-century Northern China Sixteen Kingdoms cavalry armor',
+  wa: 'historically grounded in Kofun-period Yamato armor and attire',
+};
+const NEGATIVE = 'period-accurate ancient costume, do NOT resemble any modern actor, TV drama still, or existing copyrighted artwork; original imagined face';
 function buildPrompt(g) {
   const t = archetype(g);
-  return `${COMMON}. ${ageEN(g)} man, ${TYPE_EN[t]}. Faction colors: ${FAC_EN[g.f] || g.f}.`;
+  return `${COMMON}. ${ageEN(g)} man, ${TYPE_EN[t]}. Faction: ${FAC_EN[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
 }
 
 /* ---------- 이미지 변환 (sharp 있으면 webp 4:5, 없으면 원본 png) ---------- */
@@ -177,4 +187,9 @@ async function main() {
     console.log(`\n완료 — 생성 ${made}, 건너뜀 ${skipped}, 실패 ${failed}`);
   }
 }
-main().catch(e => { console.error(e); process.exit(1); });
+export { parseGenerals, buildPrompt, archetype, ageEN, COMMON };
+
+// 직접 실행될 때만 메인 동작 (import 시에는 함수만 제공)
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch(e => { console.error(e); process.exit(1); });
+}
