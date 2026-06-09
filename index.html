@@ -787,7 +787,7 @@ function clickProv(id){
   }
   if(moveMode){
     if(id===selected){moveMode=false;render();}
-    else if(prov(id).owner===player && adj(selected).includes(id)){doMove(selected,id);}
+    else if(prov(id).owner===player && adj(selected).includes(id)){openMoveDialog(selected,id);}
     else{toast('인접한 아군 성으로만 병력을 옮길 수 있다');}
     return;
   }
@@ -799,9 +799,51 @@ function startAttack(id){if(pstate[id].acted)return;moveMode=false;attackMode=tr
 function startMove(id){if(pstate[id].acted)return;
   if(!adj(id).some(t=>prov(t).owner===player)){toast('이동 가능한 인접 아군 성이 없다');return;}
   attackMode=false;moveMode=true;toast('병력을 옮길 인접 아군 성을 선택하라');render();}
-function doMove(fromId,toId){
+/* 이동 병력 수 선택 (백/천/만 단위) */
+let moveDlg=null;
+function moveClamp(v){return Math.max(moveDlg.min,Math.min(moveDlg.max,Math.round(v)));}
+function openMoveDialog(fromId,toId){
+  const max=pstate[fromId].troops;
+  const min=Math.min(100,max);
+  const def=Math.max(min,Math.min(max,Math.round(max*0.5/100)*100));
+  moveDlg={from:fromId,to:toId,min,max,amt:def};
+  renderMoveDialog();
+  $('centerOverlay').classList.add('on');
+}
+function renderMoveDialog(){
+  const d=moveDlg, from=prov(d.from), to=prov(d.to), toT=pstate[d.to].troops;
+  const unit=(label,delta)=>`<button class="btn sm ${delta<0?'danger':''}" ${moveClamp(d.amt+delta)===d.amt?'disabled':''} onclick="moveAdjust(${delta})">${label}</button>`;
+  $('centerBox').innerHTML=`<h1 style="font-size:30px">병력 이동<small>${from.name} ➜ ${to.name}</small></h1>
+    <p style="margin-bottom:2px">출발 성 병력 <b style="color:var(--gold)">${fmt(d.max)}</b></p>
+    <div style="font-family:'Gugi';font-size:46px;color:var(--gold);line-height:1.1;margin:6px 0">${fmt(d.amt)}</div>
+    <input type="range" min="${d.min}" max="${d.max}" step="100" value="${d.amt}" oninput="moveSet(+this.value)" style="width:90%;accent-color:var(--gold);margin:6px 0">
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:10px 0">
+      ${unit('-만',-10000)}${unit('-천',-1000)}${unit('-백',-100)}${unit('+백',100)}${unit('+천',1000)}${unit('+만',10000)}
+    </div>
+    <div style="display:flex;gap:6px;justify-content:center;margin:8px 0">
+      <button class="btn sm" onclick="moveSet('min')">최소</button>
+      <button class="btn sm" onclick="moveSet('half')">절반</button>
+      <button class="btn sm" onclick="moveSet('max')">전부</button>
+    </div>
+    <p style="font-size:13px;color:#9c8c6a;margin-top:8px">이동 후 — ${from.name} <b>${fmt(d.max-d.amt)}</b> · ${to.name} <b>${fmt(toT+d.amt)}</b></p>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:14px">
+      <button class="btn" onclick="confirmMove()">출진 ▶</button>
+      <button class="btn danger" onclick="cancelMove()">취소</button>
+    </div>`;
+}
+function moveAdjust(delta){moveDlg.amt=moveClamp(moveDlg.amt+delta);renderMoveDialog();}
+function moveSet(v){
+  if(v==='min')moveDlg.amt=moveDlg.min;
+  else if(v==='max')moveDlg.amt=moveDlg.max;
+  else if(v==='half')moveDlg.amt=moveClamp(Math.round(moveDlg.max*0.5/100)*100);
+  else moveDlg.amt=moveClamp(v);
+  renderMoveDialog();
+}
+function cancelMove(){$('centerOverlay').classList.remove('on');moveMode=false;moveDlg=null;render();}
+function confirmMove(){const d=moveDlg;$('centerOverlay').classList.remove('on');moveDlg=null;doMove(d.from,d.to,d.amt);}
+function doMove(fromId,toId,moved){
   moveMode=false;
-  const moved=Math.floor(pstate[fromId].troops*0.5);
+  moved=Math.min(Math.round(moved),pstate[fromId].troops);
   if(moved<=0){toast('이동할 병력이 없다');render();return;}
   render();
   marchArmy(fromId,toId,player,()=>{
