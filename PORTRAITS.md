@@ -2,6 +2,27 @@
 
 게임 장수 54명의 AI 일러스트 제작용 프롬프트 모음입니다.
 
+## ⚡ 자동 생성 (OpenAI API)
+
+장수 54명을 한 번에 자동 생성·변환·등록합니다. (네트워크 + OpenAI API 키 필요)
+
+```bash
+export OPENAI_API_KEY=sk-...      # 본인 키
+npm i sharp                       # 4:5 webp 변환용(권장)
+
+node tools/gen-portraits.mjs               # 없는 것만 전부 생성 + PORTRAITS 자동 등록
+node tools/gen-portraits.mjs --only 광개토대왕,김유신
+node tools/gen-portraits.mjs --force       # 이미 있어도 다시 생성
+node tools/gen-portraits.mjs --dry-run     # 호출 없이 대상/프롬프트만 확인
+node tools/gen-portraits.mjs --register-only  # 폴더 스캔해 PORTRAITS만 갱신
+```
+
+옵션 환경변수: `OPENAI_IMAGE_MODEL`(기본 `gpt-image-1`), `IMAGE_QUALITY`(low|medium|high), `GEN_SIZE`(기본 1024x1536).
+생성물은 `assets/portraits/이름.webp`로 저장되고 `index.html`의 `PORTRAITS`에 자동 등록됩니다.
+이미 있는 파일은 건너뛰므로 중간에 끊겨도 다시 실행하면 이어서 진행됩니다.
+
+> 아래 표는 도구가 내부에서 쓰는 프롬프트와 동일한 규칙입니다. 손으로 다른 툴(Midjourney 등)에서 만들 때 참고하세요.
+
 ## 공통 규격
 - 비율 **4:5**, 권장 크기 512×640 또는 600×750
 - 포맷 **webp**(권장) 또는 png/jpg
