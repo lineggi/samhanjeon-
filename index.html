@@ -238,6 +238,7 @@ svg{width:100%;height:100%;display:block}
     <div class="stat"><span class="k">금(金)</span><span class="v" id="goldv">0</span></div>
     <div class="stat"><span class="k">영토</span><span class="v" id="terrv">0</span></div>
     <div class="fbadge" id="fbadge"><span class="dot"></span><span id="fname">—</span></div>
+    <button class="btn sm" id="skillbtn" title="세력 특기" onclick="activateSkill(player)" style="display:none"></button>
     <button class="btn sm" id="diplobtn" title="외교" onclick="showDiplomacy()">🕊 외교</button>
     <button class="btn sm" id="savebtn" title="저장" onclick="saveGame()">💾 저장</button>
     <button class="btn sm" id="loadbtn" title="불러오기" onclick="loadGame()">📂 불러오기</button>
@@ -308,6 +309,30 @@ const CHINA_UNITS={
 function unitOf(fac){
   if(fac==='china')return CHINA_UNITS[FACTIONS.china.name]||UNITS.china;
   return UNITS[fac]||null;
+}
+/* ============ 세력 특기(활성형) ============ */
+const FACTION_SKILL={
+  silla:{name:'세속오계', icon:'⚜', dur:3, cd:6, atk:1.15, moraleRegen:10, desc:'3턴간 공격 +15%·매 합 사기 +10 (임전무퇴)'},
+  baekje:{name:'결사대', icon:'🗡', dur:3, cd:6, atk:1.30, desc:'3턴간 공격 +30% (황산벌 결사 정신)'},
+};
+let factionBuff={}, factionCd={};
+function activeSkill(fac){return (factionBuff[fac]>0)?FACTION_SKILL[fac]:null;}
+function updateSkillBtn(){
+  const btn=$('skillbtn'); if(!btn)return;
+  const sk=FACTION_SKILL[player];
+  if(!sk){btn.style.display='none';return;}
+  btn.style.display='';
+  const buff=factionBuff[player]||0, cd=factionCd[player]||0;
+  if(buff>0){btn.textContent=`${sk.icon} ${sk.name} (${buff})`; btn.disabled=true; btn.style.opacity='1'; btn.style.color='var(--gold)';}
+  else if(cd>0){btn.textContent=`${sk.icon} ${sk.name} ⏳${cd}`; btn.disabled=true; btn.style.opacity='';}
+  else{btn.textContent=`${sk.icon} ${sk.name}`; btn.disabled=false; btn.style.opacity='';}
+}
+function activateSkill(fac){
+  const sk=FACTION_SKILL[fac]; if(!sk){toast('이 세력은 활성 특기가 없다');return;}
+  if((factionCd[fac]||0)>0){toast(`${sk.name}은(는) 아직 쓸 수 없다 (${factionCd[fac]}턴 후)`);return;}
+  if((factionBuff[fac]||0)>0){toast(`${sk.name}이(가) 이미 발동 중이다`);return;}
+  factionBuff[fac]=sk.dur; factionCd[fac]=sk.cd+sk.dur;
+  toast(`${sk.icon} ${sk.name} 발동! ${sk.desc}`); render();
 }
 /* ============ 외교 ============ */
 const DIPLO_INIT={
@@ -385,7 +410,7 @@ const EDGES=[
  ['chaek','okjeo'],['hwando','okjeo'],['ansi','ogol'],['ogol','baegam'],['ogol','bakjak'],
  ['jolbon','bakjak'],['bakjak','pyeongyang'],['jolbon','pyeongyang'],['okjeo','pyeongyang'],['buyeo','chaek'],
  // 고구려 추가 연결(성 간 기동·협공 강화)
- ['bisa','ogol'],['bisa','bakjak'],['yodong','baegam'],['sinseong','ansi'],['baegam','bakjak'],['gungnae','okjeo'],['buyeo','hwando'],['ansi','bakjak'],['ogol','pyeongyang'],
+ ['bisa','ansi'],['bisa','ogol'],['bisa','bakjak'],['yodong','baegam'],['sinseong','ansi'],['baegam','bakjak'],['gungnae','okjeo'],['buyeo','hwando'],['ansi','bakjak'],['ogol','pyeongyang'],
  // 고구려→남
  ['pyeongyang','hanseong'],['pyeongyang','gwanmi'],['pyeongyang','bukhan'],
  // 백제
@@ -725,7 +750,7 @@ function loadScenario(sc){
   if(sc.cname)FACTIONS.china.name=sc.cname;
   factionHanzi.china=sc.chanzi||'中';
   activeFactions=sc.factions.slice();
-  initDiplo(sc);
+  initDiplo(sc); factionBuff={}; factionCd={};
 }
 /* 외교 현황 모달 */
 function showDiplomacy(){
@@ -1196,6 +1221,7 @@ function openBattle(fromId,toId,opts){
   if(B.scorched){B.A.troops=Math.round(B.A.troops*0.9);B.A.morale=Math.round(B.A.morale*0.5);}
   B.A.startT=B.A.troops;B.D.startT=B.D.troops;
   if(B.scorched)blog('def',`🔥 청야전술 — 고구려가 들판을 비우고 굳게 지키니, 공격군 병력 -10%·사기 절반`);
+  {const fa=activeSkill(B.A.p.owner);if(fa)blog('atk',`${fa.icon} ${fa.name} 발동 중 — ${fa.desc}`);const fd=activeSkill(B.D.p.owner);if(fd)blog('def',`${fd.icon} ${fd.name} 발동 중 — ${fd.desc}`);}
   if(B.pincer)blog('sys',`🦅 협공! ${(opts.names||[]).join('·')}의 군이 합세한다 (병력 +${fmt(opts.extra||0)}, 적은 포위되어 사기 저하)`);
   blog('sys',`${prov(fromId).name}의 군이 ${prov(toId).name}으로 진군한다!`);
   blog('sys',`지형: ${B.D.terr} · 성벽 ${B.D.wall} — ${B.D.terr==='산악'?'수비 유리':B.D.terr==='강'?'수비 약간 유리':'공격 유리'}`);
@@ -1274,6 +1300,7 @@ function resolveTactic(att,def,tac,isAtk,duelRes){
   // 병종 공격 보정
   const u=att.unit; let uMul=1;
   if(u){ if(u.allMul)uMul*=u.allMul; if(u.tac===tac&&u.atkMul)uMul*=u.atkMul; }
+  const fsk=activeSkill(att.p.owner); if(fsk&&fsk.atk)uMul*=fsk.atk;   // 세력 특기(세속오계/결사대) 공격 보정
   dmg*=skMul*uMul*terrMul*(isAtk&&def.wall>0?(1-def.wall*0.06):1);
   return{dmg:Math.max(0,dmg),self:Math.max(0,self),log,crit};
 }
@@ -1316,6 +1343,9 @@ function resolveRound(tac,duelRes){
   // 병종 사기 회복(화랑)
   if(A.unit&&A.unit.moraleRegen)A.morale=Math.min(100,A.morale+A.unit.moraleRegen);
   if(D.unit&&D.unit.moraleRegen)D.morale=Math.min(100,D.morale+D.unit.moraleRegen);
+  // 세력 특기 사기 회복(세속오계)
+  const fa=activeSkill(A.p.owner); if(fa&&fa.moraleRegen)A.morale=Math.min(100,A.morale+fa.moraleRegen);
+  const fd=activeSkill(D.p.owner); if(fd&&fd.moraleRegen)D.morale=Math.min(100,D.morale+fd.moraleRegen);
   if(ra.crit||rd.crit)crit=true;
   blog('atk',`▸ 아군 [${TACTICS[tac].n}] — 적 ${fmt(dDshown)}명 격파`);ra.log.forEach(([c,t])=>blog(c,t));
   blog('def',`▸ 적 [${TACTICS[dTac].n}] — 아군 ${fmt(dAshown)}명 손실`);rd.log.forEach(([c,t])=>blog(c,t));
@@ -1428,6 +1458,11 @@ function planAiTurn(){
   const moves=[];
   activeFactions.forEach(f=>{
     if(f===player)return;
+    // AI 특기 발동(쿨다운 없고 전쟁 중일 때 가끔)
+    if(FACTION_SKILL[f]&&(factionCd[f]||0)<=0&&(factionBuff[f]||0)<=0&&Math.random()<0.35){
+      const atWar=activeFactions.some(x=>x!==f&&getRel(f,x)==='war');
+      if(atWar){const sk=FACTION_SKILL[f];factionBuff[f]=sk.dur;factionCd[f]=sk.cd+sk.dur;}
+    }
     ownedBy(f).forEach(p=>{
       const st=pstate[p.id];if(st.acted)return;
       const targets=adj(p.id).map(prov).filter(t=>t.owner!==f && getRel(f,t.owner)!=='ally');
@@ -1474,6 +1509,7 @@ function aiBattle(fromId,toId,opts){
     D.troops=Math.max(0,D.troops-dD);A.troops=Math.max(0,A.troops-dA);
     D.morale=Math.max(0,D.morale-dD/D.startT*60*((D.unit&&D.unit.moraleFrail)||1));A.morale=Math.max(0,A.morale-dA/A.startT*60*((A.unit&&A.unit.moraleFrail)||1));
     if(A.unit&&A.unit.moraleRegen)A.morale=Math.min(100,A.morale+A.unit.moraleRegen);if(D.unit&&D.unit.moraleRegen)D.morale=Math.min(100,D.morale+D.unit.moraleRegen);
+    const fa=activeSkill(A.p.owner);if(fa&&fa.moraleRegen)A.morale=Math.min(100,A.morale+fa.moraleRegen);const fd=activeSkill(D.p.owner);if(fd&&fd.moraleRegen)D.morale=Math.min(100,D.morale+fd.moraleRegen);
   }
   B=Bsave;
   const fromSt=pstate[fromId],toSt=pstate[toId];
@@ -1500,6 +1536,7 @@ function endTurn(){
 }
 function finishTurn(){
   aiAnimating=false; turn++;
+  activeFactions.forEach(f=>{if(factionBuff[f]>0)factionBuff[f]--;if(factionCd[f]>0)factionCd[f]--;}); // 특기 지속/쿨다운 경과
   provinces.forEach(p=>{const st=pstate[p.id];
     const maxPop=Math.round(p.base*(p.cap?9:6));
     st.pop=Math.min(maxPop,st.pop+Math.round(st.pop*0.02)+40);   // 백성 자연 증가
@@ -1650,6 +1687,7 @@ function render(){
   $('fname').textContent=FACTIONS[player].name;
   $('fbadge').querySelector('.dot').style.background=fcolor(player);
   $('fbadge').style.color=fcolor(player);
+  updateSkillBtn();
   renderMap();renderPanel();renderLegend();
 }
 
@@ -1720,7 +1758,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.10.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.11.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -1744,6 +1782,7 @@ function saveGame(silent){
     lostThisTurn:lostThisTurn.slice(),
     firedEvents:firedEvents.slice(),
     diplo:{...diplo},
+    factionBuff:{...factionBuff}, factionCd:{...factionCd},
     cname:FACTIONS.china.name, chanzi:factionHanzi.china,
     owners:Object.fromEntries(provinces.map(p=>[p.id,p.owner])),
     pstate:JSON.parse(JSON.stringify(pstate)),
@@ -1772,6 +1811,7 @@ function loadGame(){
     lostThisTurn=data.lostThisTurn||[];
     firedEvents=data.firedEvents||(scenario.events?scenario.events.filter(e=>e.turn<=turn).map(e=>e.id):[]); // 구버전 저장본: 지난 이벤트는 본 것으로 처리
     if(data.diplo)diplo=data.diplo;   // 구버전 저장본은 loadScenario의 기본 외교 유지
+    factionBuff=data.factionBuff||{}; factionCd=data.factionCd||{};
     if(data.cname)FACTIONS.china.name=data.cname;
     if(data.chanzi)factionHanzi.china=data.chanzi;
     provinces.forEach(p=>{const s=pstate[p.id];if(s&&s.pop==null)s.pop=Math.round(p.base*(p.cap?6:4));}); // 구버전 저장본 백성 보정
