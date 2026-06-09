@@ -142,6 +142,12 @@ svg{width:100%;height:100%;display:block}
 .dlog{min-height:42px;font-size:13px;color:#e8c97a;margin:8px 0}
 .die{display:inline-block;min-width:26px;font-family:'Gugi';color:#ffd24a}
 .center-modal{width:min(720px,94vw);max-height:94vh;overflow-y:auto;text-align:center;background:linear-gradient(180deg,#1d160d,#120d07);border:2px solid var(--gold);border-radius:6px;padding:32px;box-shadow:0 0 60px rgba(0,0,0,.8)}
+.startmenu{display:flex;flex-direction:column;gap:12px;max-width:340px;margin:22px auto 0}
+.startmenu .btn{padding:16px;font-size:18px;display:flex;flex-direction:column;gap:3px;align-items:center;letter-spacing:1px}
+.startmenu .btn small{font-size:11px;color:#9c8c6a;font-weight:400;letter-spacing:.5px}
+.startmenu .btn:disabled small{color:#6a5a3a}
+.backstart{display:inline-block;font-size:12px;color:#9c8c6a;cursor:pointer;margin-bottom:8px}
+.backstart:hover{color:var(--gold)}
 .center-modal h1{font-family:'Gugi';font-size:48px;color:var(--gold);text-shadow:0 4px 20px rgba(0,0,0,.6)}
 .center-modal h1 small{display:block;font-family:'Pretendard';font-size:14px;color:#9c8c6a;letter-spacing:6px;margin-top:6px}
 .center-modal p{color:#c8b890;line-height:1.8;margin:16px 0;font-size:14px}
@@ -1285,6 +1291,25 @@ function render(){
 }
 
 /* ============ 시작 ============ */
+function saveInfo(){
+  try{const d=JSON.parse(localStorage.getItem(SAVE_KEY));if(!d)return null;
+    const sc=SCENARIOS.find(s=>s.id===d.scenarioId);
+    return {year:sc?sc.year:'?', turn:d.turn||1, faction:FACTIONS[d.player]?FACTIONS[d.player].name:'?'};}
+  catch(_){return null;}
+}
+function showStart(){
+  const info=saveInfo();
+  const load=info
+    ? `<button class="btn" onclick="loadGame()">📂 이어하기<small>${info.year} · ${info.faction} · ${info.turn}턴</small></button>`
+    : `<button class="btn" disabled>📂 이어하기<small>저장된 게임 없음</small></button>`;
+  $('centerBox').innerHTML=`<h1>三韓戰<small>삼 한 전 · 한국 삼국시대</small></h1>
+    <p>천하 통일의 대업이 그대를 기다린다.</p>
+    <div class="startmenu">
+      <button class="btn" onclick="showEra()">⚔ 새로하기<small>시대를 골라 새 천하를 연다</small></button>
+      ${load}
+    </div>`;
+  $('centerOverlay').classList.add('on');
+}
 function showEra(){
   let cards='';
   SCENARIOS.forEach((s,i)=>{
@@ -1295,10 +1320,9 @@ function showEra(){
       <div class="ed">${s.desc}</div>
       <div class="ef">${tags}<span class="tag" style="color:#c8b890;border-color:#5a4a30">최강세: ${FACTIONS[dom].name}</span></div></div>`;
   });
-  const cont=hasSave()?`<button class="btn" style="margin-bottom:14px" onclick="loadGame()">📂 이어하기 (저장된 게임)</button>`:'';
-  $('centerBox').innerHTML=`<h1>三韓戰<small>삼 한 전 · 한국 삼국시대</small></h1>
+  $('centerBox').innerHTML=`<div class="backstart" onclick="showStart()">◂ 처음으로</div>
+    <h1>三韓戰<small>삼 한 전 · 한국 삼국시대</small></h1>
     <p>어느 시대에서 천하를 도모하겠는가?<br>고른 시대에 따라 각국의 영토·강성함·무장이 달라진다.</p>
-    ${cont}
     <div class="eragrid">${cards}</div>`;
   $('centerOverlay').classList.add('on');
 }
@@ -1329,7 +1353,7 @@ function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.cla
 function beginGame(){player=chosenF;turn=1;selected=null;$('centerOverlay').classList.remove('on');render();toast(`${FACTIONS[player].name}, 천하를 도모하라`);}
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.1.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.2.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -1466,7 +1490,7 @@ window.addEventListener('pointerup',_endPtr);
 window.addEventListener('pointercancel',_endPtr);
 
 
-function dismissSplash(){const s=$('splash');if(!s||s.classList.contains('out'))return;s.classList.add('out');setTimeout(()=>{s.style.display='none';showEra();},600);}
+function dismissSplash(){const s=$('splash');if(!s||s.classList.contains('out'))return;s.classList.add('out');setTimeout(()=>{s.style.display='none';showStart();},600);}
 $('splash').addEventListener('click',dismissSplash);
 updateSaveBtns();
 showVersion();
