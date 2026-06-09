@@ -405,6 +405,22 @@ const SCENARIOS=[
   own:{yodong:'goguryeo',bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',hanseong:'baekje',gwanmi:'baekje',michuhol:'baekje',ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',geumseong:'silla',myeonghwal:'silla',busan:'silla',samnyeon:'baekje',gwansan:'baekje',daeya:'gaya',danghang:'baekje',bukhan:'baekje',maeso:'baekje',golbeol:'silla',geumgwan:'gaya',daegaya:'gaya',ara:'gaya',seongsan:'gaya',dara:'gaya',youzhou:'china',linyu:'china',yongseong:'china',cheongju:'china',deungju:'china',tsushima:'wa',iki:'wa',fukuoka:'wa',mujin:'baekje',balla:'baekje',haseulla:'goguryeo',siljik:'silla'},
   gens:[
    ['근초고왕','baekje','hanseong',92,86,90],['근구수','baekje','ungjin',88,90,80],['막고해','baekje','sabi',82,84,78],['고국원왕','goguryeo','pyeongyang',80,80,76],['고무','goguryeo','yodong',80,84,70],['내물왕','silla','geumseong',78,66,82],['거질미왕','gaya','geumgwan',76,78,72],['하지왕','gaya','daegaya',74,80,70],['모용수','china','yongseong',88,90,82],['모용평','china','youzhou',76,74,78],['오토모','wa','fukuoka',76,82,66],
+  ],
+  events:[
+   {id:'g_intro',turn:1,title:'백제의 전성, 근초고왕',
+    text:'근초고왕이 마한을 아우르고 가야와 왜를 통해 바다를 장악하니, 백제는 사상 최대의 전성기를 맞는다. 이제 그 칼끝이 북녘 고구려를 향한다.'},
+   {id:'g_pyeongyang',turn:2,title:'평양성 공격 — 고국원왕 전사',
+    text:'371년, 근초고왕과 태자 근구수가 3만 정병으로 평양성을 친다. 고구려 고국원왕이 화살에 맞아 전사하니, 고구려는 큰 충격에 빠진다.',
+    effect:()=>{if(pstate['pyeongyang']){pstate['pyeongyang'].troops=Math.round(pstate['pyeongyang'].troops*0.55);pstate['pyeongyang'].train=Math.max(20,pstate['pyeongyang'].train-25);}generals=generals.filter(g=>g.name!=='고국원왕');if(pstate['hanseong'])pstate['hanseong'].train=Math.min(100,pstate['hanseong'].train+15);}},
+   {id:'g_chiljido',turn:3,title:'칠지도와 왜의 동맹',
+    text:'백제가 왜에 칠지도(七支刀)를 보내 우호를 다진다. 바다 건너 왜의 원군이 백제를 돕는다.',
+    effect:()=>{provinces.filter(p=>p.owner==='baekje').forEach(p=>pstate[p.id].train=Math.min(100,pstate[p.id].train+8));}},
+   {id:'g_sosurim',turn:4,title:'고구려의 중흥 — 소수림왕',
+    text:'고국원왕의 뒤를 이은 소수림왕이 불교를 받아들이고 율령을 반포하며 태학을 세운다. 고구려가 내실을 다지고 다시 일어선다.',
+    effect:()=>{provinces.filter(p=>p.owner==='goguryeo').forEach(p=>{pstate[p.id].train=Math.min(100,pstate[p.id].train+12);pstate[p.id].troops=Math.round(pstate[p.id].troops*1.12);});}},
+   {id:'g_mahan',turn:5,title:'마한 평정',
+    text:'근초고왕이 남으로 마한의 잔여 세력을 모두 복속시킨다. 백제의 남방이 하나로 묶인다.',
+    effect:()=>{['mujin','balla','sabi','garim'].forEach(id=>{if(pstate[id]&&prov(id).owner==='baekje')pstate[id].troops=Math.round(pstate[id].troops*1.15);});}},
   ]
  },
  {
@@ -429,6 +445,22 @@ const SCENARIOS=[
    ['이시품왕','gaya','geumgwan',78,78,76],['하지왕','gaya','daegaya',76,82,70],
    ['모용성','china','yongseong',83,85,72],['풍발','china','cheongju',78,80,74],
    ['오토모','wa','fukuoka',77,82,66],['사데히코','wa','tsushima',75,80,64],
+  ],
+  events:[
+   {id:'w_intro',turn:1,title:'광개토대왕 즉위',
+    text:'열여덟의 담덕이 왕위에 오르니 곧 광개토대왕이라. 영락(永樂) 연호를 세우고 사방 정복에 나선다.'},
+   {id:'w_baekje',turn:2,title:'백제 정벌 — 아신왕의 굴복',
+    text:'396년, 광개토대왕이 한강을 건너 백제의 58성을 함락한다. 아신왕이 무릎 꿇고 노객(奴客)을 자처하니, 백제는 한강 이북을 잃는다.',
+    effect:()=>{['hanseong','michuhol','bukhan','danghang'].forEach(id=>{if(pstate[id]&&prov(id).owner==='baekje')pstate[id].troops=Math.round(pstate[id].troops*0.55);});['maeso','gwanmi'].forEach(id=>{if(pstate[id]&&prov(id).owner==='goguryeo')pstate[id].troops+=4000;});}},
+   {id:'w_namjeong',turn:3,title:'경자년 남정 — 신라를 구원하다',
+    text:'400년, 신라 내물왕의 구원 요청에 광개토대왕이 보기(步騎) 5만을 보낸다. 신라를 침입한 왜군과 가야 연합이 낙동강에서 궤멸하고, 임나가라가 무너진다.',
+    effect:()=>{provinces.filter(p=>p.owner==='gaya'||p.owner==='wa').forEach(p=>{pstate[p.id].troops=Math.round(pstate[p.id].troops*0.5);pstate[p.id].train=Math.max(15,pstate[p.id].train-15);});provinces.filter(p=>p.owner==='silla').forEach(p=>pstate[p.id].train=Math.min(100,pstate[p.id].train+8));}},
+   {id:'w_yodong',turn:4,title:'요동 정벌 — 후연을 몰아내다',
+    text:'광개토대왕이 후연을 쳐 요동성과 현도를 빼앗는다. 마침내 요동 벌판이 고구려의 것이 된다.',
+    effect:()=>{provinces.filter(p=>p.owner==='china').forEach(p=>pstate[p.id].troops=Math.round(pstate[p.id].troops*0.6));['yodong','ansi','sinseong'].forEach(id=>{if(pstate[id]&&prov(id).owner==='goguryeo')pstate[id].troops+=4000;});}},
+   {id:'w_buyeo',turn:5,title:'동부여 복속',
+    text:'410년, 광개토대왕이 동부여를 정벌하여 64성을 거두니, 고구려의 강역이 사상 최대에 이른다.',
+    effect:()=>{['buyeo','chaek','okjeo'].forEach(id=>{if(pstate[id]&&prov(id).owner==='goguryeo')pstate[id].troops=Math.round(pstate[id].troops*1.15);});}},
   ]
  },
  {
@@ -452,6 +484,22 @@ const SCENARIOS=[
    ['도설지왕','gaya','daegaya',78,80,72],['월광태자','gaya','dara',74,76,70],
    ['고양','china','yongseong',84,82,80],['곡율광','china','cheongju',82,88,72],
    ['소가','wa','fukuoka',74,70,80],['오노','wa','tsushima',76,82,66],
+  ],
+  events:[
+   {id:'j_intro',turn:1,title:'나제동맹과 진흥왕',
+    text:'신라 진흥왕이 백제 성왕과 손잡고 고구려로부터 한강 유역을 빼앗는다. 그러나 야망은 동맹의 신의를 넘어선다.'},
+   {id:'j_hangang',turn:2,title:'한강 쟁탈 — 신라의 배신',
+    text:'553년, 진흥왕이 백제가 차지한 한강 하류마저 기습해 빼앗고 신주(新州)를 설치한다. 백제 성왕은 분노에 떤다.',
+    effect:()=>{['hanseong','bukhan','danghang','michuhol'].forEach(id=>{if(pstate[id]&&prov(id).owner==='silla')pstate[id].troops=Math.round(pstate[id].troops*1.2);});}},
+   {id:'j_gwansan',turn:3,title:'관산성 전투 — 성왕 전사',
+    text:'554년, 성왕이 태자와 함께 관산성으로 진군하다 신라 복병에 사로잡혀 전사한다. 백제군 3만이 무너지니, 나제동맹은 영원히 끝난다.',
+    effect:()=>{generals=generals.filter(g=>g.name!=='성왕');provinces.filter(p=>p.owner==='baekje').forEach(p=>{pstate[p.id].train=Math.max(15,pstate[p.id].train-20);pstate[p.id].troops=Math.round(pstate[p.id].troops*0.8);});if(pstate['gwansan'])pstate['gwansan'].troops+=8000;provinces.filter(p=>p.owner==='silla').forEach(p=>pstate[p.id].train=Math.min(100,pstate[p.id].train+8));}},
+   {id:'j_daegaya',turn:4,title:'대가야 정복',
+    text:'562년, 이사부와 사다함이 대가야를 쳐 멸한다. 오백 년 가야 연맹의 마지막 불꽃이 꺼지고, 그 땅은 신라에 들어간다.',
+    effect:()=>{provinces.filter(p=>p.owner==='gaya').forEach(p=>{pstate[p.id].troops=Math.round(pstate[p.id].troops*0.5);pstate[p.id].train=Math.max(15,pstate[p.id].train-15);});}},
+   {id:'j_sunsubi',turn:5,title:'진흥왕 순수비',
+    text:'진흥왕이 북한산·황초령·마운령에 순수비를 세운다. 신라의 강역이 한강에서 함흥평야에 이르니, 삼국의 주도권이 신라로 넘어간다.',
+    effect:()=>{provinces.filter(p=>p.owner==='silla').forEach(p=>pstate[p.id].troops=Math.round(pstate[p.id].troops*1.08));}},
   ]
  },
  {
@@ -1557,7 +1605,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.7.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.8.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
