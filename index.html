@@ -163,6 +163,9 @@ svg{width:100%;height:100%;display:block}
 .fpick .fd{font-size:11px;color:#9c8c6a;margin-top:6px;line-height:1.5}
 .captured{display:flex;align-items:center;gap:14px;justify-content:center;margin:18px 0;padding:14px;border:1px solid #3a2c1c;border-radius:6px;background:rgba(0,0,0,.3)}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1d160d;border:1.5px solid var(--gold);color:var(--paper);padding:12px 22px;border-radius:4px;z-index:300;font-family:'Pretendard';font-weight:700;opacity:0;transition:.3s;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+.verbanner{position:fixed;top:0;left:0;right:0;z-index:600;display:none;align-items:center;justify-content:center;gap:12px;padding:8px 12px;background:linear-gradient(180deg,#2a2114,#1a140c);border-bottom:1px solid var(--gold);color:#f0d98a;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+.verbanner.on{display:flex}
+.vertag{font-size:10px;color:#8a7a5a;letter-spacing:1px;align-self:center;margin-left:2px}
 .toast.on{opacity:1;bottom:34px}
 .back{position:absolute;top:18px;left:18px;font-size:12px;color:#9c8c6a;cursor:pointer;letter-spacing:1px}
 .back:hover{color:var(--gold)}
@@ -222,7 +225,7 @@ svg{width:100%;height:100%;display:block}
 <body>
 <div class="wrap">
   <div class="topbar">
-    <div class="brand">三韓戰<small>삼한전</small></div>
+    <div class="brand">三韓戰<small>삼한전</small><span class="vertag" id="vertag"></span></div>
     <div class="stat"><span class="k">時代</span><span class="v" id="erav" style="font-size:13px">—</span></div>
     <div class="flexsp"></div>
     <div class="stat"><span class="k">年 / 턴</span><span class="v" id="turnv">1</span></div>
@@ -266,6 +269,7 @@ svg{width:100%;height:100%;display:block}
 <div class="overlay" id="battleOverlay"><div class="battle" id="battleBox"></div></div>
 <div class="overlay" id="centerOverlay"><div class="center-modal" id="centerBox"></div></div>
 <div class="toast" id="toast"></div>
+<div class="verbanner" id="verbanner">🆕 새 버전이 나왔습니다 <button class="btn sm" onclick="location.reload()">새로고침</button></div>
 
 <script>
 /* ============ 세력 (교과서 영토색) ============ */
@@ -1324,13 +1328,26 @@ function showFactionPick(){
 function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.classList.remove('active'));$('fp-'+f).classList.add('active');$('startBtn').disabled=false;}
 function beginGame(){player=chosenF;turn=1;selected=null;$('centerOverlay').classList.remove('on');render();toast(`${FACTIONS[player].name}, 천하를 도모하라`);}
 
+/* ============ 버전 / 업데이트 알림 ============ */
+const GAME_VERSION='1.1.0';   // 배포할 때마다 version.json과 함께 올림
+const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
+function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
+async function checkVersion(){
+  if(location.protocol==='file:')return;   // 로컬 파일 직접 열기 시엔 서버가 없어 생략
+  try{
+    const r=await fetch('version.json?_='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return; const j=await r.json();
+    if(j&&j.version&&j.version!==GAME_VERSION)$('verbanner').classList.add('on');
+  }catch(_){/* file:// 등 네트워크 불가 시 무시 */}
+}
+
 /* ============ 저장 / 불러오기 (localStorage) ============ */
 const SAVE_KEY='samhanjeon_save_v1';
 function hasSave(){try{return !!localStorage.getItem(SAVE_KEY);}catch(_){return false;}}
 function saveGame(silent){
   if(!scenario){if(!silent)toast('게임을 먼저 시작하라');return;}
   const data={
-    v:1, ts:Date.now(),
+    v:SAVE_VER, ts:Date.now(),
     scenarioId:scenario.id, player, turn,
     activeFactions:activeFactions.slice(),
     lostThisTurn:lostThisTurn.slice(),
@@ -1348,18 +1365,22 @@ function loadGame(){
   let data;
   try{const raw=localStorage.getItem(SAVE_KEY);if(!raw){toast('저장된 게임이 없다');return;}data=JSON.parse(raw);}
   catch(_){toast('저장 데이터를 읽을 수 없다');return;}
+  // 저장 호환성 검사 — 깨지지 않고 안전하게 처리
+  if((data.v||0)>SAVE_VER){toast('더 새로운 버전의 저장본이라 불러올 수 없다');return;}
   const sc=SCENARIOS.find(s=>s.id===data.scenarioId);
   if(!sc){toast('저장된 시대를 찾을 수 없다');return;}
-  loadScenario(sc);                                   // 기본 상태 구성
-  provinces.forEach(p=>{ if(data.owners[p.id]!==undefined) p.owner=data.owners[p.id]; });
-  pstate=data.pstate;
-  generals=data.gens;
-  player=data.player; turn=data.turn;
-  activeFactions=data.activeFactions||sc.factions.slice();
-  lostThisTurn=data.lostThisTurn||[];
-  if(data.cname)FACTIONS.china.name=data.cname;
-  if(data.chanzi)factionHanzi.china=data.chanzi;
-  selected=null; attackMode=false; moveMode=false; moveDlg=null; aiAnimating=false;
+  try{
+    loadScenario(sc);                                 // 기본 상태 구성
+    provinces.forEach(p=>{ if(data.owners&&data.owners[p.id]!==undefined) p.owner=data.owners[p.id]; });
+    if(data.pstate)pstate=data.pstate;
+    if(data.gens)generals=data.gens;
+    player=data.player||player; turn=data.turn||1;
+    activeFactions=data.activeFactions||sc.factions.slice();
+    lostThisTurn=data.lostThisTurn||[];
+    if(data.cname)FACTIONS.china.name=data.cname;
+    if(data.chanzi)factionHanzi.china=data.chanzi;
+  }catch(err){toast('저장본이 손상되어 불러올 수 없다');return;}
+  selected=null; attackMode=false; moveMode=false; moveDlg=null; aiAnimating=false; B=null; duel=null;
   $('centerOverlay').classList.remove('on'); $('battleOverlay').classList.remove('on');
   if($('splash'))$('splash').style.display='none';
   render();
@@ -1404,12 +1425,13 @@ function beginPinch(){
   const r=MAP.getBoundingClientRect();
   pinch={d0:Math.max(d,1),vw0:view.w,r,anchorX:view.x+(cx-r.left)*view.w/r.width,anchorY:view.y+(cy-r.top)*view.h/r.height,moved:false};
 }
+function capturePointers(){pointers.forEach((_,id)=>{try{MAP.setPointerCapture(id);}catch(_){}});}
 MAP.addEventListener('pointerdown',e=>{
   suppressClick=false;
-  try{MAP.setPointerCapture(e.pointerId);}catch(_){}
+  // 캡처는 실제로 드래그/핀치가 시작될 때만 — 단순 클릭은 성(.prov)에 정상 전달
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.size===1){pinch=null;beginPan({x:e.clientX,y:e.clientY});}
-  else if(pointers.size===2){panStart=null;beginPinch();}
+  else if(pointers.size===2){panStart=null;beginPinch();capturePointers();}
 });
 window.addEventListener('pointermove',e=>{
   if(!pointers.has(e.pointerId))return;
@@ -1427,7 +1449,7 @@ window.addEventListener('pointermove',e=>{
     view.y=pinch.anchorY-(cy-pinch.r.top)*view.h/pinch.r.height;
     schedule(true);
   } else if(pointers.size===1&&panStart){ // 한 손가락: 이동만
-    if(Math.abs(e.clientX-panStart.sx)+Math.abs(e.clientY-panStart.sy)>8)panStart.moved=true;
+    if(Math.abs(e.clientX-panStart.sx)+Math.abs(e.clientY-panStart.sy)>8&&!panStart.moved){panStart.moved=true;capturePointers();} // 드래그 확정 시 캡처
     view.x=panStart.ox-(e.clientX-panStart.sx)*panStart.k; view.y=panStart.oy-(e.clientY-panStart.sy)*panStart.k;
     schedule(false);
   }
@@ -1447,6 +1469,8 @@ window.addEventListener('pointercancel',_endPtr);
 function dismissSplash(){const s=$('splash');if(!s||s.classList.contains('out'))return;s.classList.add('out');setTimeout(()=>{s.style.display='none';showEra();},600);}
 $('splash').addEventListener('click',dismissSplash);
 updateSaveBtns();
+showVersion();
+checkVersion();
 </script>
 </body>
 </html>
