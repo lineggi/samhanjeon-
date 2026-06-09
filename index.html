@@ -326,7 +326,22 @@ const FACTION_SKILL={
   wa:{name:'해적 기습', icon:'🗡', dur:3, cd:6, atk:1.25, desc:'3턴간 공격 +25% (왜구 기습)'},
   china:{name:'대군 물량', icon:'⚔', dur:3, cd:6, atk:1.18, moraleRegen:5, desc:'3턴간 공격 +18%·매 합 사기 +5 (대국 물량)'},
 };
-let factionBuff={}, factionCd={};
+let factionBuff={}, factionCd={}, diploUsed=false;
+function playerGold(){return ownedBy(player).reduce((s,p)=>s+pstate[p.id].gold,0);}
+function spendGold(amt){let left=amt;for(const p of ownedBy(player)){if(left<=0)break;const take=Math.min(pstate[p.id].gold,left);pstate[p.id].gold-=take;left-=take;}return left<=0;}
+function proposePeace(f){if(diploUsed){toast('이번 턴 외교는 이미 행사했다');return;}if(playerGold()<200){toast('금이 부족하다');return;}
+  spendGold(200);diploUsed=true;const mine=ownedBy(player).length,th=ownedBy(f).length;
+  const accept=Math.random()<(0.5+(mine-th)*0.03);
+  if(accept){setRel(player,f,'neutral');toast(`${FACTIONS[f].name}과 화친을 맺었다`);}else toast(`${FACTIONS[f].name}이(가) 화친을 거절했다`);
+  showDiplomacy();render();}
+function proposeAlliance(f){if(diploUsed){toast('이번 턴 외교는 이미 행사했다');return;}if(playerGold()<400){toast('금이 부족하다');return;}
+  spendGold(400);diploUsed=true;const mine=ownedBy(player).length,th=ownedBy(f).length;
+  const commonFoe=activeFactions.some(x=>x!==player&&x!==f&&getRel(player,x)==='war'&&getRel(f,x)==='war');
+  const accept=Math.random()<(0.35+(commonFoe?0.3:0)+(th-mine)*0.02);
+  if(accept){setRel(player,f,'ally');toast(`${FACTIONS[f].name}과 동맹을 맺었다!`);}else toast(`${FACTIONS[f].name}이(가) 동맹을 거절했다`);
+  showDiplomacy();render();}
+function declareWar(f){setRel(player,f,'war');toast(`${FACTIONS[f].name}에 선전포고했다`);showDiplomacy();render();}
+function breakAlliance(f){setRel(player,f,'neutral');toast(`${FACTIONS[f].name}과의 동맹을 파기했다`);showDiplomacy();render();}
 function activeSkill(fac){return (factionBuff[fac]>0)?FACTION_SKILL[fac]:null;}
 function updateSkillBtn(){
   const btn=$('skillbtn'); if(!btn)return;
@@ -780,7 +795,7 @@ function loadScenario(sc){
   if(sc.cname)FACTIONS.china.name=sc.cname;
   factionHanzi.china=sc.chanzi||'中';
   activeFactions=sc.factions.slice();
-  initDiplo(sc); factionBuff={}; factionCd={};
+  initDiplo(sc); factionBuff={}; factionCd={}; diploUsed=false;
 }
 /* 도움말 모달 */
 function showHelp(){
@@ -806,10 +821,16 @@ function showDiplomacy(){
   if(!scenario){toast('게임을 먼저 시작하라');return;}
   const facs=activeFactions;
   const chip=s=>`<span style="color:${REL_COLOR[s]};font-weight:700">${REL_LABEL[s]}</span>`;
-  const me=facs.filter(f=>f!==player).map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #2a2114;border-radius:5px">
+  const me=facs.filter(f=>f!==player).map(f=>{const rel=getRel(player,f);
+    let btns='';
+    if(rel==='war')btns=`<button class="btn sm" ${diploUsed?'disabled':''} onclick="proposePeace('${f}')">화친 <small style="font-weight:400">금200</small></button>`;
+    else if(rel==='neutral')btns=`<button class="btn sm" ${diploUsed?'disabled':''} onclick="proposeAlliance('${f}')">동맹 제안 <small style="font-weight:400">금400</small></button><button class="btn sm danger" onclick="declareWar('${f}')">선전포고</button>`;
+    else if(rel==='ally')btns=`<button class="btn sm danger" onclick="breakAlliance('${f}')">동맹 파기</button>`;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #2a2114;border-radius:5px;flex-wrap:wrap">
     <span class="dot" style="width:11px;height:11px;border-radius:50%;background:${fcolor(f)};box-shadow:0 0 0 2px rgba(0,0,0,.4) inset"></span>
-    <b style="color:${fcolor(f)}">${FACTIONS[f].name}</b>
-    <span style="margin-left:auto">${chip(getRel(player,f))}</span></div>`).join('');
+    <b style="color:${fcolor(f)}">${FACTIONS[f].name}</b><span style="font-size:11px;color:#8a7a5a">${ownedBy(f).length}성</span>
+    <span style="margin-left:auto">${chip(rel)}</span>
+    <div style="flex-basis:100%;display:flex;gap:5px;margin-top:3px">${btns}</div></div>`;}).join('');
   // 전체 관계 행렬
   const head=`<tr><th></th>${facs.map(f=>`<th style="color:${fcolor(f)};font-size:11px;padding:3px 5px">${FACTIONS[f].name}</th>`).join('')}</tr>`;
   const rows=facs.map(a=>`<tr><th style="color:${fcolor(a)};font-size:11px;text-align:right;padding:3px 6px">${FACTIONS[a].name}</th>${facs.map(b=>{const s=getRel(a,b);return `<td style="text-align:center;padding:3px 5px;font-size:10.5px;color:${REL_COLOR[s]}">${s==='self'?'·':REL_LABEL[s]}</td>`;}).join('')}</tr>`).join('');
@@ -1637,6 +1658,7 @@ function endTurn(){
 function finishTurn(){
   aiAnimating=false; turn++;
   activeFactions.forEach(f=>{if(factionBuff[f]>0)factionBuff[f]--;if(factionCd[f]>0)factionCd[f]--;}); // 특기 지속/쿨다운 경과
+  diploUsed=false;
   starveThisTurn=[]; defectThisTurn=[];
   // 장수 충성도: 세력이 강하면 오르고 쇠하면 떨어진다. 낮으면 인접 적 세력으로 이탈
   {const terr={}; activeFactions.forEach(f=>terr[f]=ownedBy(f).length);
@@ -1896,7 +1918,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.14.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.15.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -1921,7 +1943,7 @@ function saveGame(silent){
     firedEvents:firedEvents.slice(),
     diplo:{...diplo},
     walls:Object.fromEntries(provinces.map(p=>[p.id,p.wall])),
-    factionBuff:{...factionBuff}, factionCd:{...factionCd},
+    factionBuff:{...factionBuff}, factionCd:{...factionCd}, diploUsed,
     cname:FACTIONS.china.name, chanzi:factionHanzi.china,
     owners:Object.fromEntries(provinces.map(p=>[p.id,p.owner])),
     pstate:JSON.parse(JSON.stringify(pstate)),
@@ -1950,7 +1972,7 @@ function loadGame(){
     lostThisTurn=data.lostThisTurn||[];
     firedEvents=data.firedEvents||(scenario.events?scenario.events.filter(e=>e.turn<=turn).map(e=>e.id):[]); // 구버전 저장본: 지난 이벤트는 본 것으로 처리
     if(data.diplo)diplo=data.diplo;   // 구버전 저장본은 loadScenario의 기본 외교 유지
-    factionBuff=data.factionBuff||{}; factionCd=data.factionCd||{};
+    factionBuff=data.factionBuff||{}; factionCd=data.factionCd||{}; diploUsed=!!data.diploUsed;
     if(data.cname)FACTIONS.china.name=data.cname;
     if(data.chanzi)factionHanzi.china=data.chanzi;
     provinces.forEach(p=>{const s=pstate[p.id];if(s&&s.pop==null)s.pop=Math.round(p.base*(p.cap?6:4));if(s&&s.food==null)s.food=Math.round(s.troops*3)+1000;if(s&&s.farm==null)s.farm=0;}); // 구버전 저장본 백성·군량·둔전 보정
