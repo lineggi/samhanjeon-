@@ -459,7 +459,7 @@ const SCENARIOS=[
 
 /* ============ 런타임 ============ */
 let provinces=[], pstate={}, generals=[];
-let player='goguryeo', turn=1, selected=null, attackMode=false, scenario=null, activeFactions=[], zoomScale=1, lastD={}, aiAnimating=false, lostThisTurn=[], moveMode=false;
+let player='goguryeo', turn=1, selected=null, attackMode=false, scenario=null, activeFactions=[], zoomScale=1, lastD={}, aiAnimating=false, lostThisTurn=[], moveMode=false, genMoveMode=false;
 const $=id=>document.getElementById(id);
 function adj(id){const r=new Set();EDGES.forEach(([a,b])=>{if(a===id)r.add(b);if(b===id)r.add(a)});return [...r];}
 function prov(id){return provinces.find(p=>p.id===id);}
@@ -611,7 +611,7 @@ function loadScenario(sc){
   provinces=CASTLES.map(c=>({...c, owner: sc.own[c.id]||null}));
   pstate={};
   provinces.forEach(p=>{const m=sc.str[p.owner]||1;
-    pstate[p.id]={troops:Math.round(p.base*m), train:p.cap?70:55, gold:p.cap?500:340, acted:false};});
+    pstate[p.id]={troops:Math.round(p.base*m), pop:Math.round(p.base*(p.cap?6:4)), train:p.cap?70:55, gold:p.cap?500:340, acted:false};});
   generals=sc.gens.map((g,i)=>({id:'G'+i,name:g[0],f:g[1],loc:g[2],lead:g[3],might:g[4],int:g[5]}));
   if(sc.cname)FACTIONS.china.name=sc.cname;
   factionHanzi.china=sc.chanzi||'中';
@@ -747,7 +747,7 @@ function renderMap(){
     const c=D[p.id], px=c.x, py=c.y;
     const r=(6.5+Math.min(5.5,st.troops/1500))*ns;
     const isSel=selected===p.id, targetable=attackMode&&p.owner!==player&&adj(selected).includes(p.id);
-    const moveTarget=moveMode&&p.owner===player&&p.id!==selected&&adj(selected).includes(p.id);
+    const moveTarget=(moveMode||genMoveMode)&&p.owner===player&&p.id!==selected&&adj(selected).includes(p.id);
     const showName=z>=1.5||p.cap||isSel, showTroop=isSel||z>=6;
     h+=`<g class="prov" onclick="clickProv('${p.id}')">`;
     if(isSel)h+=`<circle class="sel-ring" cx="${px}" cy="${py}" r="${r+7*ns}" style="stroke-width:${2.5*ns}px"/>`;
@@ -789,11 +789,13 @@ function renderPanel(){
     <div><span style="font-family:Gugi;font-size:23px;color:${fcolor(p.owner)}">${p.name}</span>
     <span style="font-size:11px;color:#8a7a5a;margin-left:6px">${p.sub} · ${FACTIONS[p.owner].name}${p.cap?' · 都城':''}</span></div>
     <div class="row"><span class="lab">병력</span><span class="val">${fmt(st.troops)}</span></div>
+    <div class="row"><span class="lab">백성(民)</span><span class="val">${fmt(st.pop||0)}</span></div>
     <div class="row"><span class="lab">훈련도</span><span class="val">${st.train}</span></div>
     <div class="bar"><i style="width:${st.train}%;background:linear-gradient(90deg,#7a1f1a,var(--gold))"></i></div>
     <div class="row" style="margin-top:8px"><span class="lab">지형</span><span class="val" style="font-size:13px">${p.terr}</span></div>
     <div class="row"><span class="lab">성벽</span><span class="val" style="font-size:13px">${'■'.repeat(p.wall)}${'□'.repeat(4-p.wall)}</span></div>
     <div class="row"><span class="lab">금(金)</span><span class="val">${fmt(st.gold)}</span></div>
+    <div class="row"><span class="lab">세수(/턴)</span><span class="val" style="font-size:12px;color:#9c8c6a">+${fmt(60+p.wall*25+Math.round((st.pop||0)*0.02))}</span></div>
   </div>`;
   if(g){const sk=genSkill(g);info+=`<div class="gen"><div class="face">${genPortrait(g)}</div>
     <div class="ginfo"><div class="gname">${g.name}${sk?` <span style="font-size:11px;color:var(--gold)">⚑${sk.name}</span>`:''}</div>
@@ -805,10 +807,11 @@ function renderPanel(){
   if(mine){const acted=st.acted;
     const friendly=adj(p.id).some(t=>prov(t).owner===player);
     act=`<div class="panel-actions"><div class="actions">
-      <button class="btn sm" ${acted||st.gold<300?'disabled':''} onclick="doRecruit('${p.id}')">모병 +2000<br><small style="font-weight:400">금 300</small></button>
+      <button class="btn sm" ${acted||st.gold<300||(st.pop||0)<2000?'disabled':''} onclick="doRecruit('${p.id}')">징용 +2000<br><small style="font-weight:400">금 300 · 백성 2000</small></button>
       <button class="btn sm" ${acted||st.gold<150||st.train>=100?'disabled':''} onclick="doTrain('${p.id}')">훈련 +15<br><small style="font-weight:400">금 150</small></button>
       <button class="btn sm danger" ${acted?'disabled':''} onclick="startAttack('${p.id}')">⚔ 출병</button>
       <button class="btn sm" ${acted||!friendly?'disabled':''} onclick="startMove('${p.id}')">⇄ 병력 이동</button>
+      <button class="btn sm" style="grid-column:1/3" ${acted||!friendly||!g?'disabled':''} onclick="startGenMove('${p.id}')">將 장수 이동${g?'':' <small style="font-weight:400">(장수 없음)</small>'}</button>
     </div>`;
     if(acted)act+=`<div class="hint" style="display:block;color:#7a6a4a">이 성은 이번 턴에 이미 명을 받았다.</div>`;
     act+=`</div>`;
@@ -831,14 +834,30 @@ function clickProv(id){
     else{toast('인접한 아군 성으로만 병력을 옮길 수 있다');}
     return;
   }
+  if(genMoveMode){
+    if(id===selected){genMoveMode=false;render();}
+    else if(prov(id).owner===player && adj(selected).includes(id)){doGenMove(selected,id);}
+    else{toast('인접한 아군 성으로만 장수를 보낼 수 있다');}
+    return;
+  }
   selected=id;render();
 }
-function doRecruit(id){const st=pstate[id];if(st.acted||st.gold<300)return;st.gold-=300;st.troops+=2000;st.train=Math.max(30,st.train-8);st.acted=true;toast('병력을 모았다 (+2000)');render();}
+function doRecruit(id){const st=pstate[id];if(st.acted||st.gold<300||st.pop<2000){if(st.pop<2000)toast('백성이 부족해 징용할 수 없다');return;}st.gold-=300;st.pop-=2000;st.troops+=2000;st.train=Math.max(30,st.train-8);st.acted=true;toast('백성을 징용했다 (병력 +2000, 백성 -2000)');render();}
 function doTrain(id){const st=pstate[id];if(st.acted||st.gold<150)return;st.gold-=150;st.train=Math.min(100,st.train+15);st.acted=true;toast('군을 훈련했다 (+15)');render();}
-function startAttack(id){if(pstate[id].acted)return;moveMode=false;attackMode=true;toast('공격할 인접 적 성을 선택하라');render();}
+function startAttack(id){if(pstate[id].acted)return;moveMode=false;genMoveMode=false;attackMode=true;toast('공격할 인접 적 성을 선택하라');render();}
 function startMove(id){if(pstate[id].acted)return;
   if(!adj(id).some(t=>prov(t).owner===player)){toast('이동 가능한 인접 아군 성이 없다');return;}
-  attackMode=false;moveMode=true;toast('병력을 옮길 인접 아군 성을 선택하라');render();}
+  attackMode=false;genMoveMode=false;moveMode=true;toast('병력을 옮길 인접 아군 성을 선택하라');render();}
+function startGenMove(id){if(pstate[id].acted)return;
+  if(!genAt(id)){toast('이 성에는 이동할 장수가 없다');return;}
+  if(!adj(id).some(t=>prov(t).owner===player)){toast('장수를 보낼 인접 아군 성이 없다');return;}
+  attackMode=false;moveMode=false;genMoveMode=true;toast('장수를 보낼 인접 아군 성을 선택하라');render();}
+function doGenMove(fromId,toId){
+  genMoveMode=false;
+  const g=genAt(fromId); if(!g){render();return;}
+  g.loc=toId; pstate[fromId].acted=true; selected=toId; render();
+  toast(`${g.name}이(가) ${prov(toId).name}으로 이동했다`);
+}
 /* 이동 병력 수 선택 (백/천/만 단위) */
 let moveDlg=null;
 function moveClamp(v){return Math.max(moveDlg.min,Math.min(moveDlg.max,Math.round(v)));}
@@ -1206,7 +1225,7 @@ function planAiTurn(){
       const targets=adj(p.id).map(prov).filter(t=>t.owner!==f);
       const weak=targets.filter(t=>pstate[t.id].troops<st.troops*0.85).sort((a,b)=>pstate[a.id].troops-pstate[b.id].troops);
       if(weak.length&&st.troops>2500&&Math.random()<0.7){moves.push({from:p.id,to:weak[0].id,fac:f});}
-      else if(st.gold>=300&&Math.random()<0.6){st.gold-=300;st.troops+=1800;}
+      else if(st.gold>=300&&(st.pop||0)>=1800&&Math.random()<0.6){st.gold-=300;st.pop-=1800;st.troops+=1800;}
       else if(st.gold>=150&&st.train<100){st.gold-=150;st.train=Math.min(100,st.train+15);}
       st.acted=true;
     });
@@ -1250,14 +1269,18 @@ function aiBattle(fromId,toId){
 function endTurn(){
   if(aiAnimating)return;
   if(attackMode){attackMode=false;render();return;}
-  lostThisTurn=[]; selected=null; moveMode=false; attackMode=false; render();
+  lostThisTurn=[]; selected=null; moveMode=false; genMoveMode=false; attackMode=false; render();
   const moves=planAiTurn();
   aiAnimating=true;
   playAiMoves(moves,0,finishTurn);
 }
 function finishTurn(){
   aiAnimating=false; turn++;
-  provinces.forEach(p=>{const st=pstate[p.id];st.gold+=120+p.wall*40+Math.round(st.troops*0.01);st.acted=false;});
+  provinces.forEach(p=>{const st=pstate[p.id];
+    const maxPop=Math.round(p.base*(p.cap?9:6));
+    st.pop=Math.min(maxPop,st.pop+Math.round(st.pop*0.02)+40);   // 백성 자연 증가
+    st.gold+=60+p.wall*25+Math.round(st.pop*0.02);               // 수입 = 백성 세금 + 성벽 교역 + 기본
+    st.acted=false;});
   selected=null; render(); checkVictory();
   saveGame(true);   // 매 턴 자동 저장(새로고침해도 이어하기 가능)
   if(lostThisTurn.length) toast(`지난 한 해, ${lostThisTurn.join('·')}을(를) 잃었다!`);
@@ -1403,8 +1426,9 @@ function loadGame(){
     lostThisTurn=data.lostThisTurn||[];
     if(data.cname)FACTIONS.china.name=data.cname;
     if(data.chanzi)factionHanzi.china=data.chanzi;
+    provinces.forEach(p=>{const s=pstate[p.id];if(s&&s.pop==null)s.pop=Math.round(p.base*(p.cap?6:4));}); // 구버전 저장본 백성 보정
   }catch(err){toast('저장본이 손상되어 불러올 수 없다');return;}
-  selected=null; attackMode=false; moveMode=false; moveDlg=null; aiAnimating=false; B=null; duel=null;
+  selected=null; attackMode=false; moveMode=false; genMoveMode=false; moveDlg=null; aiAnimating=false; B=null; duel=null;
   $('centerOverlay').classList.remove('on'); $('battleOverlay').classList.remove('on');
   if($('splash'))$('splash').style.display='none';
   render();
