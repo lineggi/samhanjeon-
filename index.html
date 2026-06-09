@@ -335,23 +335,34 @@ let factionBuff={}, factionCd={}, diploUsed=false, autoDelegate=false;
 /* 전권 일임(AI 위임): 미행동 내 성에 내정 + 압도적 우세 시 자동 공략(즉시 결판) */
 function delegateInternal(silent){
   if(!scenario){if(!silent)toast('게임을 먼저 시작하라');return 0;}
-  let n=0,atk=0;
+  let n=0; const rep=[];
   ownedBy(player).slice().forEach(p=>{const st=pstate[p.id]; if(st.acted)return; const id=p.id;
     // 1) 압도적 우세한 인접 적 자동 공략(동맹 제외), 충분한 병력일 때만
     if(st.troops>3000){
       const tgt=adj(id).map(prov).filter(t=>t.owner&&t.owner!==player&&getRel(player,t.owner)!=='ally')
         .sort((a,b)=>pstate[a.id].troops-pstate[b.id].troops)[0];
-      if(tgt && pstate[tgt.id].troops < st.troops*0.5){ aiBattle(id,tgt.id,null); st.acted=true; atk++; n++; return; }
+      if(tgt && pstate[tgt.id].troops < st.troops*0.5){ const tn=tgt.name,to=tgt.id; aiBattle(id,to,null); st.acted=true; n++;
+        rep.push({name:p.name,act:`⚔ ${tn} 공략 ${prov(to).owner===player?'<span style="color:#6fe07a">성공</span>':'<span style="color:#ff7a6a">실패</span>'}`}); return; }
     }
     // 2) 내정
-    if(st.gold>=300&&(st.pop||0)>=2000&&(st.food||0)>=4000&&st.troops<p.base*4.5){st.gold-=300;st.pop-=2000;st.troops+=2000;st.food-=4000;st.train=Math.max(30,st.train-8);st.acted=true;n++;}
-    else if(st.gold>=150&&st.train<85){st.gold-=150;st.train=Math.min(100,st.train+15);st.acted=true;n++;}
-    else if(st.gold>=400&&p.wall<3){st.gold-=400;p.wall++;st.acted=true;n++;}
-    else if(st.gold>=350&&(st.farm||0)<2){st.gold-=350;st.farm=(st.farm||0)+1;st.food=Math.min(foodCap(p),(st.food||0)+800);st.acted=true;n++;}
-    else st.acted=true; // 자원 부족 시 보류
+    if(st.gold>=300&&(st.pop||0)>=2000&&(st.food||0)>=4000&&st.troops<p.base*4.5){st.gold-=300;st.pop-=2000;st.troops+=2000;st.food-=4000;st.train=Math.max(30,st.train-8);st.acted=true;n++;rep.push({name:p.name,act:'징용 +2000'});}
+    else if(st.gold>=150&&st.train<85){st.gold-=150;st.train=Math.min(100,st.train+15);st.acted=true;n++;rep.push({name:p.name,act:'훈련 +15'});}
+    else if(st.gold>=400&&p.wall<3){st.gold-=400;p.wall++;st.acted=true;n++;rep.push({name:p.name,act:`🧱 축성 (성벽 ${p.wall})`});}
+    else if(st.gold>=350&&(st.farm||0)<2){st.gold-=350;st.farm=(st.farm||0)+1;st.food=Math.min(foodCap(p),(st.food||0)+800);st.acted=true;n++;rep.push({name:p.name,act:`🌾 둔전 Lv${st.farm}`});}
+    else {st.acted=true;rep.push({name:p.name,act:'<span style="color:#7a6a4a">대기(자원 부족)</span>'});}
   });
-  render(); if(!silent)toast(n>0?`🤖 전권 일임 — ${n}성 처리${atk?` (공략 ${atk})`:''}`:'일임할 일이 없다');
+  render();
+  if(!silent)delegateReport(rep);   // 각 성 행동 보고
   return n;
+}
+function delegateReport(rep){
+  if(!rep.length){toast('일임할 일이 없다');return;}
+  const rows=rep.map(r=>`<div style="display:flex;gap:8px;padding:6px 10px;border-bottom:1px dashed #241a10;font-size:13px">
+    <b style="color:var(--paper);min-width:84px">${r.name}</b><span style="color:#cdb87f">${r.act}</span></div>`).join('');
+  $('centerBox').innerHTML=`<h1 style="font-size:28px">🤖 위임 보고<small>각 성의 처리 내역 (${rep.length}성)</small></h1>
+    <div style="text-align:left;max-width:380px;margin:14px auto;max-height:56vh;overflow-y:auto">${rows}</div>
+    <button class="btn" onclick="closeCenter()">확인 ▶</button>`;
+  $('centerOverlay').classList.add('on');
 }
 function toggleAuto(){autoDelegate=!autoDelegate; toast(autoDelegate?'매 턴 내정 자동 일임 — 켬':'자동 일임 — 끔'); render();}
 function updateAutoBtn(){const b=$('autobtn');if(b){b.textContent=`🔁 자동:${autoDelegate?'켬':'끔'}`;b.style.color=autoDelegate?'var(--gold)':'';}}
@@ -527,7 +538,7 @@ const SCENARIOS=[
   cname:'후연', chanzi:'燕',
   str:{goguryeo:1.35,baekje:1.0,silla:0.72,gaya:0.9,china:1.1,wa:0.85},
   own:{
-   yodong:'goguryeo',bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',gwanmi:'goguryeo',
+   bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',gwanmi:'goguryeo',
    hanseong:'baekje',michuhol:'baekje',ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',
    geumseong:'silla',myeonghwal:'silla',busan:'silla',samnyeon:'silla',gwansan:'silla',daeya:'silla',golbeol:'silla',
    danghang:'baekje',bukhan:'baekje',maeso:'goguryeo',
@@ -548,16 +559,20 @@ const SCENARIOS=[
     text:'열여덟의 담덕이 왕위에 오르니 곧 광개토대왕이라. 영락(永樂) 연호를 세우고 사방 정복에 나선다.'},
    {id:'w_baekje',turn:2,title:'백제 정벌 — 아신왕의 굴복',
     text:'광개토대왕이 대군을 몰아 한강을 건너 백제의 여러 성을 함락한다. 거듭된 패전 끝에 아신왕이 무릎 꿇고 노객(奴客)을 자처하니, 백제는 한강 이북을 잃는다.',
-    effect:()=>{['hanseong','michuhol','bukhan','danghang'].forEach(id=>{if(pstate[id]&&prov(id).owner==='baekje')pstate[id].troops=Math.round(pstate[id].troops*0.55);});['maeso','gwanmi'].forEach(id=>{if(pstate[id]&&prov(id).owner==='goguryeo')pstate[id].troops+=4000;});}},
+    effect:()=>{eventConquer(['michuhol','bukhan','danghang'],'goguryeo');if(pstate['hanseong']&&prov('hanseong').owner==='baekje')pstate['hanseong'].troops=Math.round(pstate['hanseong'].troops*0.55);}},
    {id:'w_namjeong',turn:3,title:'경자년 남정 — 신라를 구원하다',
     text:'400년, 신라 내물왕의 구원 요청에 광개토대왕이 보기(步騎) 5만을 보낸다. 신라를 침입한 왜군과 가야 연합이 낙동강에서 궤멸하고, 임나가라가 무너진다.',
     effect:()=>{provinces.filter(p=>p.owner==='gaya'||p.owner==='wa').forEach(p=>{pstate[p.id].troops=Math.round(pstate[p.id].troops*0.5);pstate[p.id].train=Math.max(15,pstate[p.id].train-15);});provinces.filter(p=>p.owner==='silla').forEach(p=>pstate[p.id].train=Math.min(100,pstate[p.id].train+8));setRel('goguryeo','silla','ally');setRel('goguryeo','wa','war');setRel('goguryeo','gaya','war');}},
    {id:'w_yodong',turn:4,title:'요동 정벌 — 후연을 몰아내다',
     text:'광개토대왕이 후연을 쳐 요동성과 현도를 빼앗는다. 마침내 요동 벌판이 고구려의 것이 된다.',
-    effect:()=>{provinces.filter(p=>p.owner==='china').forEach(p=>pstate[p.id].troops=Math.round(pstate[p.id].troops*0.6));['yodong','ansi','sinseong'].forEach(id=>{if(pstate[id]&&prov(id).owner==='goguryeo')pstate[id].troops+=4000;});}},
+    effect:()=>{provinces.filter(p=>p.owner==='china').forEach(p=>pstate[p.id].troops=Math.round(pstate[p.id].troops*0.6));eventConquer(['yodong','yongseong'],'goguryeo');}},
    {id:'w_buyeo',turn:5,title:'동부여 복속',
     text:'410년, 광개토대왕이 동부여를 정벌하여 64성을 거두니, 고구려의 강역이 사상 최대에 이른다.',
     effect:()=>{['buyeo','chaek','okjeo'].forEach(id=>{if(pstate[id]&&prov(id).owner==='goguryeo')pstate[id].troops=Math.round(pstate[id].troops*1.15);});}},
+   {id:'w_hanseong',turn:7,title:'장수왕의 남하 — 한성 함락',
+    text:'장수왕이 친히 3만 대군으로 백제 왕도 한성을 친다. 개로왕이 사로잡혀 처형되고, 백제는 도읍을 웅진으로 옮긴다.',
+    cond:()=>genAlive('장수왕') && prov('hanseong') && prov('hanseong').owner==='baekje', // 장수왕 생존+한성이 백제 땅일 때만
+    effect:()=>{eventConquer(['hanseong','gwanmi','michuhol'],'goguryeo'); const js=generals.find(g=>g.name==='장수왕'); if(js)js.loc='hanseong';}},
   ]
  },
  {
@@ -593,7 +608,7 @@ const SCENARIOS=[
     effect:()=>{generals=generals.filter(g=>g.name!=='성왕');provinces.filter(p=>p.owner==='baekje').forEach(p=>{pstate[p.id].train=Math.max(15,pstate[p.id].train-20);pstate[p.id].troops=Math.round(pstate[p.id].troops*0.8);});if(pstate['gwansan'])pstate['gwansan'].troops+=8000;provinces.filter(p=>p.owner==='silla').forEach(p=>pstate[p.id].train=Math.min(100,pstate[p.id].train+8));}},
    {id:'j_daegaya',turn:4,title:'대가야 정복',
     text:'562년, 이사부와 사다함이 대가야를 쳐 멸한다. 오백 년 가야 연맹의 마지막 불꽃이 꺼지고, 그 땅은 신라에 들어간다.',
-    effect:()=>{provinces.filter(p=>p.owner==='gaya').forEach(p=>{pstate[p.id].troops=Math.round(pstate[p.id].troops*0.5);pstate[p.id].train=Math.max(15,pstate[p.id].train-15);});}},
+    effect:()=>{eventConquer(provinces.filter(p=>p.owner==='gaya').map(p=>p.id),'silla');}},
    {id:'j_sunsubi',turn:5,title:'진흥왕 순수비',
     text:'진흥왕이 북한산·황초령·마운령에 순수비를 세운다. 신라의 강역이 한강에서 함흥평야에 이르니, 삼국의 주도권이 신라로 넘어간다.',
     effect:()=>{provinces.filter(p=>p.owner==='silla').forEach(p=>pstate[p.id].troops=Math.round(pstate[p.id].troops*1.08));}},
@@ -626,18 +641,19 @@ const SCENARIOS=[
     text:'645년, 당 태종 이세민이 “고구려는 반드시 무너뜨린다”며 몸소 수십만 대군을 이끌고 요동으로 향한다. 요수 너머로 당의 깃발이 끝없이 펼쳐진다. 한편 평양에서는 연개소문이 정권을 틀어쥐고 결사항전을 외친다.'},
    {id:'u_war1', turn:2, title:'제1차 여당전쟁 발발 — 당, 고구려를 침공하다',
     text:'당군이 요수를 건너 개모성·요동성을 함락하고 백암성마저 무너뜨린다. 고구려는 천리장성에 의지해 필사적으로 막아선다.',
-    effect:()=>{['youzhou','linyu','yongseong'].forEach(id=>{if(pstate[id])pstate[id].train=Math.min(100,pstate[id].train+15);});}},
+    effect:()=>{eventConquer(['baegam'],'china');['yodong','ansi','sinseong'].forEach(id=>{if(pstate[id]&&prov(id).owner==='goguryeo')pstate[id].train=Math.min(100,pstate[id].train+10);});}},
    {id:'u_ansi', turn:3, title:'안시성 공방전 — 양만춘의 분전',
-    text:'당의 대군이 안시성을 겹겹이 포위하고 토산까지 쌓아 올린다. 그러나 성주 양만춘의 결사 항전에 성벽은 끝내 무너지지 않는다.',
-    cond:()=>prov('ansi')&&prov('ansi').owner==='goguryeo',
-    effect:()=>{if(pstate['ansi']){pstate['ansi'].troops+=15000;pstate['ansi'].train=Math.min(100,pstate['ansi'].train+25);}}},
+    text:'성주 양만춘이 안시성에서 당의 대군에 맞선다. 토산이 쌓여도 성벽은 무너지지 않고, 군의 공격력과 사기가 하늘을 찌른다.',
+    cond:()=>prov('ansi')&&prov('ansi').owner==='goguryeo'&&genHere('양만춘','ansi'), // 양만춘이 안시성에 있어야 발동
+    effect:()=>{if(pstate['ansi']){pstate['ansi'].troops+=15000;pstate['ansi'].train=100;}prov('ansi').wall=4;}},  // 성벽 최고 등급
    {id:'u_retreat', turn:6, title:'당군의 회군 — 안시성의 승리',
     text:'겨울이 닥치고 보급이 끊기자, 당 태종은 끝내 안시성을 넘지 못한 채 군을 돌린다. 고구려가 제1차 여당전쟁을 막아냈다.',
     cond:()=>prov('ansi')&&prov('ansi').owner==='goguryeo',
-    effect:()=>{['youzhou','linyu','yongseong','cheongju','deungju'].forEach(id=>{if(pstate[id])pstate[id].troops=Math.round(pstate[id].troops*0.6);});}},
+    effect:()=>{['youzhou','linyu','yongseong','cheongju','deungju'].forEach(id=>{if(pstate[id])pstate[id].troops=Math.round(pstate[id].troops*0.6);});eventConquer(['baegam'],'goguryeo');}},
    {id:'u_fall', turn:6, title:'요동 함락 — 당의 진격',
     text:'안시성이 무너지며 요동 방어선이 붕괴한다. 당의 대군이 거침없이 남하하니, 고구려의 운명은 풍전등화에 놓인다.',
-    cond:()=>!(prov('ansi')&&prov('ansi').owner==='goguryeo')},
+    cond:()=>!(prov('ansi')&&prov('ansi').owner==='goguryeo'),
+    effect:()=>{['yodong','sinseong','baegam'].forEach(id=>{if(prov(id)&&prov(id).owner)eventConquer([id],'china');});}},  // 빈 성이 아니어야(소유 중일 때만) 빼앗긴다
   ]
  }
 ];
@@ -667,6 +683,15 @@ function prov(id){return provinces.find(p=>p.id===id);}
 function gensAt(id){const o=prov(id)&&prov(id).owner;return generals.filter(g=>g.loc===id&&g.f===o);}
 function commanderAt(id){const a=gensAt(id);return a.length?a.reduce((b,g)=>g.lead>b.lead?g:b):undefined;}
 function genAt(id){return commanderAt(id)||generals.find(g=>g.loc===id);}
+/* 이벤트 영토 트리거: 지정 성을 새 세력에게 — 빈 성도 점령됨(장수 일부 투항/이산) */
+function eventConquer(ids,newOwner){
+  ids.forEach(id=>{const p=prov(id); if(!p||p.owner===newOwner)return; const old=p.owner;
+    if(old){generals.forEach(g=>{if(g.loc===id&&g.f===old){if(Math.random()<0.3){g.f=newOwner;g.loyalty=45;}else g._gone=true;}});}
+    p.owner=newOwner;
+    if(pstate[id]){pstate[id].troops=Math.max(800,Math.round((pstate[id].troops||1500)*0.6));pstate[id].acted=true;}
+  });
+  generals=generals.filter(g=>!g._gone);
+}
 function fcolor(f){return FACTIONS[f]?FACTIONS[f].color:'#888';}
 function fmt(n){return Math.round(n).toLocaleString('ko-KR');}
 function fmtK(n){return (n/1000).toFixed(1)+'천';}
@@ -814,7 +839,7 @@ function loadScenario(sc){
   provinces=CASTLES.map(c=>({...c, owner: sc.own[c.id]||null}));
   pstate={};
   provinces.forEach(p=>{const m=sc.str[p.owner]||1;
-    pstate[p.id]={troops:Math.round(p.base*m), pop:Math.round(p.base*(p.cap?6:4)), train:p.cap?70:55, gold:p.cap?500:340, acted:false, food:Math.round(p.base*(p.cap?5:3)), farm:0};});
+    pstate[p.id]={troops:Math.round(p.base*m), pop:Math.round(p.base*(p.cap?6:4)*m), train:p.cap?70:55, gold:p.cap?500:340, acted:false, food:Math.round(p.base*(p.cap?5:3)*m), farm:0};});
   // 시나리오별 성 주둔병 고정/범위 지정 (예: 당 10만, 고구려 1~2만)
   if(sc.garrison)provinces.forEach(p=>{const g=sc.garrison[p.owner];if(g!=null){
     const t=Array.isArray(g)?Math.round(g[0]+Math.random()*(g[1]-g[0])):g;
@@ -1381,15 +1406,21 @@ async function battle3dInit(){
     const terr=B.D.terr, gcol=terr==='산악'?0x46532f:terr==='강'?0x355552:0x57642f;
     const ground=new THREE.Mesh(new THREE.PlaneGeometry(90,60),new THREE.MeshLambertMaterial({color:gcol}));
     ground.rotation.x=-Math.PI/2; scene.add(ground);
-    const MAX=48, geo=new THREE.ConeGeometry(0.62,2.6,5);
-    const mk=(col,z)=>{const m=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({color:col}),MAX);m.userData={z};scene.add(m);return m;};
-    const armyA=mk(hex(fcolor(B.A.p.owner)),10), armyD=mk(hex(fcolor(B.D.p.owner)),-10);
-    // 성벽(수비측) 간단 표현
+    const MAX=40, headGeo=new THREE.SphereGeometry(0.95,8,6);
+    // 군대 = 사각 블록 + 그 위 볼록볼록 병사 머리(스케치 형태)
+    const mkArmy3=(col,z)=>{const grp=new THREE.Group();
+      const base=new THREE.Mesh(new THREE.BoxGeometry(18,3.4,9),new THREE.MeshLambertMaterial({color:shadeHex(col,-55)}));base.position.set(0,1.7,z);grp.add(base);
+      const heads=new THREE.InstancedMesh(headGeo,new THREE.MeshLambertMaterial({color:col}),MAX);heads.userData={z};grp.add(heads);
+      grp.userData={heads,baseZ:z}; scene.add(grp); return grp;};
+    const armyA=mkArmy3(hex(fcolor(B.A.p.owner)),10), armyD=mkArmy3(hex(fcolor(B.D.p.owner)),-10);
+    // 성벽(수비측)
     const wall=new THREE.Mesh(new THREE.BoxGeometry(30,4+B.D.wall*1.5,2),new THREE.MeshLambertMaterial({color:0x6a5a3a}));
-    wall.position.set(0,(4+B.D.wall*1.5)/2,-17); scene.add(wall);
-    // 깃발(양 진영 후방)
-    const banner=(col,z)=>{const grp=new THREE.Group();const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.13,9,6),new THREE.MeshLambertMaterial({color:0x3a2c1c}));pole.position.y=4.5;const flag=new THREE.Mesh(new THREE.PlaneGeometry(4.4,2.6),new THREE.MeshLambertMaterial({color:col,side:THREE.DoubleSide}));flag.position.set(2.2,7,0);grp.add(pole,flag);grp.position.set(0,0,z);scene.add(grp);return grp;};
-    banner(hex(fcolor(B.A.p.owner)),17); banner(hex(fcolor(B.D.p.owner)),-17);
+    wall.position.set(0,(4+B.D.wall*1.5)/2,-19); scene.add(wall);
+    // 깃발 — 나라별 깃발(한자) 텍스처
+    const banner=(fac,z)=>{const grp=new THREE.Group();const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,10,6),new THREE.MeshLambertMaterial({color:0x3a2c1c}));pole.position.y=5;
+      const tex=new THREE.CanvasTexture(flagCanvas(fac));const flag=new THREE.Mesh(new THREE.PlaneGeometry(5,3),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide}));flag.position.set(2.5,7.6,0);
+      grp.add(pole,flag);grp.position.set(0,0,z);scene.add(grp);return grp;};
+    banner(B.A.p.owner,16); banner(B.D.p.owner,-16);
     B3D={THREE,renderer,scene,camera,armyA,armyD,dummy:new THREE.Object3D(),t0:performance.now(),clash:null};
     battle3dLayout(armyA,B.A.troops,B.A.startT); battle3dLayout(armyD,B.D.troops,B.D.startT);
     const loop=()=>{ if(!B3D)return; B3D.raf=requestAnimationFrame(loop);
@@ -1397,8 +1428,8 @@ async function battle3dInit(){
       if(B3D.clash){ const e=(performance.now()-B3D.clash.t0)/700;
         if(e>=1){B3D.clash=null;armyA.position.set(0,0,0);armyD.position.set(0,0,0);}
         else{ const s=Math.sin(Math.PI*e);                 // 돌격→격돌→후퇴
-          armyA.position.z=-s*(7+B3D.clash.a*5);            // 중앙으로 돌격(치고 박기)
-          armyD.position.z= s*(7+B3D.clash.d*5);
+          armyA.position.z=-s*(6+B3D.clash.a*5);            // 중앙으로 돌격(치고 박기)
+          armyD.position.z= s*(6+B3D.clash.d*5);
           const j=Math.abs(Math.sin(e*Math.PI*7))*0.7; armyA.position.y=j; armyD.position.y=j; shake=s*0.7; } }
       camera.position.x=Math.sin(t*0.18)*7+(Math.random()-0.5)*shake;
       camera.position.y=16+Math.sin(t*0.5)*0.6+(Math.random()-0.5)*shake; camera.lookAt(0,2,-2);
@@ -1406,13 +1437,19 @@ async function battle3dInit(){
     loop();
   }catch(e){ const wr=$('b3dwrap'); if(wr)wr.style.display='none'; B3D=null; } // 폴백: 2D 전투만
 }
-function battle3dLayout(mesh,tr,st){ if(!B3D)return; const {dummy}=B3D;
-  const n=Math.max(0,Math.min(48,Math.round(48*Math.sqrt(Math.max(0,tr)/Math.max(1,st)))));
-  mesh.count=n;
-  for(let i=0;i<n;i++){const col=i%8,row=Math.floor(i/8);
-    dummy.position.set((col-3.5)*2.3,1.3,mesh.userData.z+(mesh.userData.z>0?row*2.3:-row*2.3));
-    dummy.rotation.set(0,0,0); dummy.updateMatrix(); mesh.setMatrixAt(i,dummy.matrix);}
-  mesh.instanceMatrix.needsUpdate=true;
+function shadeHex(c,amt){let r=(c>>16)+amt,g=((c>>8)&255)+amt,b=(c&255)+amt;const cl=x=>Math.max(0,Math.min(255,x));return (cl(r)<<16)|(cl(g)<<8)|cl(b);}
+function flagCanvas(fac){const cv=document.createElement('canvas');cv.width=128;cv.height=80;const x=cv.getContext('2d');
+  x.fillStyle=fcolor(fac);x.fillRect(0,0,128,80);x.strokeStyle='rgba(0,0,0,.5)';x.lineWidth=4;x.strokeRect(2,2,124,76);
+  const ch={goguryeo:'高',baekje:'百',silla:'新',gaya:'伽',wa:'倭',china:(factionHanzi.china||'中')[0]}[fac]||'軍';
+  x.fillStyle='#fff';x.font='bold 52px Gugi,serif';x.textAlign='center';x.textBaseline='middle';x.fillText(ch,64,42);
+  return cv;}
+function battle3dLayout(grp,tr,st){ if(!B3D||!grp||!grp.userData.heads)return; const {dummy}=B3D; const heads=grp.userData.heads;
+  const n=Math.max(0,Math.min(40,Math.round(40*Math.sqrt(Math.max(0,tr)/Math.max(1,st)))));
+  heads.count=n; const z0=heads.userData.z;
+  for(let i=0;i<n;i++){const col=i%8,row=Math.floor(i/5);
+    dummy.position.set((col-3.5)*2.1, 3.6, z0+(z0>0?(row*1.8-1.8):-(row*1.8-1.8)));  // 블록 위에 볼록볼록 머리
+    dummy.rotation.set(0,0,0); dummy.scale.set(1,0.8,1); dummy.updateMatrix(); heads.setMatrixAt(i,dummy.matrix);}
+  heads.instanceMatrix.needsUpdate=true;
 }
 function battle3dUpdate(){ if(!B3D||!B)return; battle3dLayout(B3D.armyA,B.A.troops,B.A.startT); battle3dLayout(B3D.armyD,B.D.troops,B.D.startT); }
 function battle3dClash(dD,dA){ if(!B3D)return; // 양군 격돌(가한 피해가 클수록 더 밀어붙임)
@@ -1817,16 +1854,18 @@ function finishTurn(){
   turnEvents=[];   // 보고 후 초기화(다음 턴 누적 시작)
 }
 /* 역사 이벤트: 조건 통과분 효과 적용 후, 표시할 이벤트 목록 반환 */
+function genAlive(n){return generals.some(g=>g.name===n);}            // 장수 생존
+function genHere(n,id){return generals.some(g=>g.name===n&&g.loc===id);} // 특정 성에 주둔
 function takeDueEvents(){
   if(!scenario||!scenario.events)return [];
   const out=[];
   scenario.events.forEach(e=>{
-    if(e.turn<=turn && !firedEvents.includes(e.id)){
-      firedEvents.push(e.id);
-      if(e.cond&&!e.cond())return;     // 조건 불충족 시 발생하지 않음(다시 발생도 안 함)
-      if(e.effect){try{e.effect();}catch(_){}}
-      out.push(e);
-    }
+    if(firedEvents.includes(e.id))return;
+    if(e.turn>turn)return;             // 아직 때가 아님
+    if(e.cond&&!e.cond())return;       // 조건 미충족 → 발동 보류(이후 충족되면 발동)
+    firedEvents.push(e.id);
+    if(e.effect){try{e.effect();}catch(_){}}
+    out.push(e);
   });
   return out;
 }
@@ -2038,7 +2077,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.0.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.1.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
