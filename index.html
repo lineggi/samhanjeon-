@@ -1004,7 +1004,9 @@ function renderLegend(){
   const items=activeFactions.map(f=>({f,cnt:ownedBy(f).length})).sort((a,b)=>b.cnt-a.cnt);
   const bar=`<div style="display:flex;height:7px;border-radius:4px;overflow:hidden;margin-bottom:6px;border:1px solid #15110c">`+
     items.filter(it=>it.cnt>0).map(it=>`<div title="${FACTIONS[it.f].name} ${Math.round(it.cnt/total*100)}%" style="width:${(it.cnt/total*100).toFixed(1)}%;background:${fcolor(it.f)}"></div>`).join('')+`</div>`;
-  $('legend').innerHTML=bar+items.map(it=>`<div class="li"><span class="sw" style="background:${fcolor(it.f)}"></span>${FACTIONS[it.f].name} · ${it.cnt}성 <span style="color:#8a7a5a">${Math.round(it.cnt/total*100)}%</span></div>`).join('');
+  const mine=ownedBy(player).length, goal=Math.ceil(total*2/3);
+  const goalLine=`<div class="li" style="color:var(--gold);border-top:1px solid #2a2114;margin-top:2px;padding-top:3px">🏁 패권까지 ${Math.max(0,goal-mine)}성 <span style="color:#8a7a5a">(${mine}/${goal})</span></div>`;
+  $('legend').innerHTML=bar+items.map(it=>`<div class="li"><span class="sw" style="background:${fcolor(it.f)}"></span>${FACTIONS[it.f].name} · ${it.cnt}성 <span style="color:#8a7a5a">${Math.round(it.cnt/total*100)}%</span></div>`).join('')+goalLine;
 }
 
 /* ============ 패널 ============ */
@@ -1804,8 +1806,15 @@ function renderEventModal(e){
     <button class="btn" onclick="advanceModals()">계속 ▶</button>`;
   $('centerOverlay').classList.add('on');
 }
+function hegemonyGoal(){return Math.ceil(provinces.filter(p=>p.owner).length*2/3);}
 function checkVictory(){
   const owners=new Set(provinces.map(p=>p.owner));
+  const total=provinces.filter(p=>p.owner).length, mine=ownedBy(player).length;
+  if(owners.size>1 && mine>0 && mine>=hegemonyGoal()){ // 패권 승리(2/3 점령)
+    $('centerBox').innerHTML=`<h1 style="color:var(--gold);font-size:42px">霸 業<small>패권 달성 — ${FACTIONS[player].name}</small></h1>
+      <p>그대가 천하의 <b style="color:var(--gold)">${Math.round(mine/total*100)}%</b>를 손에 넣었다.<br>맞설 군웅이 없으니 통일은 시간문제다.</p>
+      <button class="btn" onclick="location.reload()">다시 시작</button>`;
+    $('centerOverlay').classList.add('on');return true;}
   if(owners.size===1){const w=[...owners][0],win=w===player;
     $('centerBox').innerHTML=`<h1 style="color:${win?'var(--gold)':'var(--crimson)'};font-size:44px">${win?'天下統一':'敗 亡'}
       <small>${win?FACTIONS[w].name+'의 깃발이 삼한을 덮다':FACTIONS[w].name+'에게 무릎 꿇다'}</small></h1>
@@ -1931,7 +1940,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.16.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.17.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
