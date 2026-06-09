@@ -953,6 +953,12 @@ function voronoiCells(sites){
   return sites.map(s=>{ let cell=BX.map(p=>p.slice());
     for(const o of sites){ if(o===s)continue; const dx=o.x-s.x, dy=o.y-s.y; if(!dx&&!dy)continue;
       cell=clipHalf(cell,dx,dy,dx*(s.x+o.x)/2+dy*(s.y+o.y)/2); if(cell.length<3)break; }
+    // 성 주변 반경으로 제한 — 빈 땅(만주 등)까지 영토가 과장되지 않게(팔각형 클립)
+    const R=s.cap?52:38, D=R*1.3;
+    cell=clipHalf(cell,1,0,s.x+R); cell=clipHalf(cell,-1,0,R-s.x);
+    cell=clipHalf(cell,0,1,s.y+R); cell=clipHalf(cell,0,-1,R-s.y);
+    cell=clipHalf(cell,1,1,s.x+s.y+D); cell=clipHalf(cell,1,-1,s.x-s.y+D);
+    cell=clipHalf(cell,-1,1,-s.x+s.y+D); cell=clipHalf(cell,-1,-1,-s.x-s.y+D);
     return {owner:s.owner,poly:cell}; });
 }
 /* 마커 겹침 최소 분산: 겹칠 때만 밀어내고 원위치로 당김(확대하면 다시 제자리) */
@@ -983,7 +989,7 @@ function renderMap(){
   // 육지(한반도+만주+산동+왜)
   MAP_PATHS.forEach(d=>{ h+=`<path d="${d}" fill="rgba(120,95,55,.13)" stroke="#5a4a30" stroke-width="0.8" opacity=".8"/>`; });
   // 영토 — 보로노이 영역 채색(육지로 클립). 각 지점은 가장 가까운 성의 세력 색
-  const sites=provinces.filter(p=>p.owner).map(p=>({owner:p.owner,x:D[p.id].x,y:D[p.id].y}));
+  const sites=provinces.filter(p=>p.owner).map(p=>({owner:p.owner,x:D[p.id].x,y:D[p.id].y,cap:p.cap}));
   const cells=voronoiCells(sites);
   h+=`<g clip-path="url(#landclip)">`;
   cells.forEach(c=>{ if(c.poly.length<3)return; const me=c.owner===player;
@@ -1991,7 +1997,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.22.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.23.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
