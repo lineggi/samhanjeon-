@@ -844,7 +844,10 @@ function clickProv(id){
   if(aiAnimating)return;
   if(suppressClick){suppressClick=false;return;}
   if(attackMode){
-    if(prov(id).owner!==player && adj(selected).includes(id)){launchBattle(selected,id);}
+    if(prov(id).owner!==player && adj(selected).includes(id)){
+      const sup=pincerAllies(id,selected);
+      if(sup.length>0)openPincerChoice(selected,id,sup); else launchBattle(selected,id);
+    }
     else if(id===selected){attackMode=false;render();}
     else{toast('인접한 적 성만 공격할 수 있다');}
     return;
@@ -866,6 +869,34 @@ function clickProv(id){
 function doRecruit(id){const st=pstate[id];if(st.acted||st.gold<300||st.pop<2000){if(st.pop<2000)toast('백성이 부족해 징용할 수 없다');return;}st.gold-=300;st.pop-=2000;st.troops+=2000;st.train=Math.max(30,st.train-8);st.acted=true;toast('백성을 징용했다 (병력 +2000, 백성 -2000)');render();}
 function doTrain(id){const st=pstate[id];if(st.acted||st.gold<150)return;st.gold-=150;st.train=Math.min(100,st.train+15);st.acted=true;toast('군을 훈련했다 (+15)');render();}
 function startAttack(id){if(pstate[id].acted)return;moveMode=false;genMoveMode=false;attackMode=true;toast('공격할 인접 적 성을 선택하라');render();}
+/* 협공: 표적과 길이 닿은(인접) 또 다른 아군 성들 — 출병 안 한 + 병력 보유 */
+function pincerAllies(targetId,mainId){
+  return adj(targetId).filter(t=>prov(t).owner===player && t!==mainId && !pstate[t].acted && pstate[t].troops>0);
+}
+let pincerCtx=null;
+function openPincerChoice(mainId,targetId,sup){
+  pincerCtx={main:mainId,target:targetId,sup};
+  const supNames=sup.map(s=>prov(s).name).join('·');
+  const extra=sup.reduce((a,s)=>a+Math.floor(pstate[s].troops*0.5),0);
+  $('centerBox').innerHTML=`<h1 style="font-size:30px">출병<small>${prov(targetId).name} 공략</small></h1>
+    <p>이 성은 그대의 여러 성과 길이 닿아 있다.<br>여러 성에서 동시에 치는 <b style="color:var(--gold)">협공</b>이 가능하다.</p>
+    <div class="startmenu">
+      <button class="btn" onclick="confirmAttack(false)">⚔ 단독 출병<small>${prov(mainId).name}의 군으로만</small></button>
+      <button class="btn" onclick="confirmAttack(true)">🦅 협공 출병<small>${supNames} 합세 · 병력 +${fmt(extra)} · 적 사기↓ · 위력↑</small></button>
+      <button class="btn danger" onclick="cancelPincer()">취소</button>
+    </div>`;
+  $('centerOverlay').classList.add('on');
+}
+function cancelPincer(){pincerCtx=null;$('centerOverlay').classList.remove('on');attackMode=false;render();}
+function confirmAttack(pincer){
+  const c=pincerCtx; if(!c)return;
+  $('centerOverlay').classList.remove('on'); attackMode=false;
+  if(!pincer){pincerCtx=null;launchBattle(c.main,c.target);return;}
+  let extra=0;const names=[];
+  c.sup.forEach(s=>{const give=Math.floor(pstate[s].troops*0.5);if(give<=0)return;extra+=give;pstate[s].troops-=give;pstate[s].acted=true;names.push(prov(s).name);});
+  pincerCtx=null;
+  launchBattle(c.main,c.target,{pincer:true,extra,names});
+}
 function startMove(id){if(pstate[id].acted)return;
   if(!adj(id).some(t=>prov(t).owner===player)){toast('이동 가능한 인접 아군 성이 없다');return;}
   attackMode=false;genMoveMode=false;moveMode=true;toast('병력을 옮길 인접 아군 성을 선택하라');render();}
@@ -1023,14 +1054,19 @@ function marchArmy(fromId,toId,fac,cb,dur){
   }
   requestAnimationFrame(fr);
 }
-function launchBattle(fromId,toId){
+function launchBattle(fromId,toId,opts){
   attackMode=false; render();
-  marchArmy(fromId,toId,player,()=>openBattle(fromId,toId),2000);
+  marchArmy(fromId,toId,player,()=>openBattle(fromId,toId,opts),2000);
 }
-function openBattle(fromId,toId){
+function openBattle(fromId,toId,opts){
   B={from:fromId,to:toId,round:1,over:false,A:mkArmy(fromId,true),D:mkArmy(toId,false),log:[],
-     rain:false,fog:false,ambush:false,evtCount:0,busy:false};
+     rain:false,fog:false,ambush:false,evtCount:0,busy:false,pincer:false};
+  if(opts&&opts.pincer){           // 협공: 합세 병력 + 적 사기 저하 + 위력 보너스
+    B.pincer=true; B.A.troops+=opts.extra||0;
+    B.D.morale=Math.max(8,B.D.morale-15);
+  }
   B.A.startT=B.A.troops;B.D.startT=B.D.troops;
+  if(B.pincer)blog('sys',`🦅 협공! ${(opts.names||[]).join('·')}의 군이 합세한다 (병력 +${fmt(opts.extra||0)}, 적은 포위되어 사기 저하)`);
   blog('sys',`${prov(fromId).name}의 군이 ${prov(toId).name}으로 진군한다!`);
   blog('sys',`지형: ${B.D.terr} · 성벽 ${B.D.wall} — ${B.D.terr==='산악'?'수비 유리':B.D.terr==='강'?'수비 약간 유리':'공격 유리'}`);
   if(B.A.unit)blog('atk',`${B.A.unit.icon} 아군 병종 — ${B.A.unit.name}: ${B.A.unit.desc}`);
@@ -1132,6 +1168,7 @@ function resolveRound(tac,duelRes){
     blog('def',`<span class="crit">적의 ${CNAME[dTac]}에 ${CNAME[tac]}이(가) 받아쳐졌다 (피해↑·사기 -10)</span>`);}
   // 매복 호기(1회 한정 위력 +60%)
   if(B.ambush){dD*=1.6;B.ambush=false;crit=true;blog('atk',`<span class="crit">매복의 일격! 적진이 무너진다</span>`);}
+  if(B.pincer)dD*=1.12;   // 협공: 양면 압박으로 가하는 피해 +12%
   if(D._g)dD*=0.4; if(A._g)dA*=0.4;
   if(D.skill&&D.skill.type==='wall')dD*=0.75;
   if(A.skill&&A.skill.type==='wall')dA*=0.75;
@@ -1416,7 +1453,7 @@ function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.cla
 function beginGame(){player=chosenF;turn=1;selected=null;$('centerOverlay').classList.remove('on');render();toast(`${FACTIONS[player].name}, 천하를 도모하라`);}
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.3.1';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.4.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
