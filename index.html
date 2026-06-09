@@ -362,7 +362,7 @@ const FACTION_SKILL={
 let factionBuff={}, factionCd={}, diploUsed=false, autoDelegate=false;
 /* 전권 일임(AI 위임): 미행동 내 성에 내정 + 압도적 우세 시 자동 공략(즉시 결판) */
 function delegateInternal(silent){
-  if(!scenario){if(!silent)toast('게임을 먼저 시작하라');return 0;}
+  if(!scenario){if(!silent)toast('먼저 게임을 시작하세요');return 0;}
   let n=0; const rep=[];
   ownedBy(player).slice().forEach(p=>{const st=pstate[p.id]; if(st.acted)return; const id=p.id;
     // 1) 압도적 우세한 인접 적 자동 공략(동맹 제외), 충분한 병력일 때만
@@ -384,7 +384,7 @@ function delegateInternal(silent){
   return n;
 }
 function delegateReport(rep){
-  if(!rep.length){toast('일임할 일이 없다');return;}
+  if(!rep.length){toast('지금은 일임할 일이 없습니다');return;}
   const rows=rep.map(r=>`<div style="display:flex;gap:8px;padding:6px 10px;border-bottom:1px dashed #241a10;font-size:13px">
     <b style="color:var(--paper);min-width:84px">${r.name}</b><span style="color:#cdb87f">${r.act}</span></div>`).join('');
   $('centerBox').innerHTML=`<h1 style="font-size:28px">🤖 위임 보고<small>각 성의 처리 내역 (${rep.length}성)</small></h1>
@@ -392,7 +392,7 @@ function delegateReport(rep){
     <button class="btn" onclick="closeCenter()">확인 ▶</button>`;
   $('centerOverlay').classList.add('on');
 }
-function toggleAuto(){autoDelegate=!autoDelegate; toast(autoDelegate?'매 턴 내정 자동 일임 — 켬':'자동 일임 — 끔'); render();}
+function toggleAuto(){autoDelegate=!autoDelegate; toast(autoDelegate?'자동 일임을 켰습니다 — 매 턴 내정을 알아서 처리합니다':'자동 일임을 껐습니다'); render();}
 function updateAutoBtn(){const b=$('autobtn');if(b){b.textContent=`🔁 자동 일임: ${autoDelegate?'켬':'끔'}`;b.style.color=autoDelegate?'var(--gold)':'';}}
 /* 상단 메뉴 드롭다운 */
 function toggleMenu(e){if(e)e.stopPropagation();const m=$('menupop');if(m)m.classList.toggle('on');}
@@ -400,19 +400,19 @@ function closeMenu(){const m=$('menupop');if(m)m.classList.remove('on');}
 document.addEventListener('click',e=>{const m=$('menupop');if(m&&m.classList.contains('on')&&!e.target.closest('.menuwrap'))m.classList.remove('on');});
 function playerGold(){return ownedBy(player).reduce((s,p)=>s+pstate[p.id].gold,0);}
 function spendGold(amt){let left=amt;for(const p of ownedBy(player)){if(left<=0)break;const take=Math.min(pstate[p.id].gold,left);pstate[p.id].gold-=take;left-=take;}return left<=0;}
-function proposePeace(f){if(diploUsed){toast('이번 턴 외교는 이미 행사했다');return;}if(playerGold()<200){toast('금이 부족하다');return;}
+function proposePeace(f){if(diploUsed){toast('이번 턴 외교는 이미 사용했습니다');return;}if(playerGold()<200){toast('금이 부족합니다 (화친 200 필요)');return;}
   spendGold(200);diploUsed=true;const mine=ownedBy(player).length,th=ownedBy(f).length;
   const accept=Math.random()<(0.5+(mine-th)*0.03);
-  if(accept){setRel(player,f,'neutral');toast(`${FACTIONS[f].name}과 화친을 맺었다`);}else toast(`${FACTIONS[f].name}이(가) 화친을 거절했다`);
+  if(accept){setRel(player,f,'neutral');toast(`${FACTIONS[f].name}과(와) 화친을 맺었습니다`);}else toast(`${FACTIONS[f].name}이(가) 화친을 거절했습니다`);
   showDiplomacy();render();}
-function proposeAlliance(f){if(diploUsed){toast('이번 턴 외교는 이미 행사했다');return;}if(playerGold()<400){toast('금이 부족하다');return;}
+function proposeAlliance(f){if(diploUsed){toast('이번 턴 외교는 이미 사용했습니다');return;}if(playerGold()<400){toast('금이 부족합니다 (동맹 400 필요)');return;}
   spendGold(400);diploUsed=true;const mine=ownedBy(player).length,th=ownedBy(f).length;
   const commonFoe=activeFactions.some(x=>x!==player&&x!==f&&getRel(player,x)==='war'&&getRel(f,x)==='war');
   const accept=Math.random()<(0.35+(commonFoe?0.3:0)+(th-mine)*0.02);
-  if(accept){setRel(player,f,'ally');toast(`${FACTIONS[f].name}과 동맹을 맺었다!`);}else toast(`${FACTIONS[f].name}이(가) 동맹을 거절했다`);
+  if(accept){setRel(player,f,'ally');toast(`${FACTIONS[f].name}과(와) 동맹을 맺었습니다!`);}else toast(`${FACTIONS[f].name}이(가) 동맹을 거절했습니다`);
   showDiplomacy();render();}
-function declareWar(f){setRel(player,f,'war');toast(`${FACTIONS[f].name}에 선전포고했다`);showDiplomacy();render();}
-function breakAlliance(f){setRel(player,f,'neutral');toast(`${FACTIONS[f].name}과의 동맹을 파기했다`);showDiplomacy();render();}
+function declareWar(f){setRel(player,f,'war');toast(`${FACTIONS[f].name}에 선전포고했습니다`);showDiplomacy();render();}
+function breakAlliance(f){setRel(player,f,'neutral');toast(`${FACTIONS[f].name}과(와)의 동맹을 파기했습니다`);showDiplomacy();render();}
 function activeSkill(fac){return (factionBuff[fac]>0)?FACTION_SKILL[fac]:null;}
 function updateSkillBtn(){
   const btn=$('skillbtn'); if(!btn)return;
@@ -425,9 +425,9 @@ function updateSkillBtn(){
   else{btn.textContent=`${sk.icon} ${sk.name}`; btn.disabled=false; btn.style.opacity='';}
 }
 function activateSkill(fac){
-  const sk=FACTION_SKILL[fac]; if(!sk){toast('이 세력은 활성 특기가 없다');return;}
-  if((factionCd[fac]||0)>0){toast(`${sk.name}은(는) 아직 쓸 수 없다 (${factionCd[fac]}턴 후)`);return;}
-  if((factionBuff[fac]||0)>0){toast(`${sk.name}이(가) 이미 발동 중이다`);return;}
+  const sk=FACTION_SKILL[fac]; if(!sk){toast('이 세력은 발동형 특기가 없습니다');return;}
+  if((factionCd[fac]||0)>0){toast(`${sk.name}은(는) 아직 쓸 수 없습니다 (${factionCd[fac]}턴 뒤)`);return;}
+  if((factionBuff[fac]||0)>0){toast(`${sk.name}이(가) 이미 발동 중입니다`);return;}
   factionBuff[fac]=sk.dur; factionCd[fac]=sk.cd+sk.dur;
   toast(`${sk.icon} ${sk.name} 발동! ${sk.desc}`); render();
   const bt=$('skillbtn');if(bt){bt.classList.remove('skillFire');void bt.offsetWidth;bt.classList.add('skillFire');setTimeout(()=>bt.classList.remove('skillFire'),600);}
@@ -930,18 +930,19 @@ function showHelp(){
   const sec=(t,b)=>`<div style="margin:10px 0 2px;color:var(--gold);font-weight:800;font-size:14px">${t}</div><div style="font-size:12.5px;color:#d8c9a6;line-height:1.7">${b}</div>`;
   $('centerBox').innerHTML=`<h1 style="font-size:30px">도움말<small>삼한전 — 천하 통일의 길</small></h1>
     <div style="text-align:left;max-width:480px;margin:10px auto;max-height:62vh;overflow-y:auto">
-    ${sec('🎯 목표','모든 성을 차지해 천하를 통일하라. 매 턴 성마다 한번 명령을 내릴 수 있다.')}
-    ${sec('🏯 성 운영','징용(금·백성→병력) · 훈련(사기) · 🧱축성(성벽↑ 수비) · 🌾둔전(군량 생산↑). 병력 이동·장수 이동으로 전선을 정비한다.')}
-    ${sec('⚔ 전투 전법 상성','돌격 ▶ 궁격 ▶ 계략 ▶ 돌격. 적 전법을 받아치면 위력↑·사기 타격. 일기토는 무력 대결(3선2승), 수비는 피해 경감.')}
-    ${sec('🪖 병종','세력 고유: 고구려 개마무사(돌격), 백제 궁수(궁격), 신라 화랑(일기토), 가야 판갑(방어), 당 부병(전법+쇠뇌), 왜병(돌격).')}
-    ${sec('✦ 세력 특기','신라 세속오계·백제 결사대·가야 철벽진·왜 해적기습·중국 대군물량(상단 버튼, 쿨다운). 고구려는 수비 시 청야전술(적 사기 절반·병력↓).')}
-    ${sec('🌾 군량·보급·계절','병력은 군량을 소비한다. 자국 도성과 길이 끊긴 고립 성은 보급 단절→기근. 봄·가을 풍요, 겨울 보급난.')}
-    ${sec('🌫 정찰','내 영토에 인접한 적 성만 병력·장수가 보인다. 그 외는 안갯속.')}
-    ${sec('🦅 협공','적 성이 내 성 2곳 이상과 닿으면 협공(합세 병력·적 사기↓). 고구려는 천리장성으로 연결된다.')}
-    ${sec('🕊 외교','동맹은 서로 공격하지 않는다. 동맹을 치면 즉시 파기. 시대마다 초기 관계가 다르다.')}
-    ${sec('💾 저장','매 턴 자동 저장되어 새로고침해도 이어할 수 있다. 시작 화면에서 이어하기.')}
+    ${sec('🎯 목표','전체 성의 2/3를 차지하면 천하 패권, 모두 차지하면 완전 통일입니다. 성마다 매 턴 한 번 명령할 수 있어요.')}
+    ${sec('🏯 성 키우기','징용(금·백성 → 병력) · 훈련(사기·훈련도) · 🧱축성(수비력) · 🌾둔전(군량 생산). 병력 이동·장수 이동으로 전선을 다집니다.')}
+    ${sec('⚔ 출병과 전법','출병하면 보낼 병력 수를 직접 정합니다. 전법 상성은 돌격▶궁격▶계략▶돌격 — 적 전법을 받아치면 위력이 오르고 사기를 깎습니다. 일기토는 무력 대결(3선 2승), 수비는 피해를 줄입니다.')}
+    ${sec('🪖 병종','세력 고유 — 고구려 개마무사(돌격), 백제 궁수(궁격), 신라 화랑(일기토), 가야 판갑(방어), 당 부병(전법+쇠뇌), 왜병(돌격).')}
+    ${sec('✦ 세력 특기','상단 특기 버튼으로 발동(쿨다운) — 신라 세속오계·백제 결사대·가야 철벽진·왜 해적기습·중국 대군물량. 고구려는 수비 시 청야전술(적 사기 절반·병력↓).')}
+    ${sec('🌾 군량·보급·계절','병력은 매 턴 군량을 먹습니다. 도성과 길이 끊긴 성은 보급이 막혀 기근이 듭니다. 봄·가을은 풍년, 겨울은 보급난.')}
+    ${sec('🗓 연도와 이벤트','6턴이 흐르면 한 해가 지납니다. 그 해에 맞춰 역사 이벤트가 일어나 영토가 바뀌기도 합니다.')}
+    ${sec('🌫 정찰','내 영토에 닿은 적 성만 병력·장수가 보입니다. 나머지는 안갯속.')}
+    ${sec('🦅 협공','적 성이 내 성 2곳 이상과 닿으면 협공할 수 있습니다(합세 병력·적 사기↓). 고구려는 천리장성으로 연결됩니다.')}
+    ${sec('🕊 외교','동맹끼리는 서로 공격하지 않습니다. 동맹을 치면 즉시 깨집니다. 시대마다 초기 관계가 달라요.')}
+    ${sec('💾 저장','매 턴 자동 저장되어 새로고침해도 이어할 수 있습니다. 시작 화면에서 이어하기를 누르세요.')}
     </div>
-    <button class="btn" onclick="closeCenter()">알겠다 ▶</button>`;
+    <button class="btn" onclick="closeCenter()">닫기 ▶</button>`;
   $('centerOverlay').classList.add('on');
 }
 /* 외교 현황 모달 */
@@ -1228,9 +1229,9 @@ function renderPanel(){
         <button class="btn sm" ${acted||st.gold<400||p.wall>=4?'disabled':''} title="${p.wall>=4?'이미 최대 성벽':st.gold<400?'금이 부족하다':'수비력 강화'}" onclick="doBuildWall('${p.id}')">🧱 축성 ${p.wall>=4?'(최대)':'+1'}<br><small style="font-weight:400">금 400</small></button>
         <button class="btn sm" ${acted||st.gold<350?'disabled':''} title="${st.gold<350?'금이 부족하다':'군량 생산 +20%'}" onclick="doBuildFarm('${p.id}')">🌾 둔전 Lv${(st.farm||0)+1}<br><small style="font-weight:400">금 350</small></button>
       </div>`;
-    if(acted)act+=`<div class="hint" style="display:block;color:#8fb89a">✔ 이 성은 이번 턴 명을 마쳤다.</div>`;
+    if(acted)act+=`<div class="hint" style="display:block;color:#8fb89a">✔ 이 성은 이번 턴 명령을 마쳤습니다.</div>`;
     act+=`</div>`;
-  }else{act=`<div class="hint" style="display:block">🚩 적의 성이다. 인접한 <b style="color:var(--paper)">아군 성</b>을 골라 <b style="color:#e3a09c">⚔ 출병</b>으로 공략하라.</div>`;}
+  }else{act=`<div class="hint" style="display:block">🚩 적의 성입니다. 인접한 <b style="color:var(--paper)">아군 성</b>을 골라 <b style="color:#e3a09c">⚔ 출병</b>으로 공략하세요.</div>`;}
   let mb='';
   if(attackMode)mb=`<div class="modebar">⚔<span>공격할 <b>인접 적 성</b>을 지도에서 고르세요</span><span class="mb-x" onclick="cancelMode()">취소</span></div>`;
   else if(moveMode)mb=`<div class="modebar move">⇄<span>병력을 옮길 <b>인접 아군 성</b>을 고르세요</span><span class="mb-x" onclick="cancelMode()">취소</span></div>`;
@@ -1248,28 +1249,28 @@ function clickProv(id){
       if(sup.length>0)openPincerChoice(selected,id,sup); else openAttackDialog(selected,id,{});
     }
     else if(id===selected){attackMode=false;render();}
-    else{toast('인접한 적 성만 공격할 수 있다');}
+    else{toast('인접한 적 성만 공격할 수 있습니다');}
     return;
   }
   if(moveMode){
     if(id===selected){moveMode=false;render();}
     else if(prov(id).owner===player && adj(selected).includes(id)){openMoveDialog(selected,id);}
-    else{toast('인접한 아군 성으로만 병력을 옮길 수 있다');}
+    else{toast('인접한 아군 성으로만 병력을 옮길 수 있습니다');}
     return;
   }
   if(genMoveMode){
     if(id===selected){genMoveMode=false;render();}
     else if(prov(id).owner===player){doGenMove(selected,id);}
-    else{toast('아군 성으로만 장수를 보낼 수 있다');}
+    else{toast('아군 성으로만 장수를 보낼 수 있습니다');}
     return;
   }
   selected=id;render();
 }
-function doBuildWall(id){const st=pstate[id],p=prov(id);if(st.acted||st.gold<400||p.wall>=4){if(p.wall>=4)toast('이미 최대 성벽이다');return;}st.gold-=400;p.wall++;st.acted=true;toast(`${p.name} 성벽을 높였다 (성벽 ${p.wall})`);render();}
-function doBuildFarm(id){const st=pstate[id],p=prov(id);if(st.acted||st.gold<350)return;st.gold-=350;st.farm=(st.farm||0)+1;st.food=Math.min(foodCap(p),(st.food||0)+800);st.acted=true;toast(`${p.name}에 둔전을 열었다 (둔전 Lv${st.farm}, 군량 생산 +20%)`);render();}
-function doRecruit(id){const st=pstate[id];if(st.acted||st.gold<300||st.pop<2000||(st.food||0)<4000){if(st.pop<2000)toast('백성이 부족해 징용할 수 없다');else if((st.food||0)<4000)toast('군량이 부족해 새 병력을 먹일 수 없다');return;}st.gold-=300;st.pop-=2000;st.troops+=2000;st.food-=4000;st.train=Math.max(30,st.train-8);st.acted=true;toast('백성을 징용했다 (병력 +2000, 백성 -2000, 군량 -4000)');render();}
-function doTrain(id){const st=pstate[id];if(st.acted||st.gold<150)return;st.gold-=150;st.train=Math.min(100,st.train+15);st.acted=true;toast('군을 훈련했다 (+15)');render();}
-function startAttack(id){if(pstate[id].acted)return;moveMode=false;genMoveMode=false;attackMode=true;toast('공격할 인접 적 성을 선택하라');render();}
+function doBuildWall(id){const st=pstate[id],p=prov(id);if(st.acted||st.gold<400||p.wall>=4){if(p.wall>=4)toast('이미 성벽이 최고 등급입니다');return;}st.gold-=400;p.wall++;st.acted=true;toast(`${p.name}의 성벽을 높였습니다 — 성벽 ${p.wall}단계`);render();}
+function doBuildFarm(id){const st=pstate[id],p=prov(id);if(st.acted||st.gold<350)return;st.gold-=350;st.farm=(st.farm||0)+1;st.food=Math.min(foodCap(p),(st.food||0)+800);st.acted=true;toast(`${p.name}에 둔전을 열었습니다 — 둔전 Lv${st.farm}·군량 생산 +20%`);render();}
+function doRecruit(id){const st=pstate[id];if(st.acted||st.gold<300||st.pop<2000||(st.food||0)<4000){if(st.pop<2000)toast('백성이 부족해 징용할 수 없습니다');else if((st.food||0)<4000)toast('군량이 부족해 새 병사를 먹일 수 없습니다');return;}st.gold-=300;st.pop-=2000;st.troops+=2000;st.food-=4000;st.train=Math.max(30,st.train-8);st.acted=true;toast('백성을 징용했습니다 — 병력 +2000 (백성 −2000·군량 −4000)');render();}
+function doTrain(id){const st=pstate[id];if(st.acted||st.gold<150)return;st.gold-=150;st.train=Math.min(100,st.train+15);st.acted=true;toast('군을 훈련했습니다 — 훈련도 +15');render();}
+function startAttack(id){if(pstate[id].acted)return;moveMode=false;genMoveMode=false;attackMode=true;toast('공격할 인접한 적 성을 고르세요');render();}
 /* 협공: 표적과 길이 닿은(인접) 또 다른 아군 성들 — 출병 안 한 + 병력 보유 */
 const WALL=['buyeo','sinseong','yodong','baegam','ansi','bisa']; // 천리장성 라인
 function pincerAllies(targetId,mainId){
@@ -1308,7 +1309,7 @@ let attackDlg=null;
 function atkClamp(v){return Math.max(attackDlg.min,Math.min(attackDlg.max,Math.round(v)));}
 function openAttackDialog(fromId,toId,base){
   const max=pstate[fromId].troops;
-  if(max<=0){toast('출병할 병력이 없다');attackMode=false;render();return;}
+  if(max<=0){toast('출병할 병력이 없습니다');attackMode=false;render();return;}
   const min=Math.min(100,max);
   attackDlg={from:fromId,to:toId,min,max,amt:max,base:base||{}};
   renderAttackDialog();
@@ -1357,12 +1358,12 @@ function confirmAttackTroops(){
   launchBattle(d.from,d.to,base);
 }
 function startMove(id){if(pstate[id].acted)return;
-  if(!adj(id).some(t=>prov(t).owner===player)){toast('이동 가능한 인접 아군 성이 없다');return;}
-  attackMode=false;genMoveMode=false;moveMode=true;toast('병력을 옮길 인접 아군 성을 선택하라');render();}
+  if(!adj(id).some(t=>prov(t).owner===player)){toast('병력을 옮길 인접 아군 성이 없습니다');return;}
+  attackMode=false;genMoveMode=false;moveMode=true;toast('병력을 옮길 인접 아군 성을 고르세요');render();}
 function startGenMove(id){if(pstate[id].acted)return;
-  if(!genAt(id)){toast('이 성에는 이동할 장수가 없다');return;}
-  if(ownedBy(player).length<2){toast('장수를 보낼 다른 아군 성이 없다');return;}
-  attackMode=false;moveMode=false;genMoveMode=true;toast('장수를 보낼 아군 성을 선택하라 (먼 성은 여러 턴 소요)');render();}
+  if(!genAt(id)){toast('이 성에는 보낼 장수가 없습니다');return;}
+  if(ownedBy(player).length<2){toast('장수를 보낼 다른 아군 성이 없습니다');return;}
+  attackMode=false;moveMode=false;genMoveMode=true;toast('장수를 보낼 아군 성을 고르세요 (먼 성은 여러 턴 걸립니다)');render();}
 /* 두 성 사이 최단 경로 거리(인접 그래프 BFS) */
 function pathHops(fromId,toId){
   if(fromId===toId)return 0;
@@ -1376,11 +1377,11 @@ function doGenMove(fromId,toId){
   pstate[fromId].acted=true;
   const hops=pathHops(fromId,toId);
   const travel=isFinite(hops)?Math.max(0,hops-1):2;   // 인접(1홉)=즉시, 그 이상은 (홉-1)턴
-  if(travel<=0){ g.loc=toId; selected=toId; render(); toast(`${g.name}이(가) ${prov(toId).name}으로 이동했다`); return; }
+  if(travel<=0){ g.loc=toId; selected=toId; render(); toast(`${g.name}이(가) ${prov(toId).name}(으)로 이동했습니다`); return; }
   g.loc=null; g.enroute={to:toId,from:fromId,arrive:turn+travel}; // 이동 중(지도에서 사라짐)
   marchQueue.push({genId:g.id,to:toId,arrive:turn+travel});
   selected=fromId; render();
-  toast(`🏇 ${g.name}이(가) ${prov(toId).name}으로 출발 — ${travel}턴 후 도착`);
+  toast(`🏇 ${g.name}이(가) ${prov(toId).name}(으)로 출발 — ${travel}턴 뒤 도착합니다`);
 }
 /* 매 턴: 원정 중인 장수 도착 처리 */
 function processMarchQueue(){
@@ -1390,7 +1391,7 @@ function processMarchQueue(){
     if(turn<m.arrive){stay.push(m);return;}
     const g=generals.find(x=>x.id===m.genId);
     if(g){ if(prov(m.to)&&prov(m.to).owner===player){g.loc=m.to;}else{const home=g.enroute&&g.enroute.from;g.loc=(home&&prov(home)&&prov(home).owner===player)?home:ownedBy(g.f)[0]&&ownedBy(g.f)[0].id;} delete g.enroute;
-      if(g.f===player)toast(`🏇 ${g.name}이(가) ${prov(g.loc)?prov(g.loc).name:'본진'}에 도착했다`); }
+      if(g.f===player)toast(`🏇 ${g.name}이(가) ${prov(g.loc)?prov(g.loc).name:'본진'}에 도착했습니다`); }
   });
   marchQueue=stay;
 }
@@ -1439,12 +1440,12 @@ function confirmMove(){const d=moveDlg;$('centerOverlay').classList.remove('on')
 function doMove(fromId,toId,moved){
   moveMode=false;
   moved=Math.min(Math.round(moved),pstate[fromId].troops);
-  if(moved<=0){toast('이동할 병력이 없다');render();return;}
+  if(moved<=0){toast('옮길 병력이 없습니다');render();return;}
   render();
   marchArmy(fromId,toId,player,()=>{
     pstate[fromId].troops-=moved; pstate[toId].troops+=moved; pstate[fromId].acted=true;
     selected=toId; render();
-    toast(`${prov(toId).name}으로 병력 ${fmt(moved)}을(를) 옮겼다`);
+    toast(`${prov(toId).name}(으)로 병력 ${fmt(moved)}을(를) 옮겼습니다`);
   },1600);
 }
 
@@ -1475,7 +1476,7 @@ function gainExp(g,amt){
     const stats=['lead','might','int'].filter(s=>g[s]<99);
     if(!stats.length)break;
     const s=stats.reduce((a,b)=>g[b]>g[a]?b:a); const old=g[s]; g[s]=Math.min(99,g[s]+1);
-    if(g.f===player){const nm={lead:'통솔',might:'무력',int:'지력'}[s];toast(`⭐ ${g.name} 성장! ${nm} ${old}→${g[s]}`);}
+    if(g.f===player){const nm={lead:'통솔',might:'무력',int:'지력'}[s];toast(`⭐ ${g.name}이(가) 성장했습니다! ${nm} ${old}→${g[s]}`);}
   }
 }
 function genSkill(g){
@@ -1560,7 +1561,7 @@ function marchArmies(froms,toId,fac,cb,dur){
 function launchBattle(fromId,toId,opts){
   attackMode=false;
   const defOwner=prov(toId).owner;
-  if(getRel(player,defOwner)==='ally'){setRel(player,defOwner,'war');toast(`${FACTIONS[defOwner].name}과의 동맹을 파기한다!`);}
+  if(getRel(player,defOwner)==='ally'){setRel(player,defOwner,'war');toast(`${FACTIONS[defOwner].name}과(와)의 동맹을 깨고 공격합니다!`);}
   render();
   const froms=(opts&&opts.froms&&opts.froms.length)?opts.froms:[fromId];
   marchArmies(froms,toId,player,()=>openBattle(fromId,toId,opts),2000);
@@ -1811,7 +1812,7 @@ function playTactic(tac){
   if(B.over||B.busy)return;
   // 플레이어가 일기토 선택 + 적 장수 존재 → 미니게임으로
   if(tac==='duel'){
-    if(B.fog){toast('짙은 안개로 일기토를 벌일 수 없다');return;}
+    if(B.fog){toast('짙은 안개로 일기토를 벌일 수 없습니다');return;}
     if(B.D.g.id){startDuel(res=>resolveRound(tac,res));return;}
   }
   resolveRound(tac,null);
@@ -1956,14 +1957,14 @@ function captureModal(dg){
     <div class="captured"><div class="face" style="width:62px;height:76px">${genPortrait(dg)}</div>
     <div style="text-align:left"><div style="font-family:Nanum Myeongjo;font-weight:800;font-size:19px">${dg.name}</div>
     <div class="gstats" style="margin-top:4px"><span>통솔 <b>${dg.lead}</b></span><span>무력 <b>${dg.might}</b></span><span>지력 <b>${dg.int}</b></span></div></div></div>
-    <p>그를 어찌하겠는가?</p>
+    <p>이 장수를 어찌하시겠습니까?</p>
     <div style="display:flex;gap:12px;justify-content:center"><button class="btn" onclick="recruitGen('${dg.id}')">등용한다</button>
-    <button class="btn danger" onclick="closeCenter()">방면한다</button></div>`;
+    <button class="btn danger" onclick="closeCenter()">놓아준다</button></div>`;
   $('centerOverlay').classList.add('on');
 }
 function recruitGen(id){const g=generals.find(x=>x.id===id);
-  if(Math.random()<0.55){g.f=player;g.loc=B?B.to:g.loc;g.loyalty=45+Math.floor(Math.random()*12);toast(`${g.name}이(가) 충성을 맹세했다!`);}
-  else{toast(`${g.name}은(는) 끝내 굴복하지 않았다…`);generals=generals.filter(x=>x.id!==id);}
+  if(Math.random()<0.55){g.f=player;g.loc=B?B.to:g.loc;g.loyalty=45+Math.floor(Math.random()*12);toast(`${g.name}이(가) 충성을 맹세했습니다!`);}
+  else{toast(`${g.name}은(는) 끝내 굴복하지 않았습니다…`);generals=generals.filter(x=>x.id!==id);}
   closeCenter();render();}
 function closeCenter(){$('centerOverlay').classList.remove('on');render();}
 
@@ -2105,7 +2106,7 @@ function finishTurn(){
     if(turnEvents.length||starveThisTurn.length||defectThisTurn.some(d=>d.from===player||d.to===player)||eliminatedThisTurn.length)pendingModals.push(renderTurnReportModal);
     evs.forEach(e=>pendingModals.push(()=>renderEventModal(e)));
     if(pendingModals.length){render();advanceModals();}
-    else toast(`${gameYear()}년 · ${turn}턴 — 전선의 변동 없음`);
+    else toast(`${gameYear()}년 · ${turn}턴 — 전선에 큰 변동이 없습니다`);
   }
   turnEvents=[];   // 보고 후 초기화(다음 턴 누적 시작)
 }
@@ -2244,7 +2245,7 @@ function renderTurnReportModal(){
       <span style="margin-left:auto;color:${join?'#6fe07a':'#ff7a6a'};font-weight:700">${join?(FACTIONS[d.from]?FACTIONS[d.from].name+'에서 귀순':'귀순'):(d.to?FACTIONS[d.to].name+'으로 이탈':'낙향')}</span></div>`;}).join('');
   const elim=eliminatedThisTurn.map(f=>`<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #4a2c14;border-radius:5px;background:rgba(255,122,106,.06)">
       <span>☠</span><b style="color:${fcolor(f)}">${FACTIONS[f].name}</b><span style="margin-left:auto;color:#ff7a6a;font-weight:700">멸망</span></div>`).join('');
-  const body=(rows||'')+(starve?`<div style="font-size:12px;color:#9c8c6a;margin-top:4px">기근</div>`+starve:'')+(defs?`<div style="font-size:12px;color:#9c8c6a;margin-top:4px">장수 동향</div>`+defs:'')+(elim?`<div style="font-size:12px;color:#9c8c6a;margin-top:4px">세력 멸망</div>`+elim:'')||'<div style="color:#9c8c6a">전선의 변동이 없다</div>';
+  const body=(rows||'')+(starve?`<div style="font-size:12px;color:#9c8c6a;margin-top:4px">기근</div>`+starve:'')+(defs?`<div style="font-size:12px;color:#9c8c6a;margin-top:4px">장수 동향</div>`+defs:'')+(elim?`<div style="font-size:12px;color:#9c8c6a;margin-top:4px">세력 멸망</div>`+elim:'')||'<div style="color:#9c8c6a">전선에 변동이 없습니다</div>';
   $('centerBox').innerHTML=`<h1 style="font-size:30px">戰況<small>${gameYear()}년 · ${turn}턴 전황 보고</small></h1>
     <div style="text-align:left;max-width:440px;margin:14px auto;display:flex;flex-direction:column;gap:7px;max-height:50vh;overflow-y:auto">${body}</div>
     <button class="btn" onclick="advanceModals()">확인 ▶</button>`;
@@ -2333,11 +2334,11 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
   pendingModals=evs.map(e=>()=>renderEventModal(e));
   if(!tutorialSeen())pendingModals.unshift(renderTutorialModal);  // 첫 플레이 1회 조작 안내
   if(pendingModals.length)advanceModals();
-  else toast(`${FACTIONS[player].name}, 천하를 도모하라`);
+  else toast(`${FACTIONS[player].name}의 깃발 아래, 천하를 도모하라!`);
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.4.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.5.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -2353,7 +2354,7 @@ async function checkVersion(){
 const SAVE_KEY='samhanjeon_save_v1';
 function hasSave(){try{return !!localStorage.getItem(SAVE_KEY);}catch(_){return false;}}
 function saveGame(silent){
-  if(!scenario){if(!silent)toast('게임을 먼저 시작하라');return;}
+  if(!scenario){if(!silent)toast('먼저 게임을 시작하세요');return;}
   const data={
     v:SAVE_VER, ts:Date.now(),
     scenarioId:scenario.id, player, turn,
@@ -2371,18 +2372,18 @@ function saveGame(silent){
     gens:JSON.parse(JSON.stringify(generals)),
   };
   try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));
-    if(!silent)toast(`저장 완료 — ${scenario.year} ${turn}턴`);}
-  catch(e){if(!silent)toast('저장 실패: 저장 공간이 부족하다');}
+    if(!silent)toast(`저장했습니다 — ${scenario.year} ${turn}턴`);}
+  catch(e){if(!silent)toast('저장 실패 — 저장 공간이 부족합니다');}
   updateSaveBtns();
 }
 function loadGame(){
   let data;
-  try{const raw=localStorage.getItem(SAVE_KEY);if(!raw){toast('저장된 게임이 없다');return;}data=JSON.parse(raw);}
-  catch(_){toast('저장 데이터를 읽을 수 없다');return;}
+  try{const raw=localStorage.getItem(SAVE_KEY);if(!raw){toast('저장된 게임이 없습니다');return;}data=JSON.parse(raw);}
+  catch(_){toast('저장 데이터를 읽을 수 없습니다');return;}
   // 저장 호환성 검사 — 깨지지 않고 안전하게 처리
-  if((data.v||0)>SAVE_VER){toast('더 새로운 버전의 저장본이라 불러올 수 없다');return;}
+  if((data.v||0)>SAVE_VER){toast('더 최신 버전에서 저장한 기록이라 불러올 수 없습니다');return;}
   const sc=SCENARIOS.find(s=>s.id===data.scenarioId);
-  if(!sc){toast('저장된 시대를 찾을 수 없다');return;}
+  if(!sc){toast('저장된 시대를 찾을 수 없습니다');return;}
   try{
     loadScenario(sc);                                 // 기본 상태 구성
     provinces.forEach(p=>{ if(data.owners&&data.owners[p.id]!==undefined) p.owner=data.owners[p.id]; if(data.walls&&data.walls[p.id]!=null) p.wall=data.walls[p.id]; });
@@ -2399,12 +2400,12 @@ function loadGame(){
     if(data.cname)FACTIONS.china.name=data.cname;
     if(data.chanzi)factionHanzi.china=data.chanzi;
     provinces.forEach(p=>{const s=pstate[p.id];if(s&&s.pop==null)s.pop=Math.round(p.base*(p.cap?6:4));if(s&&s.food==null)s.food=Math.round(s.troops*3)+1000;if(s&&s.farm==null)s.farm=0;}); // 구버전 저장본 백성·군량·둔전 보정
-  }catch(err){toast('저장본이 손상되어 불러올 수 없다');return;}
+  }catch(err){toast('저장 기록이 손상되어 불러올 수 없습니다');return;}
   selected=null; attackMode=false; moveMode=false; genMoveMode=false; moveDlg=null; aiAnimating=false; B=null; duel=null; turnEvents=[]; pendingModals=[]; starveThisTurn=[]; defectThisTurn=[];
   $('centerOverlay').classList.remove('on'); $('battleOverlay').classList.remove('on');
   if($('splash'))$('splash').style.display='none';
   render();
-  toast(`불러오기 완료 — ${scenario.year} ${turn}턴`);
+  toast(`이어서 시작합니다 — ${scenario.year} ${turn}턴`);
 }
 function updateSaveBtns(){const lb=$('loadbtn');if(lb)lb.disabled=!hasSave();}
 
