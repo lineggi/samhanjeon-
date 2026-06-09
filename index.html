@@ -297,7 +297,17 @@ const UNITS={
   china:{name:'연 철기', icon:'⚔', allMul:1.12, desc:'대군 — 모든 전법 위력 +12%'},
   wa:{name:'왜병', icon:'🗡', tac:'charge', atkMul:1.22, moraleFrail:1.35, desc:'사나운 돌격 +22%, 단 사기 손실 큼'},
 };
-function unitOf(fac){return UNITS[fac]||null;}
+/* 중국 세력은 시대마다 나라가 바뀌므로 병종도 나라별로 (전연/후연/북제/당) */
+const CHINA_UNITS={
+  '전연':{name:'연 철기', icon:'🐎', tac:'charge', atkMul:1.30, desc:'모용 선비 중장기병 — 돌격 +30%'},
+  '후연':{name:'연 철기', icon:'🐎', tac:'charge', atkMul:1.30, desc:'모용 선비 중장기병 — 돌격 +30%'},
+  '북제':{name:'북제 중갑병', icon:'⚔', tac:'charge', atkMul:1.20, defMul:0.90, desc:'중갑 보기 — 돌격 +20%, 받는 피해 -10%'},
+  '당':{name:'당 부병(府兵)', icon:'🐲', allMul:1.12, tac:'volley', atkMul:1.20, desc:'당 정예 — 전 전법 +12%, 쇠뇌(궁격) 추가 +20%'},
+};
+function unitOf(fac){
+  if(fac==='china')return CHINA_UNITS[FACTIONS.china.name]||UNITS.china;
+  return UNITS[fac]||null;
+}
 const TERRAIN_BONUS={평야:{atk:1.12},산악:{atk:0.9},강:{atk:0.98}};
 
 /* ============ 성 (영토 크기 비례: 고14 · 백9 · 신10 · 가5) ============ */
@@ -1406,7 +1416,7 @@ function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.cla
 function beginGame(){player=chosenF;turn=1;selected=null;$('centerOverlay').classList.remove('on');render();toast(`${FACTIONS[player].name}, 천하를 도모하라`);}
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='1.3.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='1.3.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
