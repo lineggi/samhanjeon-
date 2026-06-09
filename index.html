@@ -144,9 +144,15 @@ svg{width:100%;height:100%;display:block}
 .round{font-family:'Gugi';color:var(--gold);font-size:18px}
 /* 전투 연출(주스감) */
 .battle{position:relative}
-#b3dwrap{width:100%;height:170px;border-radius:6px;overflow:hidden;margin-bottom:12px;background:linear-gradient(180deg,#243018,#16100a);box-shadow:inset 0 0 24px rgba(0,0,0,.6)}
+#b3dwrap{position:relative;width:100%;height:170px;border-radius:6px;overflow:hidden;margin-bottom:12px;background:linear-gradient(180deg,#243018,#16100a);box-shadow:inset 0 0 24px rgba(0,0,0,.6)}
 #b3dwrap:empty{display:none}
 #b3dwrap canvas{display:block;width:100%!important;height:100%!important}
+.b3badge{position:absolute;left:0;top:0;transform:translate(-50%,-118%);pointer-events:none;z-index:3;display:flex;flex-direction:column;align-items:center;gap:2px;will-change:left,top;filter:drop-shadow(0 2px 3px rgba(0,0,0,.65))}
+.b3badge .pf{position:relative;width:34px;height:40px;border-radius:7px;overflow:hidden;border:2px solid var(--gold);background:#3a2c1c;box-shadow:0 0 0 2px rgba(0,0,0,.45)}
+.b3badge .pf svg,.b3badge .pf img{position:absolute;top:-14%;left:-26%;width:152%;height:152%;display:block}
+.b3badge .pf>span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.b3badge .nm{margin-top:-3px;font:700 10px/1.1 'Pretendard';color:#f4e7b6;background:rgba(18,12,7,.82);padding:2px 6px;border-radius:8px;white-space:nowrap;text-shadow:0 1px 1px #000}
+.b3badge .tp{font:600 9px/1 'Pretendard';color:#ecd9a0;background:rgba(18,12,7,.62);padding:1px 5px;border-radius:6px;letter-spacing:.3px}
 @keyframes bshake{0%,100%{transform:translate(0,0)}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-3px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-2px)}}
 .battle.shake{animation:bshake .32s ease}
 .battle.shakehard{animation:bshake .5s ease}
@@ -1609,6 +1615,10 @@ async function battle3dInit(){
     {const fire=new THREE.PointLight(0xff7a2a,0,16);fire.position.set(22,2.5,16);scene.add(fire);scene.userData.fire=fire;
      const logs=new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.9,0.5,7),new THREE.MeshLambertMaterial({color:0x2a1a0e}));logs.position.set(22,0.3,16);scene.add(logs);
      const flame=new THREE.Mesh(new THREE.ConeGeometry(0.5,1.4,6),new THREE.MeshBasicMaterial({color:0xff8a2a}));flame.position.set(22,1.2,16);scene.userData.flame=flame;scene.add(flame);}
+    // 들판을 가로지르는 흙길(행군로)
+    {const pgeo=new THREE.PlaneGeometry(140,9,1,1);pgeo.rotateX(-Math.PI/2);pgeo.rotateY(0.42);
+     const path=new THREE.Mesh(pgeo,new THREE.MeshLambertMaterial({map:tex(dirtCanvas(),7,1),transparent:true,opacity:0.9,depthWrite:false}));
+     path.position.set(0,0.05,3);path.receiveShadow=shadows;scene.add(path);}
 
     // ===== 병사 모델: 대형 블록 위 몸통·머리·투구·무기·방패 (+ 기병은 군마) =====
     const MAX=54, SKIN=0xc9a079, STEEL=0x4a4f5a, WOOD=0x6b4423;
@@ -1679,7 +1689,14 @@ async function battle3dInit(){
     const arrGeo=new THREE.CylinderGeometry(0.05,0.05,1.7,4); arrGeo.rotateX(Math.PI/2); // z축 정렬
     const arrows=new THREE.InstancedMesh(arrGeo,new THREE.MeshLambertMaterial({color:0x241a10}),48); arrows.count=0; scene.add(arrows);
 
-    B3D={THREE,renderer,scene,camera,armyA,armyD,dummy:new THREE.Object3D(),t0:performance.now(),clash:null,flags,dust,arrows,arrowState:[]};
+    // ===== 떠다니는 지휘관 배지(초상+이름+병력) — 캔버스 위 HTML 오버레이 =====
+    const mkBadge=(g,fac,army,side)=>{const d=document.createElement('div');d.className='b3badge';
+      d.innerHTML=`<div class="pf" style="border-color:${fcolor(fac)}">${g&&g.id?genPortrait(g):'<span style="font-family:Gugi;color:#8a7a5a;font-size:16px">無</span>'}</div>`
+        +`<div class="nm">${g&&g.name?g.name:'—'}</div><div class="tp"></div>`;
+      wrap.appendChild(d);return{el:d,army,side,tp:d.querySelector('.tp')};};
+    const badges=[mkBadge(B.A.g,B.A.p.owner,armyA,'A'),mkBadge(B.D.g,B.D.p.owner,armyD,'D')];
+
+    B3D={THREE,renderer,scene,camera,armyA,armyD,dummy:new THREE.Object3D(),t0:performance.now(),clash:null,flags,dust,arrows,arrowState:[],badges,_v:new THREE.Vector3(),wrap};
     battle3dLayout(armyA,B.A.troops,B.A.startT); battle3dLayout(armyD,B.D.troops,B.D.startT);
     const loop=()=>{ if(!B3D)return; B3D.raf=requestAnimationFrame(loop);
       const t=(performance.now()-B3D.t0)/1000; let shake=0;
@@ -1711,6 +1728,14 @@ async function battle3dInit(){
       camera.position.y=11+Math.sin(t*0.4)*0.7+(Math.random()-0.5)*shake;
       camera.position.z=26+Math.cos(t*0.12)*1.6;
       camera.lookAt(0,2.4,-7);
+      // 지휘관 배지를 부대 머리 위에 투영
+      if(B3D.badges){const cw=B3D.wrap.clientWidth||w,ch=B3D.wrap.clientHeight||h,v=B3D._v;
+        for(const bd of B3D.badges){const U=bd.army.userData;
+          v.set(0,U.mounted?9:7.6,U.baseZ).add(bd.army.position);v.project(camera);
+          bd.el.style.left=((v.x*0.5+0.5)*cw).toFixed(1)+'px';
+          bd.el.style.top=((-v.y*0.5+0.5)*ch).toFixed(1)+'px';
+          bd.el.style.opacity=v.z<1?'1':'0';
+          const tr=bd.side==='A'?B.A.troops:B.D.troops;bd.tp.textContent=fmt(Math.max(0,Math.round(tr)));}}
       renderer.render(scene,camera); };
     loop();
   }catch(e){ const wr=$('b3dwrap'); if(wr)wr.style.display='none'; B3D=null; } // 폴백: 2D 전투만
@@ -1725,6 +1750,12 @@ function groundCanvas(terr){const cv=document.createElement('canvas');cv.width=1
   x.fillStyle=base;x.fillRect(0,0,128,128);
   for(let i=0;i<1100;i++){x.fillStyle=`rgba(${30+Math.random()*46|0},${44+Math.random()*54|0},${20+Math.random()*34|0},${.12+Math.random()*.26})`;const s=1+Math.random()*3;x.fillRect(Math.random()*128,Math.random()*128,s,s);}
   for(let i=0;i<140;i++){x.strokeStyle=`rgba(${60+Math.random()*55|0},${82+Math.random()*60|0},34,.45)`;x.lineWidth=1;const px=Math.random()*128,py=Math.random()*128;x.beginPath();x.moveTo(px,py);x.lineTo(px+(Math.random()-.5)*3,py-2-Math.random()*3);x.stroke();}
+  return cv;}
+function dirtCanvas(){const cv=document.createElement('canvas');cv.width=128;cv.height=64;const x=cv.getContext('2d');
+  x.fillStyle='#9a8358';x.fillRect(0,0,128,64);
+  for(let i=0;i<560;i++){x.fillStyle=`rgba(${108+Math.random()*52|0},${90+Math.random()*42|0},${54+Math.random()*32|0},${.18+Math.random()*.3})`;x.fillRect(Math.random()*128,Math.random()*64,2,2);}
+  x.strokeStyle='rgba(70,56,34,.4)';x.lineWidth=2;for(const ry of[24,40]){x.beginPath();x.moveTo(0,ry);for(let px=0;px<=128;px+=8)x.lineTo(px,ry+(Math.random()-.5)*4);x.stroke();}  // 수레 자국
+  const g=x.createLinearGradient(0,0,0,64);g.addColorStop(0,'rgba(84,99,47,.55)');g.addColorStop(.22,'rgba(0,0,0,0)');g.addColorStop(.78,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(84,99,47,.55)');x.fillStyle=g;x.fillRect(0,0,128,64);
   return cv;}
 function stoneCanvas(){const cv=document.createElement('canvas');cv.width=128;cv.height=128;const x=cv.getContext('2d');
   x.fillStyle='#6f6043';x.fillRect(0,0,128,128);
@@ -1761,6 +1792,7 @@ function battle3dVolley(side){ if(!B3D||!B3D.arrows)return; // 궁격 시 화살
   for(let i=0;i<42;i++){const sx=(Math.random()-0.5)*16; st.push({sx,ex:sx+(Math.random()-0.5)*7,sz:from,ez:to,arc:4.5+Math.random()*3,t0:now+Math.random()*220,dur:580});}
   B3D.arrowState=st; }
 function battle3dDispose(){ if(!B3D)return; cancelAnimationFrame(B3D.raf);
+  try{(B3D.badges||[]).forEach(b=>b.el.remove());}catch(_){}
   try{if(B3D.scene.background&&B3D.scene.background.dispose)B3D.scene.background.dispose();}catch(_){}
   try{B3D.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m&&m.map)m.map.dispose();if(m)m.dispose();});}});}catch(_){}
   try{B3D.renderer.dispose();B3D.renderer.domElement.remove();}catch(_){}B3D=null; }
@@ -2398,7 +2430,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.6.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.7.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
