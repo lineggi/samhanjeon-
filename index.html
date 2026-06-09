@@ -239,6 +239,7 @@ svg{width:100%;height:100%;display:block}
   <div class="topbar">
     <div class="brand">三韓戰<small>삼한전</small><span class="vertag" id="vertag"></span></div>
     <div class="stat"><span class="k">時代</span><span class="v" id="erav" style="font-size:13px">—</span></div>
+    <div class="stat"><span class="k">季</span><span class="v" id="seasonv" style="font-size:13px">—</span></div>
     <div class="flexsp"></div>
     <div class="stat"><span class="k">年 / 턴</span><span class="v" id="turnv">1</span></div>
     <div class="stat"><span class="k">금(金)</span><span class="v" id="goldv">0</span></div>
@@ -601,6 +602,12 @@ const $=id=>document.getElementById(id);
 function adj(id){const r=new Set();EDGES.forEach(([a,b])=>{if(a===id)r.add(b);if(b===id)r.add(a)});return [...r];}
 /* 군량·보급(軍糧·補給) */
 function foodIncome(p,st){const m=p.terr==='평야'?1.25:p.terr==='산악'?0.85:1.0;return Math.round((40+st.pop*0.015)*m*(1+0.2*(st.farm||0)));}
+/* 계절: 턴 순환 봄→여름→가을→겨울 */
+const SEASONS=['봄','여름','가을','겨울'];
+function season(){return (turn-1)%4;}
+function seasonName(){return SEASONS[season()];}
+function seasonFoodMul(){return [1.2,1.0,1.4,0.5][season()];}      // 봄/가을 풍요, 겨울 흉작
+function seasonUpkeepMul(){return [1,1,1,1.4][season()];}          // 겨울 보급 소모↑
 function foodUpkeep(st){return Math.round(st.troops*0.05);}
 function foodCap(p){return Math.round(p.base*(p.cap?9:6));}
 function isSupplied(id){const owner=prov(id).owner;if(!owner)return false;const seen=new Set([id]),q=[id];
@@ -965,7 +972,7 @@ function renderPanel(){
     <span style="font-size:11px;color:#8a7a5a;margin-left:6px">${p.sub} · ${FACTIONS[p.owner].name}${p.cap?' · 都城':''}</span></div>
     <div class="row"><span class="lab">병력</span><span class="val">${fmt(st.troops)}</span></div>
     <div class="row"><span class="lab">백성(民)</span><span class="val">${fmt(st.pop||0)}</span></div>
-    ${(()=>{const net=foodIncome(p,st)-foodUpkeep(st),sup=isSupplied(selected),fc=foodCap(p);
+    ${(()=>{const net=Math.round(foodIncome(p,st)*seasonFoodMul())-Math.round(foodUpkeep(st)*seasonUpkeepMul()),sup=isSupplied(selected),fc=foodCap(p);
       return `<div class="row"><span class="lab">군량(糧)</span><span class="val">${fmt(st.food||0)}</span></div>
       <div class="bar"><i style="width:${Math.min(100,(st.food||0)/fc*100)}%;background:linear-gradient(90deg,#5a3a1a,#caa72e)"></i></div>
       <div class="row"><span class="lab">보급(/턴)</span><span class="val" style="font-size:12px;color:${!sup?'#ff7a6a':net>=0?'#8fd0c4':'#ff7a6a'}">${!sup?'⚠ 보급 단절':(net>=0?'+':'')+fmt(net)}</span></div>`;})()}
@@ -1595,7 +1602,7 @@ function finishTurn(){
     // 군량 결산: 보급선이 도성에 닿은 성만 생산, 소비 차감
     const supplied=isSupplied(p.id);
     if(st.food==null)st.food=Math.round(p.base*3);
-    st.food=Math.min(foodCap(p), st.food+(supplied?foodIncome(p,st):0)-foodUpkeep(st));
+    st.food=Math.min(foodCap(p), st.food+(supplied?Math.round(foodIncome(p,st)*seasonFoodMul()):0)-Math.round(foodUpkeep(st)*seasonUpkeepMul()));
     if(st.food<0){ // 기근 — 탈영·사기 저하
       const starve=Math.min(st.troops, Math.round(-st.food/3)+Math.round(st.troops*0.06));
       st.troops=Math.max(0,st.troops-starve); st.train=Math.max(10,st.train-12); st.food=0;
@@ -1748,6 +1755,7 @@ function render(){
   const owned=ownedBy(player);
   setStat('goldv',fmt(owned.reduce((s,p)=>s+pstate[p.id].gold,0)));
   setStat('terrv',owned.length+' / '+provinces.length);
+  setStat('seasonv',scenario?`${seasonName()}${season()===3?' ❄':season()===2?' 🌾':''}`:'—');
   $('erav').textContent=scenario?scenario.year:'—';
   $('fname').textContent=FACTIONS[player].name;
   $('fbadge').querySelector('.dot').style.background=fcolor(player);
