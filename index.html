@@ -199,6 +199,8 @@ svg{width:100%;height:100%;display:block}
 .eracard .ef{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .tag{font-size:10.5px;padding:3px 8px;border-radius:10px;border:1px solid;font-family:'Pretendard';font-weight:700}
 .factionpick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}
+.fpwrap{display:flex;flex-direction:column}
+.fpwrap .startbtn{margin-top:14px}
 .fpick{cursor:pointer;border:1.5px solid #4a3a24;border-radius:6px;padding:15px;text-align:left;transition:.15s;background:rgba(0,0,0,.25)}
 .fpick:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .fpick.active{border-width:2px;box-shadow:0 0 20px rgba(201,162,39,.2)}
@@ -257,6 +259,8 @@ svg{width:100%;height:100%;display:block}
   .zoomctl button{width:42px;height:42px;font-size:21px}
   .zoomctl{right:10px;bottom:10px}
   .legend{font-size:10px;padding:6px 8px}
+  /* 모바일: 출진 버튼을 세력 선택 위로(스크롤 없이 바로 닿게) + 상단 고정 */
+  .fpwrap .startbtn{order:-1;margin:0 0 6px;position:sticky;top:0;z-index:4;width:100%;box-shadow:0 6px 16px rgba(0,0,0,.55)}
 }
 @media (max-width:420px){
   .actions{grid-template-columns:1fr 1fr}
@@ -2066,12 +2070,37 @@ function endBattle(result){
     // 주장 외 적 부장들: 30% 투항, 아니면 흩어짐
     generals.forEach(g=>{if(g.loc===B.to&&g.f!==player&&g.id!==D.g.id){if(Math.random()<0.3){g.f=player;g.loyalty=44+Math.floor(Math.random()*10);}else g._gone=true;}});
     generals=generals.filter(g=>!g._gone);
-    const dg=generals.find(g=>g.id===D.g.id);
-    setTimeout(()=>{if(dg)captureModal(dg);},60);
   }else if(result==='lose'){blog('crit','✖ 아군이 무너졌다…');fromSt.troops=reserve+Math.max(0,Math.round(A.troops));fromSt.train=Math.max(20,fromSt.train-15);}
   else{fromSt.troops=reserve+Math.max(0,Math.round(A.troops));fromSt.train=Math.max(25,fromSt.train-8);}
   checkSuccession();checkElimination();
-  renderBattle();render();checkVictory();
+  renderBattle();render();
+  if(!checkVictory()) setTimeout(()=>{ if(B&&B.over) battleResultModal(result); }, 720); // 최후의 일격 연출 후 결과 모달
+}
+/* 승리/패배 결과 모달 — 바로 전투 종료(승리 시 적장 처분 포함) */
+function battleResultModal(result){
+  if(!B)return; const win=result==='win', lose=result==='lose', A=B.A, D=B.D;
+  const title=win?'勝 利':lose?'敗 北':'退 却', sub=win?`${D.p.name} 함락`:lose?'아군 붕괴':'전장에서 물러나다';
+  const tcol=win?'var(--gold)':lose?'var(--crimson)':'#c9a86a';
+  const dg=win?generals.find(g=>g.id===(D.g&&D.g.id)&&g.f!==player):null;
+  const info=win?`<p style="margin:6px 0 2px">남은 병력 <b style="color:var(--gold)">${fmt(Math.round(A.troops))}</b> · 사기 <b>${Math.round(A.morale)}</b></p>`
+    :`<p style="margin:6px 0 2px">잔병 <b>${fmt(Math.round((B.reserve||0)+Math.max(0,A.troops)))}</b>이(가) 본성으로 후퇴</p>`;
+  let foot;
+  if(dg){ foot=`<div class="captured" style="margin:10px auto 0"><div class="face" style="width:54px;height:66px">${genPortrait(dg)}</div>
+      <div style="text-align:left"><div style="font-family:Nanum Myeongjo;font-weight:800;font-size:17px">적장 ${dg.name} 사로잡다</div>
+      <div class="gstats" style="margin-top:4px"><span>통 <b>${dg.lead}</b></span><span>무 <b>${dg.might}</b></span><span>지 <b>${dg.int}</b></span></div></div></div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:12px"><button class="btn" onclick="resolveCapture('${dg.id}',true)">등용 후 종료</button>
+      <button class="btn danger" onclick="resolveCapture('${dg.id}',false)">놓아주고 종료</button></div>`;
+  } else foot=`<button class="btn" onclick="finishBattle()">전투 종료 ▶</button>`;
+  $('centerBox').innerHTML=`<h1 style="color:${tcol};font-size:40px">${title}<small>${sub}</small></h1>${info}${foot}`;
+  $('centerOverlay').classList.add('on');
+}
+function finishBattle(){ $('centerOverlay').classList.remove('on'); closeBattle(); }
+function resolveCapture(id,recruit){
+  const g=generals.find(x=>x.id===id);
+  if(g){ if(recruit){ if(Math.random()<0.55){g.f=player;g.loc=B?B.to:g.loc;g.loyalty=45+Math.floor(Math.random()*12);toast(`${g.name}이(가) 충성을 맹세했습니다!`);}
+                      else{toast(`${g.name}은(는) 끝내 굴복하지 않았습니다…`);generals=generals.filter(x=>x.id!==id);} }
+          else toast(`${g.name}을(를) 놓아주었습니다.`); }
+  finishBattle();
 }
 function closeBattle(){battle3dDispose();$('battleOverlay').classList.remove('on');B=null;render();}
 function captureModal(dg){
@@ -2447,8 +2476,10 @@ function showFactionPick(){
   $('centerBox').innerHTML=`<div class="back" onclick="showEra()">◂ 시대 다시 선택</div>
     <h1 style="font-size:34px">${pickedEra.year}<small>${pickedEra.name}</small></h1>
     <p>그대가 이끌 나라를 택하라. 성의 개수가 그 나라의 영토 크기다.</p>
-    <div class="factionpick">${picks}</div>
-    <button class="btn" id="startBtn" disabled onclick="beginGame()">출진(出陣) ▶</button>`;
+    <div class="fpwrap">
+      <div class="factionpick">${picks}</div>
+      <button class="btn startbtn" id="startBtn" disabled onclick="beginGame()">출진(出陣) ▶</button>
+    </div>`;
 }
 function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.classList.remove('active'));$('fp-'+f).classList.add('active');$('startBtn').disabled=false;}
 function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEvents=[];marchQueue=[];eliminatedFactions=[];eliminatedThisTurn=[];$('centerOverlay').classList.remove('on');render();
@@ -2460,7 +2491,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.8.2';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.9.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -2541,6 +2572,15 @@ const MINW=BASE_W/30;
 function applyView(){MAP.setAttribute('viewBox',`${view.x.toFixed(2)} ${view.y.toFixed(2)} ${view.w.toFixed(2)} ${view.h.toFixed(2)}`);}
 function setZoom(){zoomScale=BASE_W/view.w; if(_zraf)return; _zraf=requestAnimationFrame(()=>{_zraf=0;renderMap();});}
 function clampPan(){view.x=Math.max(0,Math.min(BASE_W-view.w,view.x));view.y=Math.max(0,Math.min(BASE_H-view.h,view.y));}
+/* CSS transform 팬을 viewBox로 확정(손가락 뗄 때 한 번) */
+function commitPan(){
+  if(panStart&&panStart.moved&&MAP.style.transform){
+    view.x=panStart.ox-(panStart.dx||0)*panStart.k;
+    view.y=panStart.oy-(panStart.dy||0)*panStart.k;
+    clampPan(); applyView();
+  }
+  MAP.style.transform=''; MAP.style.willChange='';
+}
 
 /* rAF 배칭: 한 프레임에 최대 한 번만 viewBox 갱신(고주사율 기기 잰크 방지) */
 let _praf=0,_needZoom=false;
@@ -2574,7 +2614,7 @@ MAP.addEventListener('pointerdown',e=>{
   // 캡처는 실제로 드래그/핀치가 시작될 때만 — 단순 클릭은 성(.prov)에 정상 전달
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.size===1){pinch=null;beginPan({x:e.clientX,y:e.clientY});}
-  else if(pointers.size===2){panStart=null;beginPinch();capturePointers();}
+  else if(pointers.size===2){commitPan();panStart=null;beginPinch();capturePointers();} // 팬 transform 확정 후 핀치 시작
 });
 window.addEventListener('pointermove',e=>{
   if(!pointers.has(e.pointerId))return;
@@ -2591,10 +2631,14 @@ window.addEventListener('pointermove',e=>{
     view.x=pinch.anchorX-(cx-pinch.r.left)*view.w/pinch.r.width;
     view.y=pinch.anchorY-(cy-pinch.r.top)*view.h/pinch.r.height;
     schedule(true);
-  } else if(pointers.size===1&&panStart){ // 한 손가락: 이동만
-    if(Math.abs(e.clientX-panStart.sx)+Math.abs(e.clientY-panStart.sy)>8&&!panStart.moved){panStart.moved=true;capturePointers();} // 드래그 확정 시 캡처
-    view.x=panStart.ox-(e.clientX-panStart.sx)*panStart.k; view.y=panStart.oy-(e.clientY-panStart.sy)*panStart.k;
-    schedule(false);
+  } else if(pointers.size===1&&panStart){ // 한 손가락 이동: CSS transform으로 합성(매 프레임 SVG 리래스터 없이 매끄럽게)
+    if(Math.abs(e.clientX-panStart.sx)+Math.abs(e.clientY-panStart.sy)>8&&!panStart.moved){panStart.moved=true;capturePointers();MAP.style.willChange='transform';} // 드래그 확정 시 캡처+레이어 승격
+    const k=panStart.k, maxX=BASE_W-view.w, maxY=BASE_H-view.h;
+    let dx=e.clientX-panStart.sx, dy=e.clientY-panStart.sy;
+    dx=Math.min(panStart.ox/k,Math.max((panStart.ox-maxX)/k,dx));   // 경계 클램프(지도 밖으로 안 밀림)
+    dy=Math.min(panStart.oy/k,Math.max((panStart.oy-maxY)/k,dy));
+    panStart.dx=dx; panStart.dy=dy;
+    MAP.style.transform=`translate3d(${dx}px,${dy}px,0)`;
   }
 });
 function _endPtr(e){
@@ -2602,7 +2646,7 @@ function _endPtr(e){
   try{MAP.releasePointerCapture(e.pointerId);}catch(_){}
   pointers.delete(e.pointerId);
   if(pointers.size<2)pinch=null;
-  if(pointers.size===0)panStart=null;
+  if(pointers.size===0){commitPan();panStart=null;}   // 마지막 손가락 뗄 때 transform→viewBox 확정
   else if(pointers.size===1){beginPan([...pointers.values()][0]);} // 핀치 후 남은 손가락으로 끊김 없이 팬 전환
 }
 window.addEventListener('pointerup',_endPtr);
