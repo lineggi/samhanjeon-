@@ -47,6 +47,12 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;
 /* 행동 섹션 라벨 */
 .actsec{font-size:11px;letter-spacing:2px;color:#8a7a5a;font-weight:800;margin:12px 0 6px;display:flex;align-items:center;gap:8px}
 .actsec::after{content:"";flex:1;height:1px;background:#3a2c1c}
+.advice{margin:4px 0 12px;padding:10px 12px;border:1px solid #5a4a30;border-radius:6px;background:linear-gradient(180deg,rgba(90,70,40,.28),rgba(40,30,18,.2))}
+.adv-h{font-weight:800;color:var(--gold);font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.adv-i{font-size:12px;color:#c8b890;line-height:1.55;margin:4px 0;cursor:default}
+.adv-i b{color:var(--paper)}
+.adv-i.act{cursor:pointer}
+.adv-i.act:hover{color:#f0e0c0}
 /* 초보 안내(빈 패널) */
 .guide{font-size:13px;line-height:1.95;color:#c8b890}
 .guide .g-step{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed #2a2114}
@@ -1157,6 +1163,28 @@ function renderLegend(){
 }
 
 /* ============ 패널 ============ */
+/* 군사(軍師)의 조언 — 세력 진행 방향 + 징병/공략 추천(현재 판세 기반, 클릭 시 해당 성 선택) */
+const FAC_HINT={goguryeo:'북방 요새로 적을 막으며 남하해 백제·신라를 압박하라.',baekje:'해상 교역의 부로 군을 키워 한강 유역을 노려라.',silla:'화랑의 사기로 가야를 흡수하고 삼국통일을 도모하라.',gaya:'철의 왕국 — 생존이 최우선, 외교로 강국 사이에서 버텨라.',china:'대군 물량으로 고구려 변경을 잠식하라.',wa:'백제와 연합해 한반도에 교두보를 확보하라.'};
+function startAdvice(){
+  if(!scenario)return '';
+  const mine=ownedBy(player); if(!mine.length)return '';
+  let best=null, rec=null;
+  mine.forEach(p=>{const st=pstate[p.id]; if(!st)return;
+    const enemies=adj(p.id).map(prov).filter(t=>t&&t.owner&&t.owner!==player&&getRel(player,t.owner)!=='ally');
+    const front=enemies.length>0;
+    // 공략 추천: 인접한 약한 적(내 병력보다 적은) 중 가장 유리한 것
+    if(!st.acted)enemies.forEach(t=>{const et=pstate[t.id].troops; if(et<st.troops*0.92){const score=st.troops-et; if(!best||score>best.score)best={from:p,to:t,et,mt:st.troops,score};}});
+    // 징병 추천: 미행동·자원 보유, 최전방 우선·병력 적은 순
+    if(!st.acted&&st.pop>1200&&st.gold>180){const score=(front?1e6:0)-st.troops; if(!rec||score>rec.score)rec={p,st,front,score};}
+  });
+  let h=`<div class="advice"><div class="adv-h">📋 군사(軍師)의 조언</div>`;
+  h+=`<div class="adv-i">🎯 ${FAC_HINT[player]||'영토를 넓혀 천하 패권을 노려라.'}</div>`;
+  if(rec)h+=`<div class="adv-i act" onclick="selectProv('${rec.p.id}')">🪖 <b>${rec.p.name}</b>에서 <b>징병</b>해 ${rec.front?'최전방을 보강':'전력을 비축'}하세요 <span style="color:#9c8c6a">(현재 ${fmt(rec.st.troops)}명)</span></div>`;
+  if(best)h+=`<div class="adv-i act" onclick="selectProv('${best.from.id}')">⚔ <b>${best.from.name}</b>(${fmt(best.mt)}명)에서 약한 <b>${best.to.name}</b>(${fmt(best.et)}명)을(를) 공략하면 유리합니다</div>`;
+  else h+=`<div class="adv-i">⚔ 인접한 만만한 적이 없습니다 — <b>징병·훈련</b>으로 힘을 먼저 키우세요</div>`;
+  return h+`</div>`;
+}
+function selectProv(id){ selected=id; render(); }
 function renderPanel(){
   const pb=$('panelbody');
   $('hint').style.display='none';
@@ -1167,7 +1195,8 @@ function renderPanel(){
   if(!selected){
     const mine=scenario?ownedBy(player).length:0, pend=scenario?ownedBy(player).filter(x=>!pstate[x.id].acted).length:0;
     pb.innerHTML=`<div class="guide">
-      <div style="font-size:13px;color:#b8a880;margin-bottom:4px">지도에서 <b style="color:var(--gold)">성</b>을 눌러 시작하세요.</div>
+      <div style="font-size:13px;color:#b8a880;margin-bottom:8px">지도에서 <b style="color:var(--gold)">성</b>을 눌러 시작하세요.</div>
+      ${startAdvice()}
       <div class="g-step"><span class="g-n">1</span><span class="g-t"><b>내 성</b>(밝게 빛나는 성)을 눌러 <b>모병·훈련·축성</b>으로 힘을 키운다</span></div>
       <div class="g-step"><span class="g-n">2</span><span class="g-t"><b>⚔ 출병</b>으로 인접한 <b>적 성</b>을 공략한다 (보낼 병력 선택 가능)</span></div>
       <div class="g-step"><span class="g-n">3</span><span class="g-t">할 일을 마치면 <b>턴 종료</b> — 귀찮으면 <b>🤖 일임</b>이 알아서 해준다</span></div>
@@ -2615,7 +2644,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.12.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.12.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
