@@ -1999,7 +1999,7 @@ function resolveRound(tac,duelRes){
         blog('def',`▸ 적 [${TACTICS[dTac].n}] — 아군 ${fmt(dAshown)}명 손실`); rd.log.forEach(([c,t])=>blog(c,t));
         renderBattle(); battleFx(dAshown,0,crit);
         if(A.troops<=0||A.morale<=0){ endBattle('lose'); B.busy=false; return; }
-        B.round++; rollEvent(); renderBattle(); B.busy=false;   // 다음 합
+        B.round++; rollEvent(); B.busy=false; renderBattle();   // busy 해제 후 렌더 → 다음 합 전법 버튼 활성
       }, 430);
     }, 520);
   }, 430);
@@ -2508,7 +2508,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.11.2';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.11.3';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
