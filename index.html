@@ -921,8 +921,8 @@ function renderTutorialModal(){
   const step=(ic,h,d)=>`<div class="tut-step"><div class="ts-ic">${ic}</div><div><div class="ts-h">${h}</div><div class="ts-d">${d}</div></div></div>`;
   $('centerBox').innerHTML=`<h1 style="font-size:34px">시작하기<small>30초 조작 안내</small></h1>
     <div style="max-width:480px;margin:8px auto 0">
-      ${step('🏯','① 내 성을 누른다','지도에서 <b>밝게 빛나는 성</b>이 내 성. 누르면 오른쪽(모바일은 아래)에 명령 버튼이 뜬다.')}
-      ${step('🏯','② 힘을 키운다','<b>징용</b>(병력)·<b>훈련</b>(사기)·<b>축성</b>(수비)·<b>둔전</b>(군량). 성마다 매 턴 <b>한 번</b> 명령할 수 있다.')}
+      ${step('🚩','① 내 성을 누른다','지도에서 <b>밝게 빛나는 성</b>이 내 성. 누르면 오른쪽(모바일은 아래)에 명령 버튼이 뜬다.')}
+      ${step('🚩','② 힘을 키운다','<b>징용</b>(병력)·<b>훈련</b>(사기)·<b>축성</b>(수비)·<b>둔전</b>(군량). 성마다 매 턴 <b>한 번</b> 명령할 수 있다.')}
       ${step('⚔','③ 출병해 공략한다','<b>⚔ 출병</b>을 누르고 <b>인접한 적 성</b>을 고른다. 보낼 병력 수도 직접 정한다.')}
       ${step('⏭','④ 턴을 마친다','할 일을 끝내면 <b>턴 종료</b>. 번거로우면 <b>🤖 일임</b>이 알아서 내정을 처리한다.')}
       ${step('🏁','목표','전체 성의 <b>2/3</b>를 차지하면 천하 통일 — 승리!')}
@@ -937,7 +937,7 @@ function showHelp(){
   $('centerBox').innerHTML=`<h1 style="font-size:30px">도움말<small>삼한전 — 천하 통일의 길</small></h1>
     <div style="text-align:left;max-width:480px;margin:10px auto;max-height:62vh;overflow-y:auto">
     ${sec('🎯 목표','전체 성의 2/3를 차지하면 천하 패권, 모두 차지하면 완전 통일입니다. 성마다 매 턴 한 번 명령할 수 있어요.')}
-    ${sec('🏯 성 키우기','징용(금·백성 → 병력) · 훈련(사기·훈련도) · 🧱축성(수비력) · 🌾둔전(군량 생산). 병력 이동·장수 이동으로 전선을 다집니다.')}
+    ${sec('🚩 성 키우기','징용(금·백성 → 병력) · 훈련(사기·훈련도) · 🧱축성(수비력) · 🌾둔전(군량 생산). 병력 이동·장수 이동으로 전선을 다집니다.')}
     ${sec('⚔ 출병과 전법','출병하면 보낼 병력 수를 직접 정합니다. 전법 상성은 돌격▶궁격▶계략▶돌격 — 적 전법을 받아치면 위력이 오르고 사기를 깎습니다. 일기토는 무력 대결(3선 2승), 수비는 피해를 줄입니다.')}
     ${sec('🪖 병종','세력 고유 — 고구려 개마무사(돌격), 백제 궁수(궁격), 신라 화랑(일기토), 가야 판갑(방어), 당 부병(전법+쇠뇌), 왜병(돌격).')}
     ${sec('✦ 세력 특기','상단 특기 버튼으로 발동(쿨다운) — 신라 세속오계·백제 결사대·가야 철벽진·왜 해적기습·중국 대군물량. 고구려는 수비 시 청야전술(적 사기 절반·병력↓).')}
@@ -1228,7 +1228,7 @@ function renderPanel(){
         <button class="btn sm" ${acted||!friendly?'disabled':''} title="${friendly?'인접 아군 성으로 병력 이동':'인접한 아군 성이 없다'}" onclick="startMove('${p.id}')">⇄ 병력 이동</button>
         <button class="btn sm" ${acted||!g?'disabled':''} title="${g?'다른 아군 성으로 장수 이동(먼 성은 여러 턴)':'이 성에 장수가 없다'}" onclick="startGenMove('${p.id}')">將 장수 이동</button>
       </div>
-      <div class="actsec">🏯 내정</div>
+      <div class="actsec">🚩 내정</div>
       <div class="actions">
         <button class="btn sm" ${acted||st.gold<300||(st.pop||0)<2000?'disabled':''} title="${(st.pop||0)<2000?'백성이 부족하다':st.gold<300?'금이 부족하다':'백성을 병사로'}" onclick="doRecruit('${p.id}')">⚑ 징용 +2000<br><small style="font-weight:400">금 300 · 백성 2000</small></button>
         <button class="btn sm" ${acted||st.gold<150||st.train>=100?'disabled':''} title="${st.train>=100?'이미 최고 훈련도':st.gold<150?'금이 부족하다':'사기·훈련도 상승'}" onclick="doTrain('${p.id}')">🥁 훈련 +15<br><small style="font-weight:400">금 150</small></button>
@@ -2456,7 +2456,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.8.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.8.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
