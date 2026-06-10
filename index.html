@@ -1576,7 +1576,113 @@ function launchBattle(fromId,toId,opts){
   const froms=(opts&&opts.froms&&opts.froms.length)?opts.froms:[fromId];
   marchArmies(froms,toId,player,()=>openBattle(fromId,toId,opts),2000);
 }
-/* ===== Three.js 3D 전장 (CDN 로드, 실패 시 2D 폴백) ===== */
+/* ===== 2D 전투씬 (canvas — 에셋0·CDN無·모바일 경량) ===== */
+let B2D=null;
+function shadeCss(h,amt){const n=parseInt(String(h).replace('#',''),16);const cl=x=>Math.max(0,Math.min(255,x));const r=cl((n>>16)+amt),g=cl(((n>>8)&255)+amt),b=cl((n&255)+amt);return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');}
+function b2dArmyBox(a){const W=B2D.w,H=B2D.h,k=H/170;return a.side==='A'?{cx:W/2,cy:H*0.80,scale:k*1.0}:{cx:W/2,cy:H*0.43,scale:k*0.82};}
+function b2dSoldier(ctx,x,y,s,col,o){
+  ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(x,y+s*0.6,s*3,s*1.3,0,0,Math.PI*2);ctx.fill();
+  const bw=s*5,bh=s*8;
+  if(o.shield){ctx.fillStyle=shadeCss(col,-46);ctx.fillRect(x-bw/2-s*1.5,y-bh*0.9,s*1.9,bh*0.72);}
+  ctx.fillStyle=col;ctx.fillRect(x-bw/2,y-bh,bw,bh);
+  ctx.fillStyle='#d9b58c';ctx.beginPath();ctx.arc(x,y-bh-s*1.6,s*1.9,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=o.cmd?'#caa72e':'#5a5f6a';ctx.beginPath();ctx.moveTo(x-s*2,y-bh-s*1.2);ctx.lineTo(x,y-bh-s*4);ctx.lineTo(x+s*2,y-bh-s*1.2);ctx.closePath();ctx.fill();
+  if(o.cmd){ctx.fillStyle='#e23b2e';ctx.beginPath();ctx.moveTo(x,y-bh-s*4);ctx.lineTo(x-s*0.9,y-bh-s*6.8);ctx.lineTo(x+s*0.9,y-bh-s*6.8);ctx.closePath();ctx.fill();}
+  ctx.lineWidth=Math.max(1,s*0.7);
+  if(o.archer){ctx.strokeStyle='#4a3018';ctx.beginPath();ctx.arc(x+s*3,y-bh*0.6,s*3.2,-1.2,1.2);ctx.stroke();}
+  else{ctx.strokeStyle='#6b4423';ctx.beginPath();ctx.moveTo(x+s*2.6,y+s*1.2);ctx.lineTo(x+s*2.6,y-bh-s*5);ctx.stroke();ctx.fillStyle='#c9ccd2';ctx.beginPath();ctx.moveTo(x+s*2.6,y-bh-s*5);ctx.lineTo(x+s*1.8,y-bh-s*3.6);ctx.lineTo(x+s*3.4,y-bh-s*3.6);ctx.closePath();ctx.fill();}
+}
+function b2dDrawArmy(ctx,a){
+  const {cx,cy,scale}=b2dArmyBox(a), COLS=10, colW=Math.min((B2D.w*0.86)/COLS,30*scale), rowH=12*scale, t=(performance.now()-B2D.t0)/1000;
+  for(let i=0;i<a.n;i++){const c=i%COLS,r=Math.floor(i/COLS),sl=a.slots[i];
+    const bob=Math.sin(t*3+sl.ph)*0.8*scale + (B2D.strike?0:0);
+    const x=cx+(c-(COLS-1)/2)*colW+sl.jx*colW*0.4+a.ox;
+    const y=cy+(r-1.5)*rowH+sl.jy*rowH*0.5+a.oy+bob;
+    b2dSoldier(ctx,x,y,scale*1.05,a.col,{archer:a.archer,shield:!a.archer});}
+  // 지휘관(주장)
+  if(a.g&&a.g.id){b2dSoldier(ctx,cx+a.ox,cy-2*rowH-rowH*0.4+a.oy,scale*1.5,shadeCss(a.col,28),{cmd:true});}
+}
+function b2dDrawWall(ctx){const W=B2D.w,H=B2D.h,wy=H*0.27,wh=Math.min(H*0.10,5+B2D.wall*2.2),ww=W*0.72,wx=(W-ww)/2;
+  ctx.fillStyle='#6f6043';ctx.fillRect(wx,wy,ww,wh);
+  ctx.fillStyle=shadeCss('#6f6043',-22);ctx.fillRect(wx,wy+wh-2,ww,2);
+  ctx.fillStyle='#7a6a4a';for(let i=0;i<11;i++){ctx.fillRect(wx+4+i*(ww-8)/11,wy-3,(ww-8)/11*0.55,3);} // 성가퀴
+  [wx-2,wx+ww-10].forEach(tx=>{ctx.fillStyle=shadeCss('#6f6043',8);ctx.fillRect(tx,wy-6,12,wh+6);ctx.fillStyle='#5a3a22';ctx.beginPath();ctx.moveTo(tx-2,wy-6);ctx.lineTo(tx+6,wy-13);ctx.lineTo(tx+14,wy-6);ctx.closePath();ctx.fill();}); // 망루
+  ctx.fillStyle='#33220f';ctx.fillRect(W/2-7,wy+wh*0.35,14,wh*0.65); // 성문
+}
+function b2dDrawBanner(ctx,a,bx){const {cy,scale}=b2dArmyBox(a),poleH=20*scale,x=bx,y=cy-2.6*10.5*scale+a.oy;
+  ctx.strokeStyle='#3a2c1c';ctx.lineWidth=1.5*scale;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-poleH);ctx.stroke();
+  const fw=13*scale,fh=9*scale,wob=Math.sin(performance.now()/240)*1.5*scale;
+  ctx.fillStyle=a.col;ctx.fillRect(x,y-poleH,fw+wob,fh);
+  ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(x,y-poleH+fh*0.6,fw+wob,fh*0.4);
+  ctx.fillStyle='#f4e7b6';ctx.font=`bold ${7*scale}px Gugi,serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText((factionHanzi[a.owner]||'軍')[0],x+(fw+wob)/2,y-poleH+fh/2);ctx.textAlign='left';
+}
+function b2dBackground(ctx){const W=B2D.w,H=B2D.h;
+  let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#5b4a6a');g.addColorStop(0.34,'#9a6f52');g.addColorStop(0.5,'#6e7a44');g.addColorStop(1,'#3c4a26');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(40,58,30,.55)';ctx.beginPath();ctx.ellipse(W/2,H*0.34,W*0.7,H*0.12,0,0,Math.PI*2);ctx.fill(); // 언덕
+}
+function b2dEffects(ctx){const F=B2D.fx,now=performance.now(),W=B2D.w,H=B2D.h,clx=W/2,cly=H*0.6;
+  if(F.ring){const e=(now-F.ring.t0)/F.ring.dur;if(e>=1)F.ring=null;else{ctx.strokeStyle=`rgba(255,200,96,${0.9*(1-e*e)})`;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(clx,cly,10+e*W*0.5,(10+e*W*0.5)*0.32,0,0,Math.PI*2);ctx.stroke();}}
+  if(F.dome){const e=(now-F.dome.t0)/F.dome.dur;if(e>=1)F.dome=null;else{const a=F.dome.side==='A'?B2D.armyA:B2D.armyD,bx=b2dArmyBox(a),al=0.34*Math.sin(Math.PI*e);ctx.fillStyle=`rgba(116,192,255,${al*0.5})`;ctx.strokeStyle=`rgba(150,210,255,${al})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(bx.cx,bx.cy,W*0.34,H*0.2,0,Math.PI,Math.PI*2);ctx.fill();ctx.stroke();}}
+  if(F.smoke){const e=(now-F.smoke.t0)/F.smoke.dur;if(e>=1)F.smoke=null;else{const a=F.smoke.side==='A'?B2D.armyA:B2D.armyD,bx=b2dArmyBox(a);for(let i=0;i<10;i++){const ph=i*0.7,r=(6+e*16)*(0.6+(i%3)*0.2);ctx.fillStyle=`rgba(122,82,168,${0.6*Math.sin(Math.PI*e)*(1-i/14)})`;ctx.beginPath();ctx.arc(bx.cx+Math.sin(ph*3)*W*0.22,bx.cy-e*H*0.25-ph*4,r,0,Math.PI*2);ctx.fill();}}}
+  if(F.spark){const e=(now-F.spark.t0)/F.spark.dur;if(e>=1)F.spark=null;else{const fl=Math.sin(Math.PI*e),R=8+e*W*0.16;ctx.fillStyle=`rgba(255,242,192,${fl})`;ctx.beginPath();ctx.arc(clx,cly,R,0,Math.PI*2);ctx.fill();ctx.strokeStyle=`rgba(255,230,150,${fl*0.8})`;ctx.lineWidth=2;for(let i=0;i<8;i++){const an=i/8*Math.PI*2+e*2;ctx.beginPath();ctx.moveTo(clx,cly);ctx.lineTo(clx+Math.cos(an)*R*1.7,cly+Math.sin(an)*R*1.7*0.5);ctx.stroke();}}}
+}
+function b2dArrows(ctx){const now=performance.now();B2D.arrows=B2D.arrows.filter(a=>(now-a.t0)/a.dur<1.05);
+  ctx.strokeStyle='#241a10';ctx.lineWidth=1.4;
+  for(const a of B2D.arrows){const e=(now-a.t0)/a.dur;if(e<0||e>1)continue;
+    const x=a.sx+(a.ex-a.sx)*e, y=a.sy+(a.ey-a.sy)*e-a.arc*Math.sin(Math.PI*e);
+    const x2=a.sx+(a.ex-a.sx)*(e+0.04), y2=a.sy+(a.ey-a.sy)*(e+0.04)-a.arc*Math.sin(Math.PI*(e+0.04));
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke();}
+}
+function b2dBadges(){for(const bd of B2D.badges){const bx=b2dArmyBox(bd.army);
+  bd.el.style.left=(bx.cx+bd.army.ox)+'px';
+  bd.el.style.top=(bx.cy-30*bx.scale+bd.army.oy)+'px';
+  const tr=bd.army.side==='A'?(B&&B.A.troops):(B&&B.D.troops);bd.tp.textContent=fmt(Math.max(0,Math.round(tr||0)));}}
+function battle2dShow(side,troops,startT){if(!B2D)return;const a=side==='A'?B2D.armyA:B2D.armyD;a.n=Math.max(0,Math.min(40,Math.round(40*Math.sqrt(Math.max(0,troops)/Math.max(1,startT)))));}
+function battle2dStrike(side,push,tac){if(!B2D)return;B2D.strike={side,push:Math.min(1,push||0),adv:tacAdv(tac),t0:performance.now(),dur:680};}
+function battle2dEffect(tac,side){if(!B2D)return;const now=performance.now();
+  if(tac==='volley'){if(side==='A'){const W=B2D.w,H=B2D.h;for(let i=0;i<30;i++){const sx=W/2+(Math.random()-0.5)*W*0.5;B2D.arrows.push({sx,sy:H*0.74,ex:sx+(Math.random()-0.5)*W*0.12,ey:H*0.44,arc:H*0.26+Math.random()*H*0.1,t0:now+Math.random()*220,dur:560});}}}
+  else if(tac==='charge')B2D.fx.ring={t0:now,dur:640};
+  else if(tac==='guard')B2D.fx.dome={t0:now,dur:920,side};
+  else if(tac==='scheme')B2D.fx.smoke={t0:now,dur:920,side:side==='A'?'D':'A'};
+  else if(tac==='duel')B2D.fx.spark={t0:now,dur:580};}
+function battle2dDispose(){if(!B2D)return;cancelAnimationFrame(B2D.raf);try{B2D.badges.forEach(b=>b.el.remove());}catch(_){}try{B2D.canvas.remove();}catch(_){}B2D=null;}
+function battle2dInit(){
+  const wrap=$('b3dwrap'); if(!wrap||!B)return;
+  wrap.innerHTML='';wrap.style.display='';
+  const dpr=Math.min(2,window.devicePixelRatio||1), W=wrap.clientWidth||320, H=wrap.clientHeight||170;
+  const canvas=document.createElement('canvas');canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.cssText='width:100%;height:100%;display:block';
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);wrap.appendChild(canvas);
+  const mk=side=>{const A=side==='A'?B.A:B.D,nm=(A.unit&&A.unit.name)||'';
+    const slots=[];for(let i=0;i<40;i++)slots.push({jx:Math.random()-0.5,jy:Math.random()-0.5,ph:Math.random()*6.28});
+    return {side,col:fcolor(A.p.owner),owner:A.p.owner,g:A.g,archer:/궁|쇠뇌|부병/.test(nm),mounted:/철기|개마|기병|중장기/.test(nm),slots,ox:0,oy:0,n:0};};
+  const armyA=mk('A'),armyD=mk('D');
+  const mkBadge=a=>{const d=document.createElement('div');d.className='b3badge';
+    d.innerHTML=`<div class="pf" style="border-color:${fcolor(a.owner)}">${a.g&&a.g.id?genPortrait(a.g):'<span style="font-family:Gugi;color:#8a7a5a;font-size:16px">無</span>'}</div><div class="nm">${a.g&&a.g.name?a.g.name:'—'}</div><div class="tp"></div>`;
+    wrap.appendChild(d);return{el:d,tp:d.querySelector('.tp'),army:a};};
+  B2D={wrap,canvas,ctx,dpr,w:W,h:H,t0:performance.now(),armyA,armyD,strike:null,fx:{},arrows:[],wall:B.D.wall||1,badges:[]};
+  B2D.badges=[mkBadge(armyA),mkBadge(armyD)];
+  battle2dShow('A',B.A.troops,B.A.startT);battle2dShow('D',B.D.troops,B.D.startT);
+  const frame=()=>{ if(!B2D)return; B2D.raf=requestAnimationFrame(frame);
+    const ctx=B2D.ctx;
+    const cw=B2D.wrap.clientWidth||320, chh=B2D.wrap.clientHeight||170;   // 레이아웃 확정/리사이즈 시 캔버스 크기 보정
+    if(cw!==B2D.w||chh!==B2D.h){B2D.w=cw;B2D.h=chh;B2D.canvas.width=cw*B2D.dpr;B2D.canvas.height=chh*B2D.dpr;ctx.setTransform(B2D.dpr,0,0,B2D.dpr,0,0);}
+    const W=B2D.w,H=B2D.h,now=performance.now();let shake=0;
+    if(B2D.strike){const C=B2D.strike,e=(now-C.t0)/C.dur;
+      if(e>=1){B2D.strike=null;armyA.ox=armyA.oy=armyD.ox=armyD.oy=0;}
+      else{const s=Math.sin(Math.PI*e),act=C.side==='A'?armyA:armyD,tgt=C.side==='A'?armyD:armyA,dir=C.side==='A'?-1:1;
+        act.oy=dir*s*(H*0.13)*C.adv; tgt.oy=-dir*s*(H*0.045)*(0.3+C.push); shake=s*4*(C.adv*0.6+C.push*0.5);}}
+    ctx.save(); if(shake)ctx.translate((Math.random()-0.5)*shake,(Math.random()-0.5)*shake);
+    b2dBackground(ctx); b2dDrawWall(ctx);
+    b2dDrawArmy(ctx,armyD); b2dDrawArmy(ctx,armyA);
+    b2dDrawBanner(ctx,armyA,W*0.16); b2dDrawBanner(ctx,armyD,W*0.84);
+    b2dArrows(ctx); b2dEffects(ctx);
+    ctx.restore(); b2dBadges();
+  };
+  frame();
+}
+/* ===== Three.js 3D 전장 (보관용 — 현재 미사용, 2D 전투씬 사용) ===== */
 const THREE_CDN='https://unpkg.com/three@0.160.0/build/three.module.js';
 let B3D=null;
 function hex(c){return parseInt(String(c).replace('#',''),16);}
@@ -1859,7 +1965,7 @@ function openBattle(fromId,toId,opts){
   if(B.D.skill)blog('def',`⚑ ${B.D.g.name}의 비기 — ${B.D.skill.name}: ${B.D.skill.desc}`);
   $('battleBox').innerHTML=`<div id="b3dwrap"></div><div id="bcontent"></div>`;
   $('battleOverlay').classList.add('on');
-  battle3dInit();      // 3D 전장(실패 시 자동 폴백)
+  battle2dInit();      // 2D 전투씬(canvas)
   renderBattle();
 }
 function blog(c,t){B.log.unshift({c,t});}
@@ -1986,17 +2092,17 @@ function resolveRound(tac,duelRes){
   B.busy=true;   // 턴제 연출 동안 입력 잠금
   const fail=e=>{ try{console&&console.error&&console.error('resolveRound',e);}catch(_){} if(B){B.busy=false; renderBattle();} }; // 어떤 예외에도 멈추지 않도록 복구
   // ── 1막: 우리(공격군)가 먼저 공격 → 적 피해 ──
-  battle3dStrike('A',aPush,tac); battle3dTactic(tac,'A');
+  battle2dStrike('A',aPush,tac); battle2dEffect(tac,'A');
   setTimeout(()=>{ if(!B||B.over){if(B)B.busy=false;return;} try{
-    applyD(); if(B3D)battle3dLayout(B3D.armyD,D.troops,D.startT);
+    applyD(); battle2dShow('D',D.troops,D.startT);
     blog('atk',`▸ 아군 [${TACTICS[tac].n}] — 적 ${fmt(dDshown)}명 격파`); ra.log.forEach(([c,t])=>blog(c,t));
     renderBattle(); battleFx(0,dDshown,crit);
     if(D.troops<=0||D.morale<=0){ endBattle('win'); B.busy=false; return; }   // 적 전멸 시 반격 없음
     // ── 2막: 적이 반격 → 우리 피해 ──
     setTimeout(()=>{ if(!B||B.over){if(B)B.busy=false;return;} try{
-      battle3dStrike('D',dPush,dTac); battle3dTactic(dTac,'D');
+      battle2dStrike('D',dPush,dTac); battle2dEffect(dTac,'D');
       setTimeout(()=>{ if(!B||B.over){if(B)B.busy=false;return;} try{
-        applyA(); if(B3D)battle3dLayout(B3D.armyA,A.troops,A.startT);
+        applyA(); battle2dShow('A',A.troops,A.startT);
         blog('def',`▸ 적 [${TACTICS[dTac].n}] — 아군 ${fmt(dAshown)}명 손실`); rd.log.forEach(([c,t])=>blog(c,t));
         renderBattle(); battleFx(dAshown,0,crit);
         if(A.troops<=0||A.morale<=0){ endBattle('lose'); B.busy=false; return; }
@@ -2118,7 +2224,7 @@ function resolveCapture(id,recruit){
           else toast(`${g.name}을(를) 놓아주었습니다.`); }
   finishBattle();
 }
-function closeBattle(){battle3dDispose();$('battleOverlay').classList.remove('on');B=null;render();}
+function closeBattle(){battle2dDispose();$('battleOverlay').classList.remove('on');B=null;render();}
 function captureModal(dg){
   $('centerBox').innerHTML=`<h1 style="font-size:32px">적장 포로<small>${dg.name} 사로잡다</small></h1>
     <div class="captured"><div class="face" style="width:62px;height:76px">${genPortrait(dg)}</div>
@@ -2509,7 +2615,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.11.4';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.12.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
