@@ -2506,7 +2506,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.10.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.10.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -2587,15 +2587,6 @@ const MINW=BASE_W/30;
 function applyView(){MAP.setAttribute('viewBox',`${view.x.toFixed(2)} ${view.y.toFixed(2)} ${view.w.toFixed(2)} ${view.h.toFixed(2)}`);}
 function setZoom(){zoomScale=BASE_W/view.w; if(_zraf)return; _zraf=requestAnimationFrame(()=>{_zraf=0;renderMap();});}
 function clampPan(){view.x=Math.max(0,Math.min(BASE_W-view.w,view.x));view.y=Math.max(0,Math.min(BASE_H-view.h,view.y));}
-/* CSS transform 팬을 viewBox로 확정(손가락 뗄 때 한 번) */
-function commitPan(){
-  if(panStart&&panStart.moved&&MAP.style.transform){
-    view.x=panStart.ox-(panStart.dx||0)*panStart.k;
-    view.y=panStart.oy-(panStart.dy||0)*panStart.k;
-    clampPan(); applyView();
-  }
-  MAP.style.transform=''; MAP.style.willChange='';
-}
 
 /* rAF 배칭: 한 프레임에 최대 한 번만 viewBox 갱신(고주사율 기기 잰크 방지) */
 let _praf=0,_needZoom=false;
@@ -2629,7 +2620,7 @@ MAP.addEventListener('pointerdown',e=>{
   // 캡처는 실제로 드래그/핀치가 시작될 때만 — 단순 클릭은 성(.prov)에 정상 전달
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.size===1){pinch=null;beginPan({x:e.clientX,y:e.clientY});}
-  else if(pointers.size===2){commitPan();panStart=null;beginPinch();capturePointers();} // 팬 transform 확정 후 핀치 시작
+  else if(pointers.size===2){panStart=null;beginPinch();capturePointers();}
 });
 window.addEventListener('pointermove',e=>{
   if(!pointers.has(e.pointerId))return;
@@ -2646,14 +2637,10 @@ window.addEventListener('pointermove',e=>{
     view.x=pinch.anchorX-(cx-pinch.r.left)*view.w/pinch.r.width;
     view.y=pinch.anchorY-(cy-pinch.r.top)*view.h/pinch.r.height;
     schedule(true);
-  } else if(pointers.size===1&&panStart){ // 한 손가락 이동: CSS transform으로 합성(매 프레임 SVG 리래스터 없이 매끄럽게)
-    if(Math.abs(e.clientX-panStart.sx)+Math.abs(e.clientY-panStart.sy)>8&&!panStart.moved){panStart.moved=true;capturePointers();MAP.style.willChange='transform';} // 드래그 확정 시 캡처+레이어 승격
-    const k=panStart.k, maxX=BASE_W-view.w, maxY=BASE_H-view.h;
-    let dx=e.clientX-panStart.sx, dy=e.clientY-panStart.sy;
-    dx=Math.min(panStart.ox/k,Math.max((panStart.ox-maxX)/k,dx));   // 경계 클램프(지도 밖으로 안 밀림)
-    dy=Math.min(panStart.oy/k,Math.max((panStart.oy-maxY)/k,dy));
-    panStart.dx=dx; panStart.dy=dy;
-    MAP.style.transform=`translate3d(${dx}px,${dy}px,0)`;
+  } else if(pointers.size===1&&panStart){ // 한 손가락 이동: viewBox 팬(내용이 정상 채워짐) + rAF 배칭
+    if(Math.abs(e.clientX-panStart.sx)+Math.abs(e.clientY-panStart.sy)>8&&!panStart.moved){panStart.moved=true;capturePointers();} // 드래그 확정 시 캡처
+    view.x=panStart.ox-(e.clientX-panStart.sx)*panStart.k; view.y=panStart.oy-(e.clientY-panStart.sy)*panStart.k;
+    schedule(false);
   }
 });
 function _endPtr(e){
@@ -2661,7 +2648,7 @@ function _endPtr(e){
   try{MAP.releasePointerCapture(e.pointerId);}catch(_){}
   pointers.delete(e.pointerId);
   if(pointers.size<2)pinch=null;
-  if(pointers.size===0){commitPan();panStart=null;}   // 마지막 손가락 뗄 때 transform→viewBox 확정
+  if(pointers.size===0)panStart=null;
   else if(pointers.size===1){beginPan([...pointers.values()][0]);} // 핀치 후 남은 손가락으로 끊김 없이 팬 전환
 }
 window.addEventListener('pointerup',_endPtr);
