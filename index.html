@@ -1819,7 +1819,7 @@ function battle3dVolley(side){ if(!B3D||!B3D.arrows)return; // 궁격 시 화살
 /* 전법별 3D 이펙트 발동 (side: 'A'=공격군 / 'D'=수비군) */
 function battle3dTactic(tac,side){ if(!B3D||!B3D.fx)return; const now=performance.now();
   const army=side==='A'?B3D.armyA:B3D.armyD, foe=side==='A'?B3D.armyD:B3D.armyA;
-  if(tac==='volley'){battle3dVolley(side==='A'?'atk':'def');}
+  if(tac==='volley'){if(side==='A')battle3dVolley('atk');}                                    // 화살은 우리 팀(공격군)만 사격
   else if(tac==='charge'){B3D.fx.ring={t0:now,dur:640};}                                   // 충격파
   else if(tac==='guard'){B3D.fx.dome={t0:now,dur:920,z:army.userData.baseZ};}              // 방어막(아군 위)
   else if(tac==='scheme'){B3D.fx.smoke={t0:now,dur:920,z:foe.userData.baseZ};}             // 연막(적진 위)
@@ -2491,7 +2491,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.9.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.9.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
