@@ -931,7 +931,7 @@ function renderTutorialModal(){
       ${step('⏭','④ 턴을 마친다','할 일을 끝내면 <b>턴 종료</b>. 번거로우면 <b>🤖 일임</b>이 알아서 내정을 처리한다.')}
       ${step('🏁','목표','전체 성의 <b>2/3</b>를 차지하면 천하 통일 — 승리!')}
     </div>
-    <button class="btn" style="margin-top:18px" onclick="dismissTutorial()">알겠다, 시작! ▶</button>`;
+    <button class="btn" style="margin-top:18px" onclick="dismissTutorial()">시작 ▶</button>`;
   $('centerOverlay').classList.add('on');
 }
 function dismissTutorial(){try{localStorage.setItem(TUT_KEY,'1');}catch(_){}advanceModals();}
@@ -2458,12 +2458,13 @@ function showStart(){
 function showEra(){
   let cards='';
   SCENARIOS.forEach((s,i)=>{
-    let tags=s.factions.map(f=>`<span class="tag" style="color:${fcolor(f)};border-color:${fcolor(f)}">${FACTIONS[f].name}</span>`).join('');
+    const fname=f=>f==='china'?(s.cname||FACTIONS.china.name):FACTIONS[f].name;   // 중국은 그 시대 왕조명(전연/후연/북제/당)
+    let tags=s.factions.map(f=>`<span class="tag" style="color:${fcolor(f)};border-color:${fcolor(f)}">${fname(f)}</span>`).join('');
     let dom=Object.entries(s.str).sort((a,b)=>b[1]-a[1])[0][0];
     cards+=`<div class="eracard" onclick="pickEra(${i})">
       <div class="eh"><span class="ey">${s.year}</span><span class="et">${s.name}</span></div>
       <div class="ed">${s.desc}</div>
-      <div class="ef">${tags}<span class="tag" style="color:#c8b890;border-color:#5a4a30">최강세: ${FACTIONS[dom].name}</span></div></div>`;
+      <div class="ef">${tags}<span class="tag" style="color:#c8b890;border-color:#5a4a30">최강세: ${fname(dom)}</span></div></div>`;
   });
   $('centerBox').innerHTML=`<div class="backstart" onclick="showStart()">◂ 처음으로</div>
     <h1>三韓戰<small>삼 한 전 · 한국 삼국시대</small></h1>
@@ -2507,7 +2508,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.11.1';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.11.2';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -2606,10 +2607,10 @@ function zoomBtn(factor){const r=MAP.getBoundingClientRect();zoomAt(r.left+r.wid
 function zoomReset(){view={x:0,y:0,w:BASE_W,h:BASE_H};applyView();setZoom();}
 /* 세력별 대표 수도 우선순위(대표 도읍 먼저) */
 const FACTION_HOME={goguryeo:['pyeongyang','gungnae'],baekje:['sabi','ungjin','hanseong'],silla:['geumseong'],gaya:['geumgwan','daegaya'],china:['youzhou','cheongju'],wa:['fukuoka']};
-/* 게임 시작 시 시야를 선택한 세력의 수도로(PC만; 모바일은 전체 지도) */
+/* 게임 시작 시 시야를 선택한 세력의 수도로(PC·모바일 공통) */
 function focusOnCapital(faction){
   const owned=provinces.filter(p=>p.owner===faction);
-  if(!owned.length||window.innerWidth<768){view={x:0,y:0,w:BASE_W,h:BASE_H};applyView();setZoom();return;}
+  if(!owned.length){view={x:0,y:0,w:BASE_W,h:BASE_H};applyView();setZoom();return;}
   // 그 세력의 대표 수도(우선순위상 보유한 첫 도읍)
   let pick=(FACTION_HOME[faction]||[]).map(id=>prov(id)).find(p=>p&&p.owner===faction);
   if(!pick){ // 폴백: 영토 중심에 가까운 수도(없으면 아무 성)
