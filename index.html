@@ -699,8 +699,10 @@ const SCENARIOS=[
    ['이세민','china','yongseong',93,90,92],['이세적','china','youzhou',88,90,84],['설인귀','china','cheongju',86,94,76],
    ['고토쿠','wa','fukuoka',74,68,78],['소가','wa','tsushima',76,80,70],
   ],
-  // 당은 성마다 10만 대군, 고구려는 성마다 1~2만
-  garrison:{china:100000, goguryeo:[10000,20000]},
+  // 당군: 성마다 10만 대군
+  garrison:{china:100000},
+  // 고구려 성별 병력 — 645 여당전쟁 고증(자치통감·삼국사기): 평양(도읍·연개소문) 최대, 요동·신성·안시 강성, 백암 항복·비사성 8천 전사, 변경 소수
+  garrisonById:{pyeongyang:48000, gungnae:18000, yodong:24000, ansi:13000, sinseong:18000, baegam:8000, bisa:8000, ogol:14000, bakjak:10000, buyeo:8000, hwando:9000, jolbon:7000, chaek:5000, okjeo:5000},
   events:[
    {id:'u_decree', turn:1, title:'당 태종의 친정(親征)',
     text:'645년, 당 태종 이세민이 “고구려는 반드시 무너뜨린다”며 몸소 수십만 대군을 이끌고 요동으로 향한다. 요수 너머로 당의 깃발이 끝없이 펼쳐진다. 한편 평양에서는 연개소문이 정권을 틀어쥐고 결사항전을 외친다.'},
@@ -951,9 +953,10 @@ function loadScenario(sc){
   provinces.forEach(p=>{const m=sc.str[p.owner]||1;
     pstate[p.id]={troops:Math.round(p.base*m), pop:Math.round(p.base*(p.cap?6:4)*m), train:p.cap?70:55, gold:p.cap?500:340, acted:false, food:Math.round(p.base*(p.cap?5:3)*m), farm:0};});
   // 시나리오별 성 주둔병 고정/범위 지정 (예: 당 10만, 고구려 1~2만)
-  if(sc.garrison)provinces.forEach(p=>{const g=sc.garrison[p.owner];if(g!=null){
-    const t=Array.isArray(g)?Math.round(g[0]+Math.random()*(g[1]-g[0])):g;
-    pstate[p.id].troops=t; pstate[p.id].pop=Math.max(pstate[p.id].pop,Math.round(t*0.4)); pstate[p.id].food=Math.max(pstate[p.id].food,Math.round(t*3));}});
+  if(sc.garrison||sc.garrisonById)provinces.forEach(p=>{
+    let t=(sc.garrisonById&&sc.garrisonById[p.id]);                       // 성별 고증 병력 우선
+    if(t==null){const g=sc.garrison&&sc.garrison[p.owner]; if(g!=null)t=Array.isArray(g)?Math.round(g[0]+Math.random()*(g[1]-g[0])):g;}
+    if(t!=null){pstate[p.id].troops=t; pstate[p.id].pop=Math.max(pstate[p.id].pop,Math.round(t*0.4)); pstate[p.id].food=Math.max(pstate[p.id].food,Math.round(t*3));}});
   generals=sc.gens.map((g,i)=>({id:'G'+i,name:g[0],f:g[1],loc:g[2],lead:g[3],might:g[4],int:g[5],loyalty:72+Math.floor(Math.random()*18),exp:0}));
   if(sc.cname)FACTIONS.china.name=sc.cname;
   factionHanzi.china=sc.chanzi||'中';
@@ -2751,7 +2754,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.15.2';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.15.3';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
