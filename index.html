@@ -1156,8 +1156,8 @@ function renderMap(){
     h+=`<path d="${wd}" fill="none" stroke="#15110c" stroke-width="${6.2*ens}" stroke-linejoin="round" stroke-linecap="round" opacity="0.55"/>`;
     h+=`<path d="${wd}" fill="none" stroke="#5b5b5b" stroke-width="${4*ens}" stroke-linejoin="round" stroke-linecap="round"/>`;
     h+=`<path d="${wd}" fill="none" stroke="#9a9a9a" stroke-width="${4*ens}" stroke-linejoin="round" stroke-dasharray="${1.6*ens} ${3.2*ens}" stroke-linecap="butt"/>`;
-    const lp=prov('sinseong');
-    h+=`<text x="${lp.x+15*ens}" y="${lp.y-3*ens}" font-size="${8.5*ens}" fill="#d6d6d6" font-family="Pretendard" font-weight="700" text-anchor="start" paint-order="stroke" stroke="#15110c" stroke-width="${2.2*ens}">천리장성</text>`;
+    const ss=prov('sinseong'), bu=prov('buyeo'), mx=(ss.x+bu.x)/2, my=(ss.y+bu.y)/2;
+    h+=`<text x="${mx}" y="${my}" font-size="${8.5*ens}" fill="#d6d6d6" font-family="Pretendard" font-weight="700" text-anchor="middle" paint-order="stroke" stroke="#15110c" stroke-width="${2.2*ens}">천리장성</text>`;
   }
   // 성 — 마커
   const z=zoomScale, ns=Math.pow(z,-0.5);
@@ -2759,7 +2759,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.15.8';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.15.9';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
