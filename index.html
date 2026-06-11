@@ -783,7 +783,7 @@ function fcolor(f){return FACTIONS[f]?FACTIONS[f].color:'#888';}
 function fmt(n){return Math.round(n).toLocaleString('ko-KR');}
 function fmtK(n){return (n/1000).toFixed(1)+'천';}
 function ownedBy(f){return provinces.filter(p=>p.owner===f);}
-function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2200);}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),3000);}
 
 /* ===== 무장 2D 초상화 생성 (능력치/이름 시드 기반 오리지널) ===== */
 function _hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
@@ -2368,6 +2368,8 @@ function playAiMoves(moves,i,done){
   const m=moves[i];
   if(prov(m.from).owner!==m.fac || prov(m.to).owner===m.fac){playAiMoves(moves,i+1,done);return;}
   render();
+  const _mine=prov(m.to).owner===player;   // AI 행동 알림
+  toast(`⚔ ${FACTIONS[m.fac].name}군이 ${prov(m.to).name}${_mine?' (우리 성!)':''} 공략`);
   const froms=(m.froms&&m.froms.length)?m.froms.filter(x=>prov(x).owner===m.fac):[m.from];
   marchArmies(froms,m.to,m.fac,()=>{
     aiBattle(m.from,m.to,m.pincer?{pincer:true,extra:m.extra}:null); render();
@@ -2717,7 +2719,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.14.1';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.14.2';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
