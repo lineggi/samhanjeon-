@@ -2731,7 +2731,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.14.5';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.14.6';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -2894,6 +2894,16 @@ function _endPtr(e){
 }
 window.addEventListener('pointerup',_endPtr);
 window.addEventListener('pointercancel',_endPtr);
+/* 키보드 단축키 (데스크톱): Space/Enter=턴 종료 · Esc=취소·선택해제 · Z=되돌리기 */
+window.addEventListener('keydown',e=>{
+  if(!scenario||B||duel)return;                                   // 게임 중·전투/일기토 아닐 때만
+  if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+  if($('centerOverlay').classList.contains('on'))return;          // 모달 떠있으면 무시
+  const k=e.key;
+  if(k==='Escape'){ if(attackMode||moveMode||genMoveMode){attackMode=moveMode=genMoveMode=false;render();} else if(selected!=null){selected=null;render();} }
+  else if(k===' '||k==='Enter'){ e.preventDefault(); if(!aiAnimating)endTurn(); }
+  else if(k==='z'||k==='Z'){ if(undoStack.length)undoAction(); }
+});
 // 성이 아닌 빈 영토를 클릭하면 선택 해제(드래그/핀치 후 클릭은 무시)
 MAP.addEventListener('click',e=>{
   if(e.target.closest('.prov'))return;       // 성 클릭은 clickProv가 처리
