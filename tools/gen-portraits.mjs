@@ -78,20 +78,51 @@ function ageEN(g) {
   if (/태자|관창|사다함/.test(g.name)) return 'a young';
   return 'a young to middle-aged';
 }
-const FAC_EN = { goguryeo: 'Goguryeo (deep blue/gold)', baekje: 'Baekje (green/gold)', silla: 'Silla (crimson/gold)', gaya: 'Gaya (purple/gold)', china: 'Chinese Yan (gray/black)', wa: 'Wa/Yamato (white/red)' };
+const FAC_EN = { goguryeo: 'Goguryeo (deep blue/gold)', baekje: 'Baekje (green/gold)', silla: 'Silla (crimson/gold)', gaya: 'Gaya (purple/gold)', china: 'a Chinese northern/Tang-era dynasty (gray/black with imperial accents)', wa: 'Wa/Yamato (white/red)' };
 /* 세력별 고증 참조 — 실제 공개 유물·고분벽화 기반(저작권 무관) */
 const FAC_REF = {
   goguryeo: 'historically grounded in 4th-7th century Goguryeo: lamellar scale armor and feathered jeolpung cap as seen in Anak Tomb No.3 and Muyongchong tomb murals, heavy cavalry (gaemamusa) aesthetic',
   baekje: 'historically grounded in Baekje: refined gilt-bronze crown ornaments from the Tomb of King Muryeong, motifs of the Baekje gilt-bronze incense burner, elegant courtly attire',
   silla: 'historically grounded in Silla: ornate gold crown with comma-shaped jade (gogok) from Cheonmachong/Hwangnam Daechong, gold ornaments and belt',
   gaya: 'historically grounded in Gaya: iron plate armor (pan-gap) and iron helmet, ingot-iron warrior aesthetic',
-  china: 'historically grounded in 4th-century Northern China Sixteen Kingdoms cavalry armor',
+  china: 'historically grounded in Chinese Northern-dynasty to Tang-era cavalry armor (era-appropriate: Yan/Northern Qi/Tang)',
   wa: 'historically grounded in Kofun-period Yamato armor and attire',
 };
 const NEGATIVE = 'period-accurate ancient costume, do NOT resemble any modern actor, TV drama still, or existing copyrighted artwork; original imagined face';
+/* 주요 영웅 맞춤 묘사 — 인물별 나이·기질·외형 특색(고증/설화 기반) */
+const NAME_EN = {
+  '광개토대왕': 'a vigorous conquering king in his early 30s, broad-shouldered, fierce determined gaze, ornate gold crown over feathered cap and scale armor',
+  '장수왕': 'a long-reigning elderly king with a long white beard, serene and authoritative',
+  '소수림왕': 'a thoughtful reform-minded king, calm scholarly dignity',
+  '연개소문': 'a powerful imperious warlord with a thick black beard, multiple swords at his belt, intense commanding stare',
+  '양만춘': 'a weathered veteran fortress commander, battle-scarred yet calm and resolute, plain sturdy lamellar armor',
+  '온달': 'a rugged powerful warrior of humble origin, simple armor, honest strong square-jawed face',
+  '을지문덕': 'a wise elder strategist-general with a long beard, piercing calm eyes',
+  '고연수': 'a stern middle-aged field commander in scale armor',
+  '김유신': 'a legendary noble general in his prime, dignified commanding presence, gold-trimmed Silla armor',
+  '김춘추': 'a sharp-eyed refined diplomat-statesman, elegant court robe with gold ornaments, shrewd composed expression',
+  '진흥왕': 'an ambitious king, ornate gold crown with comma-shaped jade, confident expansionist gaze',
+  '이사부': 'a seasoned veteran commander, stern weathered face',
+  '거칠부': 'a scholarly veteran statesman-general, calm wise face',
+  '사다함': 'a strikingly handsome young hwarang warrior, light ornamented armor, brave noble youthful face',
+  '관창': 'a very young hwarang boy-warrior, delicate but brave determined face, light armor',
+  '알천': 'a powerful veteran general, broad fierce face',
+  '계백': 'a grim resolute last-stand general, weathered determined face set for death, dark lamellar armor',
+  '의자왕': 'a dignified but careworn late Baekje king, ornate gilt crown, melancholic regal expression',
+  '흑치상지': 'a tall powerful loyal general with dark complexion, fierce steadfast face, heavy armor',
+  '근초고왕': 'a powerful conquering king at the height of Baekje, ornate gilt-bronze crown, confident commanding gaze',
+  '근구수': 'a bold crown-prince warrior, eager fierce youthful-mature face',
+  '성왕': 'a cultured noble king, refined gilt crown, wise dignified yet tragic expression',
+  '성충': 'a loyal upright scholar-official, earnest grave face',
+  '이세민': 'the Tang Emperor Taizong, imperial commanding presence, gilded armor with imperial yellow accents, sharp authoritative gaze',
+  '이세적': 'a shrewd veteran Tang strategist-general, calculating composed face',
+  '설인귀': 'a fierce Tang general famed for white armor, bold white-clad warrior, intense face',
+  '모용수': 'a fierce Xianbei cavalry warlord, braided hair, fur-trimmed armor, wild intense gaze',
+};
 function buildPrompt(g) {
   const t = archetype(g);
-  return `${COMMON}. ${ageEN(g)} man, ${TYPE_EN[t]}. Faction: ${FAC_EN[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
+  const extra = NAME_EN[g.name] ? ` Specifically: ${NAME_EN[g.name]}.` : '';
+  return `${COMMON}. ${ageEN(g)} man, ${TYPE_EN[t]}.${extra} Faction: ${FAC_EN[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
 }
 
 /* ---------- 이미지 변환 (sharp 있으면 webp 4:5, 없으면 원본 png) ---------- */
