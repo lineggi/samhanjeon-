@@ -817,7 +817,7 @@ function genPortraitSVG(g){
   const scholar=(g.int>=86&&g.int>g.might+2)&&!isKing;
   const warrior=(g.might>=86&&g.might>=g.int)||g.might>=92;
   const elder=isKing||scholar||g.int>=92||(g.lead>=90&&rng()<0.5);
-  const skin=R(['#e3b48d','#dcab82','#d2a079','#c89570']);
+  const skin=R(['#e8bb91','#e1b285','#d9a97d','#d0a073','#c89570','#bd8a63','#b3814f']);
   const hair=elder?R(['#6f685c','#7c756a','#615a4e']):R(['#1c1712','#231b13','#2a2018']);
   const angry=warrior||g.might>=85;
   const beard=isKing?2:scholar?2:warrior?R([1,2]):R([0,1,1,2]);
@@ -862,35 +862,50 @@ function genPortraitSVG(g){
     // 금색 목깃
     s+=`<path d="M68 166 Q100 152 132 166 L127 176 Q100 162 73 176Z" fill="url(#gold${u})" stroke="#6a4e10" stroke-width="0.8"/>`;
   }
+  // ===== 얼굴 비례(이름+능력치 해시 → 장군마다 고유) =====
+  const fw=rr(20.5,25.5), chinW=warrior?rr(.62,.94):rr(.34,.72), chinY=109+(warrior?rr(2,6):rr(-2,3));
+  const fL=cx-fw, fR=cx+fw, earY=rr(80,84);
+  const eyeDX=rr(10,12.6), eyeY=rr(68,72), eyeW=rr(5.4,7.2), eh=rr(2.4,3.4);
+  const eyeSlant=warrior?rr(1,3):scholar?rr(-1.6,.2):rr(-.5,1.8);   // +면 눈꼬리 올라가 매섭게
+  const browTh=warrior?rr(3.4,4.6):scholar?rr(1.9,2.7):rr(2.4,3.4), browDrop=angry?rr(3.5,7):rr(-1.5,1.5), browY=eyeY-7.5;
+  const noseLen=rr(16,22), noseW=rr(2.6,4.4), noseTipY=eyeY+noseLen;
+  const mouthY=rr(99,103), mouthW=rr(7.5,11), mouthCv=warrior?rr(-3.5,-.5):rr(-.5,2.6);
+  const wrinkle=elder||g.int>=90, exL=cx-eyeDX, exR=cx+eyeDX;
   // 목
-  s+=`<path d="M86 142 Q86 160 100 165 Q114 160 114 142 L114 130 L86 130Z" fill="${shade(skin,-22)}"/>`;
+  s+=`<path d="M86 ${chinY+2} Q86 158 100 163 Q114 158 114 ${chinY+2} L114 128 L86 128Z" fill="${shade(skin,-22)}"/>`;
   // 머리카락(뒤)
-  s+=`<path d="M72 70 Q70 36 100 30 Q130 36 128 70 Q128 84 124 92 L76 92 Q72 84 72 70Z" fill="${hair}"/>`;
+  s+=`<path d="M${fL-2} 70 Q${fL-4} 36 100 30 Q${fR+4} 36 ${fR+2} 70 Q${fR+2} 84 ${fR-2} 92 L${fL+2} 92 Q${fL-2} 84 ${fL-2} 70Z" fill="${hair}"/>`;
   // 귀
-  s+=`<ellipse cx="77" cy="82" rx="4.2" ry="7" fill="${skin}" stroke="${shade(skin,-42)}" stroke-width="0.6"/><ellipse cx="123" cy="82" rx="4.2" ry="7" fill="${shade(skin,-18)}" stroke="${shade(skin,-42)}" stroke-width="0.6"/>`;
-  // 얼굴
-  s+=`<path d="M78 68 Q76 40 100 37 Q124 40 122 68 Q122 95 109 111 Q100 119 91 111 Q78 95 78 68Z" fill="url(#sk${u})" stroke="${shade(skin,-46)}" stroke-width="0.7"/>`;
-  // 광대/턱 음영(오른쪽)
-  s+=`<path d="M113 60 Q121 82 106 108 Q116 90 111 66Z" fill="#000" opacity="0.13"/>`;
-  // 왼쪽 하이라이트
-  s+=`<path d="M84 52 Q80 78 90 104 Q83 80 88 56Z" fill="#fff" opacity="0.07"/>`;
+  s+=`<ellipse cx="${fL+1}" cy="${earY}" rx="4.2" ry="7" fill="${skin}" stroke="${shade(skin,-42)}" stroke-width="0.6"/><ellipse cx="${fR-1}" cy="${earY}" rx="4.2" ry="7" fill="${shade(skin,-18)}" stroke="${shade(skin,-42)}" stroke-width="0.6"/>`;
+  // 얼굴 윤곽(폭·턱 모양 가변)
+  s+=`<path d="M${fL} 68 Q${fL-1} 40 100 37 Q${fR+1} 40 ${fR} 68 Q${fR} 96 ${cx+fw*chinW} ${chinY-6} Q${cx+fw*chinW*0.55} ${chinY} 100 ${chinY} Q${cx-fw*chinW*0.55} ${chinY} ${cx-fw*chinW} ${chinY-6} Q${fL} 96 ${fL} 68Z" fill="url(#sk${u})" stroke="${shade(skin,-46)}" stroke-width="0.7"/>`;
+  // 광대 음영/하이라이트
+  s+=`<path d="M${fR-9} 60 Q${fR-1} 84 ${cx+5} ${chinY-6} Q${fR-4} 90 ${fR-7} 66Z" fill="#000" opacity="0.13"/>`;
+  s+=`<path d="M${fL+6} 52 Q${fL+2} 78 ${fL+11} 102 Q${fL+5} 80 ${fL+10} 56Z" fill="#fff" opacity="0.07"/>`;
+  // 주름(연장자/지장)
+  if(wrinkle){s+=`<path d="M${cx-11} 50 q11 -3 22 0 M${cx-12} 54.5 q12 -3 24 0" stroke="${shade(skin,-40)}" stroke-width="0.7" fill="none" opacity="0.42"/>`;
+    s+=`<path d="M${exL-2} ${mouthY-7} Q${exL-5} ${mouthY+3} ${cx-7} ${mouthY+5}" stroke="${shade(skin,-40)}" stroke-width="0.8" fill="none" opacity="0.4"/><path d="M${exR+2} ${mouthY-7} Q${exR+5} ${mouthY+3} ${cx+7} ${mouthY+5}" stroke="${shade(skin,-40)}" stroke-width="0.8" fill="none" opacity="0.4"/>`;}
   // 눈썹
-  if(angry)s+=`<path d="M82 64 L97 60" stroke="${hair}" stroke-width="3" stroke-linecap="round"/><path d="M118 64 L103 60" stroke="${hair}" stroke-width="3" stroke-linecap="round"/>`;
-  else s+=`<path d="M83 62 Q90 59 97 61" stroke="${hair}" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M117 62 Q110 59 103 61" stroke="${hair}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
-  // 눈
-  s+=`<path d="M83 70 Q89 66 95 70 Q89 73 83 70Z" fill="#fbf6ec"/><path d="M105 70 Q111 66 117 70 Q111 73 105 70Z" fill="#fbf6ec"/>`;
-  s+=`<circle cx="89" cy="70" r="2.5" fill="#3a2614"/><circle cx="111" cy="70" r="2.5" fill="#3a2614"/><circle cx="89" cy="70" r="1.1" fill="#0a0603"/><circle cx="111" cy="70" r="1.1" fill="#0a0603"/><circle cx="90.4" cy="68.8" r="0.8" fill="#fff"/><circle cx="112.4" cy="68.8" r="0.8" fill="#fff"/>`;
-  s+=`<path d="M83 69 Q89 65.4 95 69" stroke="#2c1d10" stroke-width="1" fill="none"/><path d="M105 69 Q111 65.4 117 69" stroke="#2c1d10" stroke-width="1" fill="none"/>`;
+  if(angry)s+=`<path d="M${exL-7} ${browY+browDrop-1} L${exL+5} ${browY-2}" stroke="${hair}" stroke-width="${browTh}" stroke-linecap="round"/><path d="M${exR+7} ${browY+browDrop-1} L${exR-5} ${browY-2}" stroke="${hair}" stroke-width="${browTh}" stroke-linecap="round"/>`;
+  else s+=`<path d="M${exL-6} ${browY+1} Q${exL} ${browY-2.5} ${exL+6} ${browY}" stroke="${hair}" stroke-width="${browTh}" fill="none" stroke-linecap="round"/><path d="M${exR+6} ${browY+1} Q${exR} ${browY-2.5} ${exR-6} ${browY}" stroke="${hair}" stroke-width="${browTh}" fill="none" stroke-linecap="round"/>`;
+  // 눈(눈꼬리 slant)
+  s+=`<path d="M${exL-eyeW} ${eyeY+1-eyeSlant} Q${exL} ${eyeY-eh} ${exL+eyeW} ${eyeY+1} Q${exL} ${eyeY+eh} ${exL-eyeW} ${eyeY+1-eyeSlant}Z" fill="#fbf6ec"/>`;
+  s+=`<path d="M${exR-eyeW} ${eyeY+1} Q${exR} ${eyeY-eh} ${exR+eyeW} ${eyeY+1-eyeSlant} Q${exR} ${eyeY+eh} ${exR-eyeW} ${eyeY+1}Z" fill="#fbf6ec"/>`;
+  s+=`<circle cx="${exL}" cy="${eyeY}" r="2.5" fill="#3a2614"/><circle cx="${exR}" cy="${eyeY}" r="2.5" fill="#3a2614"/><circle cx="${exL}" cy="${eyeY}" r="1.1" fill="#0a0603"/><circle cx="${exR}" cy="${eyeY}" r="1.1" fill="#0a0603"/><circle cx="${exL+1.3}" cy="${eyeY-1.2}" r="0.8" fill="#fff"/><circle cx="${exR+1.3}" cy="${eyeY-1.2}" r="0.8" fill="#fff"/>`;
+  s+=`<path d="M${exL-eyeW} ${eyeY} Q${exL} ${eyeY-eh-0.6} ${exL+eyeW} ${eyeY-eyeSlant}" stroke="#2c1d10" stroke-width="1" fill="none"/><path d="M${exR-eyeW} ${eyeY-eyeSlant} Q${exR} ${eyeY-eh-0.6} ${exR+eyeW} ${eyeY}" stroke="#2c1d10" stroke-width="1" fill="none"/>`;
+  if(wrinkle)s+=`<path d="M${exL-4} ${eyeY+4} Q${exL} ${eyeY+5.6} ${exL+4} ${eyeY+4}" stroke="${shade(skin,-34)}" stroke-width="0.7" fill="none" opacity="0.4"/><path d="M${exR-4} ${eyeY+4} Q${exR} ${eyeY+5.6} ${exR+4} ${eyeY+4}" stroke="${shade(skin,-34)}" stroke-width="0.7" fill="none" opacity="0.4"/>`;
+  // 흉터(맹장)
+  if(warrior&&rng()<0.5){const sx=exR+rr(1.5,4),sy=eyeY-rr(3,7);s+=`<path d="M${sx} ${sy} l${rr(2.5,4)} ${rr(11,17)}" stroke="#9a5a4a" stroke-width="1.5" stroke-linecap="round" opacity="0.85"/><path d="M${sx} ${sy} l${rr(2.5,4)} ${rr(11,17)}" stroke="${shade(skin,18)}" stroke-width="0.5" stroke-linecap="round" opacity="0.6"/>`;}
   // 코
-  s+=`<path d="M100 70 Q97 86 93 91 Q98 94 103 91" stroke="${shade(skin,-44)}" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M99 72 L98.5 86" stroke="${shade(skin,28)}" stroke-width="1.3" opacity="0.55" stroke-linecap="round"/>`;
+  s+=`<path d="M100 ${eyeY+2} Q${100-noseW} ${noseTipY-4} ${99-noseW} ${noseTipY} Q100 ${noseTipY+3} ${101+noseW} ${noseTipY-1}" stroke="${shade(skin,-44)}" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M99 ${eyeY+4} L98.5 ${noseTipY-3}" stroke="${shade(skin,28)}" stroke-width="1.3" opacity="0.5" stroke-linecap="round"/>`;
   // 입
-  s+=`<path d="M90 101 Q100 ${warrior?98:103} 110 101" stroke="#883c30" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  s+=`<path d="M${100-mouthW} ${mouthY} Q100 ${mouthY+mouthCv} ${100+mouthW} ${mouthY}" stroke="#883c30" stroke-width="2" fill="none" stroke-linecap="round"/>`;
   // 콧수염/턱수염
-  if(beard>0||rng()<0.5)s+=`<path d="M100 99 Q92 95 84 100 Q92 101 100 99.5 Q108 101 116 100 Q108 95 100 99Z" fill="${hair}"/>`;
-  if(beard===1)s+=`<path d="M84 100 Q86 116 100 120 Q114 116 116 100 Q110 112 100 112 Q90 112 84 100Z" fill="${hair}"/>`;
-  else if(beard===2)s+=`<path d="M82 98 Q84 126 100 138 Q116 126 118 98 Q112 116 106 116 L106 112 Q100 117 94 112 L94 116 Q88 116 82 98Z" fill="${hair}"/>`;
+  if(beard>0||rng()<0.5)s+=`<path d="M100 ${mouthY-2} Q92 ${mouthY-6} 84 ${mouthY-1} Q92 ${mouthY} 100 ${mouthY-1.5} Q108 ${mouthY} 116 ${mouthY-1} Q108 ${mouthY-6} 100 ${mouthY-2}Z" fill="${hair}"/>`;
+  if(beard===1)s+=`<path d="M84 ${mouthY-1} Q86 ${mouthY+15} 100 ${mouthY+19} Q114 ${mouthY+15} 116 ${mouthY-1} Q110 ${mouthY+11} 100 ${mouthY+11} Q90 ${mouthY+11} 84 ${mouthY-1}Z" fill="${hair}"/>`;
+  else if(beard===2)s+=`<path d="M82 ${mouthY-3} Q84 ${mouthY+25} 100 ${mouthY+37} Q116 ${mouthY+25} 118 ${mouthY-3} Q112 ${mouthY+15} 106 ${mouthY+15} L106 ${mouthY+11} Q100 ${mouthY+16} 94 ${mouthY+11} L94 ${mouthY+15} Q88 ${mouthY+15} 82 ${mouthY-3}Z" fill="${hair}"/>`;
   // 구레나룻
-  s+=`<path d="M79 74 Q77 88 84 96 L84 76Z" fill="${hair}"/><path d="M121 74 Q123 88 116 96 L116 76Z" fill="${hair}"/>`;
+  s+=`<path d="M${fL+1} ${eyeY+6} Q${fL-1} ${eyeY+20} ${fL+6} ${eyeY+28} L${fL+6} ${eyeY+8}Z" fill="${hair}"/><path d="M${fR-1} ${eyeY+6} Q${fR+1} ${eyeY+20} ${fR-6} ${eyeY+28} L${fR-6} ${eyeY+8}Z" fill="${hair}"/>`;
   // 머리장식
   if(isKing){
     s+=`<path d="M70 50 Q100 33 130 50 L130 44 Q100 28 70 44Z" fill="url(#gold${u})" stroke="#6a4e10" stroke-width="1"/>`;
@@ -2686,7 +2701,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.13.1';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.13.2';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
