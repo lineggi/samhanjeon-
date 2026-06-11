@@ -144,9 +144,10 @@ svg{width:100%;height:100%;display:block}
 .tac .tn{font-family:'Pretendard';font-weight:800;font-size:15px}
 .tac .td{font-size:9.5px;color:#9c8c6a;margin-top:3px;line-height:1.3}
 .tac.disabled{opacity:.3;pointer-events:none}
-.blog{background:#0d0905;border:1px solid #2a2114;border-radius:5px;padding:12px;height:140px;overflow-y:auto;font-size:13px;line-height:1.7}
-.blog .le{margin-bottom:4px;padding-bottom:4px;border-bottom:1px dashed #241a10}
-.blog .atk{color:#e8c97a}.blog .def{color:#d89a96}.blog .sys{color:#8aa8a0;font-style:italic}.blog .crit{color:#ffd24a;font-weight:700}
+.blog{background:#0d0905;border:1px solid #2a2114;border-radius:5px;padding:12px;height:172px;overflow-y:auto;font-size:13px;line-height:1.62}
+.blog .le{margin-bottom:5px;padding-bottom:5px;border-bottom:1px dashed #241a10}
+.blog .atk{color:#ecc874}.blog .def{color:#e3a39d}.blog .sys{color:#9ec0b6;border-left:2px solid #3a5a52;padding-left:7px}.blog .crit{color:#ffe07a;font-weight:700}
+.blog .le .crit{display:block;background:rgba(201,162,39,.13);border-radius:3px;padding:3px 7px;border-left:3px solid var(--gold)}
 .bfoot{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
 .round{font-family:'Gugi';color:var(--gold);font-size:18px}
 /* 전투 연출(주스감) */
@@ -259,7 +260,7 @@ svg{width:100%;height:100%;display:block}
   .tac{padding:8px 2px}
   .tac .tn{font-size:13px}
   .tac .td{font-size:8px;line-height:1.2}
-  .blog{height:120px;font-size:12px}
+  .blog{height:150px;font-size:12px}
   .center-modal{padding:22px 16px}
   .center-modal h1{font-size:34px}
   .center-modal h1 small{font-size:12px;letter-spacing:3px}
@@ -2730,7 +2731,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.14.4';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.14.5';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
