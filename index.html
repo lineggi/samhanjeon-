@@ -450,10 +450,24 @@ function activateSkill(fac){
 }
 /* ============ 외교 ============ */
 const DIPLO_INIT={
-  geunchogo:[['baekje','wa','ally'],['baekje','gaya','ally'],['baekje','goguryeo','war']],
-  gwanggaeto:[['goguryeo','silla','ally'],['baekje','wa','ally'],['baekje','goguryeo','war'],['silla','wa','war'],['silla','gaya','war'],['goguryeo','china','war']],
-  jinheung:[['silla','baekje','war'],['baekje','wa','ally'],['baekje','gaya','ally'],['silla','gaya','war']],
-  unification:[['silla','china','ally'],['goguryeo','china','war'],['baekje','silla','war'],['baekje','wa','ally']],
+  // 371 근초고왕: 백제-왜-가야 우호(칠지도), 백제 vs 고구려(평양성), 고구려 vs 전연
+  geunchogo:[['baekje','wa','ally'],['baekje','gaya','ally'],['gaya','wa','ally'],
+             ['baekje','goguryeo','war'],['goguryeo','china','war']],
+  // 400 광개토대왕: 고구려-신라 동맹 vs 백제-가야-왜 연합, 고구려 vs 후연
+  gwanggaeto:[['goguryeo','silla','ally'],
+              ['baekje','wa','ally'],['baekje','gaya','ally'],['gaya','wa','ally'],
+              ['goguryeo','baekje','war'],['goguryeo','wa','war'],['goguryeo','gaya','war'],
+              ['silla','baekje','war'],['silla','wa','war'],['silla','gaya','war'],
+              ['goguryeo','china','war']],
+  // 554 관산성: 나제동맹 결렬 — 백제-가야-왜 vs 신라, 고구려 vs 신라(한강)
+  jinheung:[['baekje','wa','ally'],['baekje','gaya','ally'],['gaya','wa','ally'],
+            ['silla','baekje','war'],['silla','gaya','war'],['silla','goguryeo','war']],
+  // 645 여당전쟁: 나당동맹(신라-당) vs 여제·왜 동맹(고구려-백제-왜)
+  unification:[['silla','china','ally'],
+               ['goguryeo','baekje','ally'],['baekje','wa','ally'],['goguryeo','wa','ally'],
+               ['goguryeo','china','war'],['goguryeo','silla','war'],
+               ['baekje','silla','war'],['baekje','china','war'],
+               ['wa','silla','war'],['wa','china','war']],
 };
 let diplo={};
 function rkey(a,b){return [a,b].sort().join('|');}
@@ -2672,7 +2686,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.13.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.13.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
