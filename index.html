@@ -489,6 +489,7 @@ const CASTLES=[
  {id:'ansi', name:'안시성', sub:'安市', x:215, y:241, terr:'산악', wall:4, base:3000},
  {id:'sinseong', name:'신성', sub:'新城', x:259, y:192, terr:'산악', wall:3, base:2600},
  {id:'baegam', name:'백암성', sub:'白巖', x:235, y:224, terr:'산악', wall:3, base:2500},
+ {id:'gaemo', name:'개모성', sub:'蓋牟', x:251, y:206, terr:'산악', wall:3, base:2500},
  {id:'buyeo', name:'부여성', sub:'扶餘', x:305, y:90, terr:'평야', wall:2, base:2600},
  {id:'gungnae', name:'국내성', sub:'國內', x:343, y:228, terr:'산악', wall:3, base:5000, cap:1},
  {id:'hwando', name:'환도성', sub:'丸都', x:341, y:226, terr:'산악', wall:3, base:2800},
@@ -498,7 +499,7 @@ const CASTLES=[
  {id:'bakjak', name:'박작성', sub:'泊灼', x:276, y:277, terr:'강', wall:2, base:2400},
  {id:'ogol', name:'오골성', sub:'烏骨', x:264, y:260, terr:'산악', wall:3, base:2600},
  {id:'pyeongyang', name:'평양성', sub:'平壤', x:326, y:329, terr:'평야', wall:3, base:5000, cap:1},
- {id:'hanseong', name:'한성', sub:'漢城', x:378, y:401, terr:'강', wall:3, base:5000, cap:1},
+ {id:'hanseong', name:'위례성', sub:'慰禮城', x:378, y:401, terr:'강', wall:3, base:5000, cap:1},
  {id:'gwanmi', name:'관미성', sub:'關彌', x:353, y:389, terr:'강', wall:3, base:2500},
  {id:'michuhol', name:'미추홀', sub:'彌鄒忽', x:360, y:404, terr:'강', wall:2, base:2400},
  {id:'ungjin', name:'웅진', sub:'熊津', x:378, y:452, terr:'강', wall:3, base:4400, cap:1},
@@ -543,6 +544,7 @@ const EDGES=[
  ['jolbon','bakjak'],['bakjak','pyeongyang'],['jolbon','pyeongyang'],['okjeo','pyeongyang'],['buyeo','chaek'],
  // 고구려 추가 연결(성 간 기동·협공 강화)
  ['bisa','ansi'],['bisa','ogol'],['bisa','bakjak'],['yodong','baegam'],['sinseong','ansi'],['baegam','bakjak'],['gungnae','okjeo'],['buyeo','hwando'],['ansi','bakjak'],['ogol','pyeongyang'],
+ ['gaemo','sinseong'],['gaemo','yodong'],['gaemo','baegam'],['gaemo','ansi'],  // 개모성(요동)
  // 고구려→남
  ['pyeongyang','hanseong'],['pyeongyang','gwanmi'],['pyeongyang','bukhan'],
  // 백제
@@ -576,7 +578,7 @@ const SCENARIOS=[
   factions:['baekje','goguryeo','silla','gaya','china','wa'],
   cname:'전연', chanzi:'燕',
   str:{baekje:1.32,goguryeo:1.0,silla:0.68,gaya:0.85,china:1.05,wa:0.85},
-  own:{yodong:'china',bisa:'china',ansi:'china',sinseong:'china',baegam:'china',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'china',pyeongyang:'goguryeo',hanseong:'baekje',gwanmi:'baekje',michuhol:'baekje',ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',geumseong:'silla',myeonghwal:'silla',busan:'silla',samnyeon:'baekje',gwansan:'baekje',daeya:'gaya',danghang:'baekje',bukhan:'baekje',maeso:'baekje',golbeol:'silla',geumgwan:'gaya',daegaya:'gaya',ara:'gaya',seongsan:'gaya',dara:'gaya',youzhou:'china',linyu:'china',yongseong:'china',cheongju:'china',deungju:'china',tsushima:'wa',iki:'wa',fukuoka:'wa',mujin:'baekje',balla:'baekje',haseulla:'goguryeo',siljik:'silla'},
+  own:{yodong:'china',bisa:'china',ansi:'china',sinseong:'china',baegam:'china',gaemo:'china',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'china',pyeongyang:'goguryeo',hanseong:'baekje',gwanmi:'baekje',michuhol:'baekje',ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',geumseong:'silla',myeonghwal:'silla',busan:'silla',samnyeon:'baekje',gwansan:'baekje',daeya:'gaya',danghang:'baekje',bukhan:'baekje',maeso:'baekje',golbeol:'silla',geumgwan:'gaya',daegaya:'gaya',ara:'gaya',seongsan:'gaya',dara:'gaya',youzhou:'china',linyu:'china',yongseong:'china',cheongju:'china',deungju:'china',tsushima:'wa',iki:'wa',fukuoka:'wa',mujin:'baekje',balla:'baekje',haseulla:'goguryeo',siljik:'silla'},
   gens:[
    ['근초고왕','baekje','hanseong',92,86,90],['소수림왕','goguryeo','gungnae',82,68,86],['고흥','baekje','sabi',66,50,90],['근구수','baekje','ungjin',88,90,80],['막고해','baekje','sabi',82,84,78],['고국원왕','goguryeo','pyeongyang',80,80,76],['고무','goguryeo','yodong',80,84,70],['내물왕','silla','geumseong',78,66,82],['거질미왕','gaya','geumgwan',76,78,72],['하지왕','gaya','daegaya',74,80,70],['모용수','china','yongseong',88,90,82],['모용평','china','youzhou',76,74,78],['오토모','wa','fukuoka',76,82,66],
   ],
@@ -604,7 +606,7 @@ const SCENARIOS=[
   cname:'후연', chanzi:'燕',
   str:{goguryeo:1.35,baekje:1.0,silla:0.72,gaya:0.9,china:1.1,wa:0.85},
   own:{
-   bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',gwanmi:'goguryeo',
+   bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',gaemo:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',gwanmi:'goguryeo',
    hanseong:'baekje',michuhol:'baekje',ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',
    geumseong:'silla',myeonghwal:'silla',busan:'silla',samnyeon:'silla',gwansan:'silla',daeya:'silla',golbeol:'silla',
    danghang:'baekje',bukhan:'baekje',maeso:'goguryeo',
@@ -635,8 +637,8 @@ const SCENARIOS=[
    {id:'w_buyeo',turn:5,title:'동부여 복속',
     text:'410년, 광개토대왕이 동부여를 정벌하여 64성을 거두니, 고구려의 강역이 사상 최대에 이른다.',
     effect:()=>{['buyeo','chaek','okjeo'].forEach(id=>{if(pstate[id]&&prov(id).owner==='goguryeo')pstate[id].troops=Math.round(pstate[id].troops*1.15);});}},
-   {id:'w_hanseong',turn:7,title:'장수왕의 남하 — 한성 함락',
-    text:'장수왕이 친히 3만 대군으로 백제 왕도 한성을 친다. 개로왕이 사로잡혀 처형되고, 백제는 도읍을 웅진으로 옮긴다.',
+   {id:'w_hanseong',turn:7,title:'장수왕의 남하 — 위례성 함락',
+    text:'장수왕이 친히 3만 대군으로 백제 왕도 위례성(한성)을 친다. 개로왕이 사로잡혀 처형되고, 백제는 도읍을 웅진으로 옮긴다.',
     cond:()=>genAlive('장수왕') && prov('hanseong') && prov('hanseong').owner==='baekje', // 장수왕 생존+한성이 백제 땅일 때만
     effect:()=>{eventConquer(['hanseong','gwanmi','michuhol'],'goguryeo'); const js=generals.find(g=>g.name==='장수왕'); if(js)js.loc='hanseong';}},
   ]
@@ -648,7 +650,7 @@ const SCENARIOS=[
   cname:'북제', chanzi:'齊',
   str:{goguryeo:0.95,baekje:1.02,silla:1.3,gaya:0.5,china:1.05,wa:0.9},
   own:{
-   yodong:'goguryeo',bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',
+   yodong:'goguryeo',bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',gaemo:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',
    ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',
    hanseong:'silla',gwanmi:'silla',michuhol:'silla',geumseong:'silla',myeonghwal:'silla',busan:'silla',samnyeon:'silla',gwansan:'silla',daeya:'silla',danghang:'silla',bukhan:'silla',maeso:'silla',golbeol:'silla',geumgwan:'silla',ara:'silla',
    daegaya:'gaya',seongsan:'gaya',dara:'gaya',
@@ -687,7 +689,7 @@ const SCENARIOS=[
   cname:'당', chanzi:'唐',
   str:{goguryeo:1.2,baekje:1.05,silla:0.9,china:1.8,wa:0.95},
   own:{
-   yodong:'goguryeo',bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',
+   yodong:'goguryeo',bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',gaemo:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',
    ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',
    hanseong:'silla',gwanmi:'silla',michuhol:'silla',danghang:'silla',bukhan:'silla',maeso:'silla',samnyeon:'silla',gwansan:'silla',geumseong:'silla',myeonghwal:'silla',busan:'silla',golbeol:'silla',daeya:'silla',geumgwan:'silla',daegaya:'silla',ara:'silla',seongsan:'silla',dara:'silla',
    youzhou:'china',linyu:'china',yongseong:'china',cheongju:'china',deungju:'china',
@@ -703,13 +705,13 @@ const SCENARIOS=[
   // 당군: 성마다 10만 대군
   garrison:{china:100000},
   // 고구려 성별 병력 — 645 여당전쟁 고증(자치통감·삼국사기): 평양(도읍·연개소문) 최대, 요동·신성·안시 강성, 백암 항복·비사성 8천 전사, 변경 소수
-  garrisonById:{pyeongyang:48000, gungnae:18000, yodong:24000, ansi:13000, sinseong:18000, baegam:8000, bisa:8000, ogol:14000, bakjak:10000, buyeo:8000, hwando:9000, jolbon:7000, chaek:5000, okjeo:5000},
+  garrisonById:{pyeongyang:48000, gungnae:18000, yodong:24000, ansi:13000, sinseong:18000, baegam:8000, gaemo:10000, bisa:8000, ogol:14000, bakjak:10000, buyeo:8000, hwando:9000, jolbon:7000, chaek:5000, okjeo:5000},
   events:[
    {id:'u_decree', turn:1, title:'당 태종의 친정(親征)',
     text:'645년, 당 태종 이세민이 “고구려는 반드시 무너뜨린다”며 몸소 수십만 대군을 이끌고 요동으로 향한다. 요수 너머로 당의 깃발이 끝없이 펼쳐진다. 한편 평양에서는 연개소문이 정권을 틀어쥐고 결사항전을 외친다.'},
    {id:'u_war1', turn:2, title:'제1차 여당전쟁 발발 — 당, 고구려를 침공하다',
     text:'당군이 요수를 건너 개모성·요동성을 함락하고 백암성마저 무너뜨린다. 고구려는 천리장성에 의지해 필사적으로 막아선다.',
-    effect:()=>{eventConquer(['baegam'],'china');['yodong','ansi','sinseong'].forEach(id=>{if(pstate[id]&&prov(id).owner==='goguryeo')pstate[id].train=Math.min(100,pstate[id].train+10);});}},
+    effect:()=>{eventConquer(['gaemo','baegam'],'china');['yodong','ansi','sinseong'].forEach(id=>{if(pstate[id]&&prov(id).owner==='goguryeo')pstate[id].train=Math.min(100,pstate[id].train+10);});}},
    {id:'u_ansi', turn:3, title:'안시성 공방전 — 양만춘의 분전',
     text:'성주 양만춘이 안시성에서 당의 대군에 맞선다. 토산이 쌓여도 성벽은 무너지지 않고, 군의 공격력과 사기가 하늘을 찌른다.',
     cond:()=>prov('ansi')&&prov('ansi').owner==='goguryeo'&&genHere('양만춘','ansi'), // 양만춘이 안시성에 있어야 발동
@@ -2757,7 +2759,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.15.7';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.15.8';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
