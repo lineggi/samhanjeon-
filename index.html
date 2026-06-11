@@ -1187,7 +1187,9 @@ function renderLegend(){
   const bar=`<div style="display:flex;height:7px;border-radius:4px;overflow:hidden;margin-bottom:6px;border:1px solid #15110c">`+
     items.filter(it=>it.cnt>0).map(it=>`<div title="${FACTIONS[it.f].name} ${Math.round(it.cnt/total*100)}%" style="width:${(it.cnt/total*100).toFixed(1)}%;background:${fcolor(it.f)}"></div>`).join('')+`</div>`;
   const mine=ownedBy(player).length, goal=Math.ceil(total*2/3);
-  const goalLine=`<div class="li" style="color:var(--gold);border-top:1px solid #2a2114;margin-top:2px;padding-top:3px">🏁 패권까지 ${Math.max(0,goal-mine)}성 <span style="color:#8a7a5a">(${mine}/${goal})</span></div>`;
+  const prog=Math.min(100,Math.round(mine/goal*100));
+  const goalLine=`<div class="li" style="color:var(--gold);border-top:1px solid #2a2114;margin-top:2px;padding-top:3px">🏁 패권까지 ${Math.max(0,goal-mine)}성 <span style="color:#8a7a5a">(${mine}/${goal})</span></div>`
+    +`<div style="height:6px;border-radius:3px;background:#2a2114;overflow:hidden;margin-top:3px"><div style="width:${prog}%;height:100%;background:linear-gradient(90deg,#8a6a2e,var(--gold))"></div></div>`;
   $('legend').innerHTML=bar+items.map(it=>`<div class="li"><span class="sw" style="background:${fcolor(it.f)}"></span>${FACTIONS[it.f].name} · ${it.cnt}성 <span style="color:#8a7a5a">${Math.round(it.cnt/total*100)}%</span></div>`).join('')+goalLine;
 }
 
@@ -1256,7 +1258,7 @@ function renderPanel(){
     ${(()=>{const net=Math.round(foodIncome(p,st)*seasonFoodMul())-Math.round(foodUpkeep(st)*seasonUpkeepMul()),sup=isSupplied(selected),fc=foodCap(p);
       return `<div class="row"><span class="lab">군량(糧)</span><span class="val">${fmt(st.food||0)}</span></div>
       <div class="bar"><i style="width:${Math.min(100,(st.food||0)/fc*100)}%;background:linear-gradient(90deg,#5a3a1a,#caa72e)"></i></div>
-      <div class="row"><span class="lab">보급(/턴)</span><span class="val" style="font-size:12px;color:${!sup?'#ff7a6a':net>=0?'#8fd0c4':'#ff7a6a'}">${!sup?'⚠ 보급 단절':(net>=0?'+':'')+fmt(net)}</span></div>`;})()}
+      <div class="row"><span class="lab">보급(/턴)</span><span class="val" style="font-size:12px;color:${!sup?'#ff7a6a':net>=0?'#8fd0c4':'#ff7a6a'}">${!sup?'⚠ 보급 단절':(net>=0?'▲ +':'▼ ')+fmt(net)}</span></div>`;})()}
     <div class="row"><span class="lab">훈련도</span><span class="val">${st.train}</span></div>
     <div class="bar"><i style="width:${st.train}%;background:linear-gradient(90deg,#7a1f1a,var(--gold))"></i></div>
     <div class="row" style="margin-top:8px"><span class="lab">지형</span><span class="val" style="font-size:13px">${p.terr}</span></div>
@@ -1270,7 +1272,7 @@ function renderPanel(){
   if(g){const sk=genSkill(g);const ly=g.loyalty==null?72:g.loyalty;info+=`<div class="gen"><div class="face">${genPortrait(g)}</div>
     <div class="ginfo"><div class="gname">${g.name}${sk?` <span style="font-size:11px;color:var(--gold)">⚑${sk.name}</span>`:''}</div>
     <div class="gstats"><span>통솔 <b>${g.lead}</b></span><span>무력 <b>${g.might}</b></span><span>지력 <b>${g.int}</b></span></div>
-    ${mine?`<div style="font-size:11px;margin-top:2px;color:${ly<30?'#ff7a6a':ly<55?'#caa72e':'#8fd0c4'}">충성 ${ly}${ly<30?' ⚠ 이탈 위험':''} <span style="color:#9c8c6a">· 수련 ${g.exp||0}/100</span></div>`:''}</div></div>`;
+    ${mine?`<div style="font-size:11px;margin-top:2px;color:${ly<30?'#ff7a6a':ly<55?'#caa72e':'#8fd0c4'}">충성 ${ly}${ly<30?' ⚠ 이탈 위험':ly<55?' △ 불안정':' ✓ 충직'} <span style="color:#9c8c6a">· 수련 ${g.exp||0}/100</span></div>`:''}</div></div>`;
   }else if(seen){info+=`<div class="gen"><div class="face" style="background:#3a2c1c;color:#8a7a5a">無</div>
     <div class="ginfo"><div class="gname" style="color:#8a7a5a">무명 장수</div>
     <div class="gstats"><span>통솔 <b>60</b></span><span>무력 <b>60</b></span><span>지력 <b>60</b></span></div></div></div>`;}
@@ -2719,7 +2721,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.14.2';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.14.3';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
