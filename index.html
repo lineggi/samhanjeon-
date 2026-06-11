@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>三韓戰 · 삼한전</title>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzE2MTAwOSIvPjxyZWN0IHg9IjEuNSIgeT0iMS41IiB3aWR0aD0iMjkiIGhlaWdodD0iMjkiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNjYWE3MmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+PHRleHQgeD0iMTYiIHk9IjI1IiBmb250LXNpemU9IjIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZTZjNTYwIiBmb250LWZhbWlseT0iR3VnaSxzZXJpZiIgZm9udC13ZWlnaHQ9IjcwMCI+5LiJPC90ZXh0Pjwvc3ZnPg=="><rect width='32' height='32' rx='7' fill='%23161009'/><rect x='1.5' y='1.5' width='29' height='29' rx='6' fill='none' stroke='%23caa72e' stroke-width='1.6'/><text x='16' y='25' font-size='23' text-anchor='middle' fill='%23e6c560' font-family='Gugi,serif' font-weight='700'>三</text></svg>">
+<meta name="theme-color" content="#15110c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gugi&family=Nanum+Myeongjo:wght@400;700;800&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
@@ -2747,7 +2749,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.15.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.15.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
