@@ -2070,9 +2070,9 @@ function renderBattle(){
   const weather=[B.rain?'⛆폭우':'',B.fog?'🌫안개':'',B.ambush?'🗡매복호기':''].filter(Boolean).join(' · ');
   if(weather)h+=`<div class="evt">${weather}</div>`;
   h+=`<div class="terr"><span class="round">제 ${B.round} 합</span> · 공격측 전법을 택하라</div>`;
-  h+=`<div class="cti">상성 <b>돌격 ▶ 궁격 ▶ 계략 ▶ 돌격</b> — 적 전법을 받아치면 위력↑·사기 타격</div><div class="tactics">`;
-  const cbadge={charge:'➤궁격',volley:'➤계략',scheme:'➤돌격'};
-  for(const k in TACTICS){h+=`<div class="tac ${dis}" onclick="${(B.over||B.busy)?'':`playTactic('${k}')`}"><div class="tn">${TACTICS[k].n}</div><div class="td">${TACTICS[k].d}</div>${cbadge[k]?`<div class="cbadge">${cbadge[k]}</div>`:''}</div>`;}
+  h+=`<div class="cti">상성 <b>돌격 ▸ 궁격 ▸ 계략 ▸ 돌격</b>${B.lastDTac?` · 적 지난 합 <b style="color:#ff9a6a">${TACTICS[B.lastDTac].n}</b>`:''}</div><div class="tactics">`;
+  const cbadge={charge:'궁격에 강',volley:'계략에 강',scheme:'돌격에 강'};
+  for(const k in TACTICS){h+=`<div class="tac ${dis}" onclick="${(B.over||B.busy)?'':`playTactic('${k}')`}"><div class="tn">${TACTICS[k].n}</div><div class="td">${TACTICS[k].d}</div>${cbadge[k]?`<div class="cbadge" style="color:#7bbf63">▲ ${cbadge[k]}</div>`:''}</div>`;}
   h+=`</div><div class="blog">${B.log.map(l=>`<div class="le ${l.c}">${l.t}</div>`).join('')}</div>`;
   h+=`<div class="bfoot"><span style="font-size:11px;color:#7a6a4a">사기가 0이 되면 군은 무너진다</span>`;
   h+= B.over?`<button class="btn" onclick="closeBattle()">전장을 떠난다 ▶</button>`:`<button class="btn danger sm" onclick="retreat()">퇴각</button>`;
@@ -2127,6 +2127,7 @@ function playTactic(tac){
 }
 function resolveRound(tac,duelRes){
   const A=B.A,D=B.D,dTac=aiTactic(D,A);A._g=D._g=false;
+  B.lastDTac=dTac;   // 적 전법 기록(다음 합 안내용)
   let crit=false;
   const ra=resolveTactic(A,D,tac,true,duelRes), rd=resolveTactic(D,A,dTac,false,null);
   let dD=ra.dmg, dA=rd.dmg+ra.self;
@@ -2178,6 +2179,7 @@ function resolveRound(tac,duelRes){
   setTimeout(()=>{ if(!B||B.over){if(B)B.busy=false;return;} try{
     applyD(); battle2dShow('D',D.troops,D.startT);
     if(B.siege&&!B.breached&&wallDmg>0){ B.wallHP=Math.max(0,B.wallHP-wallDmg);   // 성벽 파괴
+      wallFx(wallDmg);
       blog('atk',`🧱 성벽을 두드린다 — 내구 ${Math.round(B.wallHP)}/${B.wallMax}`);
       if(B.wallHP<=0){ B.breached=true; D.morale=Math.max(0,D.morale-22);
         blog('crit',`<span class="crit">💥 성벽 붕괴! 무너진 틈으로 아군이 쏟아져 들어간다 (적 사기 -22)</span>`); } }
@@ -2215,6 +2217,7 @@ function battleFx(dA,dD,crit){
   const float=(side,val,cls)=>{if(val<1)return;const el=document.createElement('div');el.className=`dmgfloat ${cls}${big?' big':''}`;el.style.left=side==='A'?'27%':'73%';el.textContent='-'+fmt(val);box.appendChild(el);setTimeout(()=>el.remove(),1100);};
   float('D',dD,'atk'); float('A',dA,'');
 }
+function wallFx(dmg){const box=$('battleBox');if(!box||dmg<1)return;const el=document.createElement('div');el.className='dmgfloat';el.style.cssText='left:50%;top:6%;font-size:24px;color:#caa72e;text-shadow:0 2px 8px #000';el.textContent='🧱 -'+fmt(Math.round(dmg));box.appendChild(el);setTimeout(()=>el.remove(),1100);}
 function retreat(){blog('sys','그대의 군이 퇴각한다…');endBattle('retreat');}
 
 /* ===== 일기토 미니게임 (3선 2승 · 무력 가중 주사위) ===== */
@@ -2714,7 +2717,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.14.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.14.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
