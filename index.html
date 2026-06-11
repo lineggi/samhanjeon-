@@ -1114,11 +1114,11 @@ function layoutNodes(){
 function renderMap(){
   const D=layoutNodes(); lastD=D; const ens=Math.pow(zoomScale,-0.5);
   const svg=$('map');
-  let h=`<defs><filter id="terrblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="13"/></filter><clipPath id="landclip">`;
+  let h=`<defs><filter id="terrblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="13"/></filter><radialGradient id="seaGrad" cx="0.5" cy="0.48" r="0.72"><stop offset="0" stop-color="rgba(22,42,58,0.34)"/><stop offset="0.62" stop-color="rgba(22,42,58,0.2)"/><stop offset="1" stop-color="rgba(22,42,58,0)"/></radialGradient><clipPath id="landclip">`;
   MAP_PATHS.forEach(d=>{ h+=`<path d="${d}"/>`; });
   h+=`</clipPath></defs>`;
   // 옅은 바다 톤
-  h+=`<rect x="0" y="0" width="560" height="660" fill="rgba(22,42,58,.30)"/>`;
+  h+=`<rect x="0" y="0" width="560" height="660" fill="url(#seaGrad)"/>`;
   // 육지(한반도+만주+산동+왜)
   MAP_PATHS.forEach(d=>{ h+=`<path d="${d}" fill="rgba(120,95,55,.13)" stroke="#5a4a30" stroke-width="0.8" opacity=".8"/>`; });
   // 영토 음영(소속색 번짐) — 육지로 클립. 내 세력 영역은 더 진하고 넓게 강조
@@ -2734,7 +2734,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.14.8';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.14.9';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
