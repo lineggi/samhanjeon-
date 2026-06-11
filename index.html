@@ -2331,7 +2331,9 @@ function battleResultModal(result){
       <div style="display:flex;gap:10px;justify-content:center;margin-top:12px"><button class="btn" onclick="resolveCapture('${dg.id}',true)">등용 후 종료</button>
       <button class="btn danger" onclick="resolveCapture('${dg.id}',false)">놓아주고 종료</button></div>`;
   } else foot=`<button class="btn" onclick="finishBattle()">전투 종료 ▶</button>`;
-  $('centerBox').innerHTML=`<h1 style="color:${tcol};font-size:40px">${title}<small>${sub}</small></h1>${info}${foot}`;
+  const myLoss=Math.max(0,Math.round((B.A.startT||0)-A.troops)), enLoss=Math.max(0,Math.round((B.D.startT||0)-D.troops));
+  const stats=`<p style="font-size:12px;color:#9c8c6a;margin:0 0 8px">${B.round}합 · 적 전사 <b style="color:#e3a39d">${fmt(enLoss)}</b> · 아군 전사 <b style="color:#ecc874">${fmt(myLoss)}</b>${B.siege?` · 성벽 ${B.breached?'붕괴':'잔존'}`:''}</p>`;
+  $('centerBox').innerHTML=`<h1 style="color:${tcol};font-size:40px">${title}<small>${sub}</small></h1>${info}${stats}${foot}`;
   $('centerOverlay').classList.add('on');
 }
 function finishBattle(){ $('centerOverlay').classList.remove('on'); closeBattle(); }
@@ -2749,7 +2751,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.15.1';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.15.2';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
