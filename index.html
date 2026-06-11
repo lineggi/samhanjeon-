@@ -115,6 +115,7 @@ svg{width:100%;height:100%;display:block}
 .splash-title{margin-top:34px;font-family:'Gugi',cursive;font-size:clamp(60px,16vw,128px);color:var(--gold);
   text-shadow:0 0 40px rgba(201,162,39,.35),0 6px 24px rgba(0,0,0,.8);letter-spacing:4px}
 .splash-tap{margin-top:40px;font-size:14px;letter-spacing:4px;color:#9c8c6a;animation:tapBlink 1.6s ease-in-out infinite}
+.splash-ver{margin-top:18px;font-size:12px;letter-spacing:3px;color:#6a5a3a;font-family:'Pretendard'}
 @keyframes splashIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes tapBlink{0%,100%{opacity:.35}50%{opacity:1}}
 .battle{width:min(880px,94vw);max-height:94vh;overflow-y:auto;
@@ -327,6 +328,7 @@ svg{width:100%;height:100%;display:block}
     <div class="splash-sub">presents</div>
     <div class="splash-title">三韓戰</div>
     <div class="splash-tap">화면을 눌러 시작</div>
+    <div class="splash-ver" id="splashver"></div>
   </div>
 </div>
 <div class="overlay" id="battleOverlay"><div class="battle" id="battleBox"></div></div>
@@ -2699,9 +2701,9 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.13.3';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.13.4';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
-function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
+function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
   if(location.protocol==='file:')return;   // 로컬 파일 직접 열기 시엔 서버가 없어 생략
   try{
