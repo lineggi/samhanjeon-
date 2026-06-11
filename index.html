@@ -1252,7 +1252,7 @@ function renderPanel(){
       <div><span style="font-family:Gugi;font-size:23px;color:${fcolor(p.owner)}">${p.name}</span>
       <span style="font-size:11px;color:#8a7a5a;margin-left:6px">${p.sub} · ${FACTIONS[p.owner].name}${p.cap?' · 都城':''}</span></div>
       <div class="row"><span class="lab">병력</span><span class="val" style="color:#8a7a5a">？ 미정찰</span></div>
-      <div class="row" style="margin-top:8px"><span class="lab">지형</span><span class="val" style="font-size:13px">${p.terr}</span></div>
+      <div class="row" style="margin-top:8px"><span class="lab">지형</span><span class="val" style="font-size:13px">${p.terr} <span style="font-size:11px;color:#9c8c6a">${p.terr==='산악'?'· 수비 유리':p.terr==='강'?'· 수비 약간':'· 공격 유리'}</span></span></div>
       <div class="row"><span class="lab">성벽</span><span class="val" style="font-size:13px">${'■'.repeat(p.wall)}${'□'.repeat(4-p.wall)}</span></div>
       <div class="hint" style="display:block;color:#7a6a4a;margin-top:6px">🌫 정찰되지 않은 적 성 — 병력·장수가 안갯속에 있다. 인접한 아군 성이 있어야 정탐된다.</div>
     </div>`;
@@ -2731,7 +2731,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.14.6';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.14.7';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
