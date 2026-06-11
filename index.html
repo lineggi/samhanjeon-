@@ -1394,9 +1394,12 @@ function openAttackDialog(fromId,toId,base){
 }
 function renderAttackDialog(){
   const d=attackDlg, from=prov(d.from), to=prov(d.to), pin=d.base.pincer;
+  const enemy=(pstate[d.to]||{}).troops||0, myForce=d.amt+(pin?(d.base.extra||0):0);
+  const ratio=enemy>0?myForce/enemy:9, odds=ratio>=1.6?'우세':ratio>=0.95?'백중':'열세', oddsCol=ratio>=1.6?'#7bbf63':ratio>=0.95?'#caa72e':'#e3736b';
   const unit=(label,delta)=>`<button class="btn sm ${delta<0?'danger':''}" ${atkClamp(d.amt+delta)===d.amt?'disabled':''} onclick="atkAdjust(${delta})">${label}</button>`;
   $('centerBox').innerHTML=`<h1 style="font-size:30px">出兵<small>${from.name} ➜ ${to.name} 공략</small></h1>
     <p style="margin-bottom:2px">출발 성 병력 <b style="color:var(--gold)">${fmt(d.max)}</b>${pin?` · 🦅협공 합세 +${fmt(d.base.extra||0)}`:''}</p>
+    <p style="margin:2px 0 4px;font-size:13px;color:#c8b890">적 수비 <b style="color:#e3a39d">${fmt(enemy)}</b>명 · 성벽 ${to.wall}${to.wall>=2?' 🏯공성':''} · 전력 <b style="color:${oddsCol}">${odds}</b></p>
     <div style="font-family:'Gugi';font-size:46px;color:var(--blood);line-height:1.1;margin:6px 0">${fmt(d.amt)}</div>
     <input type="range" min="${d.min}" max="${d.max}" step="100" value="${d.amt}" oninput="atkSet(+this.value)" style="width:90%;accent-color:var(--blood);margin:6px 0">
     <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:10px 0">
@@ -2731,7 +2734,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.14.7';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.14.8';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
