@@ -1158,7 +1158,7 @@ function renderMap(){
     const showName=z>=1.5||p.cap||isSel, showTroop=isSel||z>=6;
     h+=`<g class="prov" onclick="clickProv('${p.id}')">`;
     if(isSel)h+=`<circle class="sel-ring" cx="${px}" cy="${py}" r="${r+7*ns}" style="stroke-width:${2.5*ns}px"/>`;
-    if(p.owner===player&&!st.acted&&!isSel&&!aiAnimating)h+=`<circle cx="${px}" cy="${py}" r="${r+4*ns}" fill="none" stroke="var(--gold)" stroke-width="${1.4*ns}" stroke-dasharray="${2*ns} ${2.4*ns}" opacity="0.7"/>`; // 미행동 표시(정적)
+    if(p.owner===player&&!st.acted&&!isSel&&!aiAnimating)h+=`<circle cx="${px}" cy="${py}" r="${r+4*ns}" fill="none" stroke="var(--gold)" stroke-width="${1.7*ns}" stroke-dasharray="${2.6*ns} ${2.4*ns}" opacity="0.85"><animate attributeName="stroke-dashoffset" values="0;${10*ns}" dur="0.9s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.45;0.95;0.45" dur="1.3s" repeatCount="indefinite"/></circle><circle cx="${(px+r*0.92).toFixed(1)}" cy="${(py-r*0.92).toFixed(1)}" r="${4.4*ns}" fill="#caa72e" stroke="#15110c" stroke-width="${0.8*ns}"/><text x="${(px+r*0.92).toFixed(1)}" y="${(py-r*0.92+2.3*ns).toFixed(1)}" font-size="${6.4*ns}" text-anchor="middle" fill="#1a140c" font-weight="900" font-family="sans-serif">!</text>`; // 미행동 표시(행진 점선+! 배지)
     if(targetable)h+=`<circle cx="${px}" cy="${py}" r="${r+7*ns}" fill="none" stroke="var(--blood)" stroke-width="${2.5*ns}" stroke-dasharray="${3*ns} ${3*ns}"><animate attributeName="r" values="${r+7*ns};${r+12*ns};${r+7*ns}" dur="1.1s" repeatCount="indefinite"/></circle>`;
     if(moveTarget)h+=`<circle cx="${px}" cy="${py}" r="${r+7*ns}" fill="none" stroke="#46b39d" stroke-width="${2.5*ns}" stroke-dasharray="${3*ns} ${3*ns}"><animate attributeName="r" values="${r+7*ns};${r+12*ns};${r+7*ns}" dur="1.1s" repeatCount="indefinite"/></circle>`;
     if(genTarget){const far=!adj(selected).includes(p.id);h+=`<circle cx="${px}" cy="${py}" r="${r+7*ns}" fill="none" stroke="${far?'#c9a227':'#46b39d'}" stroke-width="${2*ns}" stroke-dasharray="${(far?2:3)*ns} ${3*ns}"><animate attributeName="r" values="${r+7*ns};${r+11*ns};${r+7*ns}" dur="1.2s" repeatCount="indefinite"/></circle>`;}
@@ -2411,6 +2411,19 @@ function aiBattle(fromId,toId,opts){
 function endTurn(){
   if(aiAnimating)return;
   if(attackMode){attackMode=false;render();return;}
+  const pend=scenario?ownedBy(player).filter(x=>!pstate[x.id].acted):[];
+  if(pend.length){ confirmEndTurn(pend); return; }   // 빠뜨린 성 확인
+  doEndTurn();
+}
+function confirmEndTurn(pend){
+  const names=pend.slice(0,8).map(p=>p.name).join(' · ')+(pend.length>8?` 외 ${pend.length-8}곳`:'');
+  $('centerBox').innerHTML=`<h1 style="font-size:30px;color:var(--gold)">턴 종료<small>아직 명령 안 한 성 ${pend.length}곳</small></h1>
+    <p style="color:#c8b890;line-height:1.7"><b style="color:var(--paper)">${names}</b><br>이 성들은 이번 턴 <b>징병·훈련·출병</b>을 못 합니다. 그래도 끝낼까요?</p>
+    <div style="display:flex;gap:10px;justify-content:center"><button class="btn" onclick="doEndTurn()">그래도 종료 ▶</button><button class="btn danger" onclick="closeCenter()">취소(마저 명령)</button></div>`;
+  $('centerOverlay').classList.add('on');
+}
+function doEndTurn(){
+  $('centerOverlay').classList.remove('on');
   lostThisTurn=[]; selected=null; moveMode=false; genMoveMode=false; attackMode=false; render();
   const moves=planAiTurn();
   aiAnimating=true;
@@ -2701,7 +2714,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.13.4';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.14.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
