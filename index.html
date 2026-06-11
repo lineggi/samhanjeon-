@@ -1179,7 +1179,8 @@ function renderMap(){
     if(g){const ng=gensAt(p.id).length;h+=`<circle cx="${px+r*0.7}" cy="${py-r*0.7}" r="${6*ns}" fill="#15110c" stroke="${col}" stroke-width="${1.6*ns}"/><text x="${px+r*0.7}" y="${py-r*0.7+2.6*ns}" font-size="${7*ns}" fill="${col}" text-anchor="middle" font-family="Gugi">將</text>${ng>1?`<text x="${px+r*0.7+6*ns}" y="${py-r*0.7-4*ns}" font-size="${6*ns}" fill="var(--gold)" text-anchor="middle" font-family="Pretendard" font-weight="800" paint-order="stroke" stroke="#15110c" stroke-width="${1.5*ns}">${ng}</text>`:''}`;}
     if(showTroop)h+=`<text class="psub" x="${px}" y="${py+r+5.5*ns}" style="font-size:${7*ns}px;stroke-width:${2*ns}px">${scout?fmtK(st.troops):'?'}</text>`;
     h+=`</g>`;
-    if(showName)labelItems.push({x:px,y:py,r,text:p.name,col,sel:isSel});
+    const isWall=scenario&&scenario.id==='unification'&&WALL.includes(p.id); // 천리장성 성
+    if(showName)labelItems.push({x:px,y:py,r,text:p.name,col,sel:isSel,wall:isWall});
   });
   // 라벨 충돌 해소 + 지시선(점선)으로 지도 밖까지 배치
   const fs=Math.max(9.5*ns, 3.2);
@@ -1188,7 +1189,7 @@ function renderMap(){
     const it=labelItems[i];
     if(Math.hypot(L.lx-it.x,L.ly-it.y) > it.r+fs*0.9)
       h+=`<line x1="${it.x.toFixed(1)}" y1="${it.y.toFixed(1)}" x2="${L.lx.toFixed(1)}" y2="${L.ly.toFixed(1)}" stroke="${it.col}" stroke-width="${0.8*ns}" stroke-dasharray="${1.8*ns} ${1.5*ns}" opacity=".75"/>`;
-    h+=`<text class="plabel" x="${L.lx.toFixed(1)}" y="${(L.ly+fs*0.34).toFixed(1)}" style="font-size:${fs.toFixed(2)}px;stroke-width:${(2.4*ns).toFixed(2)}px${it.sel?';fill:'+'var(--gold)':''}">${it.text}</text>`;
+    h+=`<text class="plabel" x="${L.lx.toFixed(1)}" y="${(L.ly+fs*0.34).toFixed(1)}" style="font-size:${fs.toFixed(2)}px;stroke-width:${(2.4*ns).toFixed(2)}px${it.sel?';fill:var(--gold)':it.wall?';fill:#cdd2da':''}">${it.text}</text>`;
   });
   svg.innerHTML=h;
 }
@@ -2755,7 +2756,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.15.4';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.15.5';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
