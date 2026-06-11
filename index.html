@@ -606,10 +606,10 @@ const SCENARIOS=[
   cname:'후연', chanzi:'燕',
   str:{goguryeo:1.35,baekje:1.0,silla:0.72,gaya:0.9,china:1.1,wa:0.85},
   own:{
-   bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',gaemo:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',gwanmi:'goguryeo',
+   yodong:'china',ansi:'china',sinseong:'china',baegam:'china',gaemo:'china',bisa:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',gwanmi:'goguryeo',
    hanseong:'baekje',michuhol:'baekje',ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',
-   geumseong:'silla',myeonghwal:'silla',busan:'silla',samnyeon:'silla',gwansan:'silla',daeya:'silla',golbeol:'silla',
-   danghang:'baekje',bukhan:'baekje',maeso:'goguryeo',
+   geumseong:'silla',myeonghwal:'silla',busan:'silla',samnyeon:'baekje',gwansan:'baekje',daeya:'gaya',golbeol:'silla',
+   danghang:'baekje',bukhan:'goguryeo',maeso:'goguryeo',
    geumgwan:'gaya',daegaya:'gaya',ara:'gaya',seongsan:'gaya',dara:'gaya',
    youzhou:'china',linyu:'china',yongseong:'china',cheongju:'china',deungju:'china',
    tsushima:'wa',iki:'wa',fukuoka:'wa',mujin:'baekje',balla:'baekje',haseulla:'goguryeo',siljik:'silla'
@@ -633,7 +633,7 @@ const SCENARIOS=[
     effect:()=>{provinces.filter(p=>p.owner==='gaya'||p.owner==='wa').forEach(p=>{pstate[p.id].troops=Math.round(pstate[p.id].troops*0.5);pstate[p.id].train=Math.max(15,pstate[p.id].train-15);});provinces.filter(p=>p.owner==='silla').forEach(p=>pstate[p.id].train=Math.min(100,pstate[p.id].train+8));setRel('goguryeo','silla','ally');setRel('goguryeo','wa','war');setRel('goguryeo','gaya','war');}},
    {id:'w_yodong',turn:4,title:'요동 정벌 — 후연을 몰아내다',
     text:'광개토대왕이 후연을 쳐 요동성과 현도를 빼앗는다. 마침내 요동 벌판이 고구려의 것이 된다.',
-    effect:()=>{provinces.filter(p=>p.owner==='china').forEach(p=>pstate[p.id].troops=Math.round(pstate[p.id].troops*0.6));eventConquer(['yodong','yongseong'],'goguryeo');}},
+    effect:()=>{provinces.filter(p=>p.owner==='china').forEach(p=>pstate[p.id].troops=Math.round(pstate[p.id].troops*0.6));eventConquer(['yodong','gaemo','baegam','ansi','sinseong'],'goguryeo');}},
    {id:'w_buyeo',turn:5,title:'동부여 복속',
     text:'410년, 광개토대왕이 동부여를 정벌하여 64성을 거두니, 고구려의 강역이 사상 최대에 이른다.',
     effect:()=>{['buyeo','chaek','okjeo'].forEach(id=>{if(pstate[id]&&prov(id).owner==='goguryeo')pstate[id].troops=Math.round(pstate[id].troops*1.15);});}},
@@ -2759,7 +2759,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.15.9';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.16.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
