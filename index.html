@@ -1631,13 +1631,25 @@ function b2dDrawArmy(ctx,a){
   // 지휘관(주장)
   if(a.g&&a.g.id){b2dSoldier(ctx,cx+a.ox,cy-2*rowH-rowH*0.4+a.oy,scale*1.5,shadeCss(a.col,28),{cmd:true});}
 }
-function b2dDrawWall(ctx){const W=B2D.w,H=B2D.h,wy=H*0.27,wh=Math.min(H*0.10,5+B2D.wall*2.2),ww=W*0.72,wx=(W-ww)/2;
+function b2dDrawWall(ctx){const W=B2D.w,H=B2D.h,wy=H*0.27,wh=Math.min(H*0.10,5+B2D.wall*2.2),ww=W*0.72,wx=(W-ww)/2,k=H/170;
+  const siege=B&&B.siege, breached=B&&B.breached, hpR=siege?Math.max(0,(B.wallHP||0)/Math.max(1,B.wallMax)):1;
   ctx.fillStyle='#6f6043';ctx.fillRect(wx,wy,ww,wh);
   ctx.fillStyle=shadeCss('#6f6043',-22);ctx.fillRect(wx,wy+wh-2,ww,2);
-  ctx.fillStyle='#7a6a4a';for(let i=0;i<11;i++){ctx.fillRect(wx+4+i*(ww-8)/11,wy-3,(ww-8)/11*0.55,3);} // 성가퀴
+  ctx.fillStyle='#7a6a4a';for(let i=0;i<11;i++){ if(breached&&i%3===1)continue; if(siege&&hpR<i/12)continue; ctx.fillRect(wx+4+i*(ww-8)/11,wy-3,(ww-8)/11*0.55,3);} // 성가퀴(허물수록 무너짐)
+  if(siege&&!breached&&hpR<0.72){ctx.strokeStyle='rgba(20,12,6,.5)';ctx.lineWidth=1;const cr=Math.round((1-hpR)*6);
+    for(let i=0;i<cr;i++){let xx=wx+ww*(0.12+0.74*((i*0.37)%1)),yy=wy;ctx.beginPath();ctx.moveTo(xx,yy);for(let s=0;s<4;s++){xx+=Math.sin(i*9+s)*3;yy+=wh/4;ctx.lineTo(xx,yy);}ctx.stroke();}}
   [wx-2,wx+ww-10].forEach(tx=>{ctx.fillStyle=shadeCss('#6f6043',8);ctx.fillRect(tx,wy-6,12,wh+6);ctx.fillStyle='#5a3a22';ctx.beginPath();ctx.moveTo(tx-2,wy-6);ctx.lineTo(tx+6,wy-13);ctx.lineTo(tx+14,wy-6);ctx.closePath();ctx.fill();}); // 망루
-  ctx.fillStyle='#33220f';ctx.fillRect(W/2-7,wy+wh*0.35,14,wh*0.65); // 성문
+  if(breached){ctx.fillStyle='#160f06';ctx.beginPath();ctx.moveTo(W/2-15,wy+wh);ctx.lineTo(W/2-11,wy-2);ctx.lineTo(W/2+9,wy-1);ctx.lineTo(W/2+15,wy+wh);ctx.closePath();ctx.fill(); // 무너진 틈
+    ctx.fillStyle='#5a4a32';for(let i=0;i<7;i++)ctx.fillRect(W/2-16+Math.sin(i*3)*18,wy+wh*0.7+((i*5)%wh),3,3);} // 잔해
+  else{ctx.fillStyle='#33220f';ctx.fillRect(W/2-7,wy+wh*0.35,14,wh*0.65);} // 성문
+  if(siege&&!breached){const dcol=B2D.armyD.col,n=Math.max(2,Math.round(9*Math.max(0.25,hpR))); // 성벽 위 수비병
+    for(let i=0;i<n;i++){const sx=wx+12+i*(ww-24)/Math.max(1,n-1);b2dSoldier(ctx,sx,wy,2.0*k,dcol,{archer:true});}}
 }
+function b2dStones(ctx){if(!B2D.stones)return;const now=performance.now();B2D.stones=B2D.stones.filter(a=>(now-a.t0)/a.dur<1.05);
+  for(const a of B2D.stones){const e=(now-a.t0)/a.dur;if(e<0||e>1)continue;
+    const x=a.sx+(a.ex-a.sx)*e,y=a.sy+(a.ey-a.sy)*e-a.arc*Math.sin(Math.PI*e);
+    ctx.fillStyle='#6a6258';ctx.beginPath();ctx.arc(x,y,a.r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.arc(x+a.r*0.3,y+a.r*0.35,a.r*0.55,0,Math.PI*2);ctx.fill();}}
 function b2dDrawBanner(ctx,a,bx){const {cy,scale}=b2dArmyBox(a),poleH=20*scale,x=bx,y=cy-2.6*10.5*scale+a.oy;
   ctx.strokeStyle='#3a2c1c';ctx.lineWidth=1.5*scale;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-poleH);ctx.stroke();
   const fw=13*scale,fh=9*scale,wob=Math.sin(performance.now()/240)*1.5*scale;
@@ -1672,7 +1684,8 @@ function battle2dShow(side,troops,startT){if(!B2D)return;const a=side==='A'?B2D.
 function battle2dStrike(side,push,tac){if(!B2D)return;B2D.strike={side,push:Math.min(1,push||0),adv:tacAdv(tac),t0:performance.now(),dur:680};}
 function battle2dEffect(tac,side){if(!B2D)return;const now=performance.now();
   if(tac==='volley'){if(side==='A'){const W=B2D.w,H=B2D.h;for(let i=0;i<30;i++){const sx=W/2+(Math.random()-0.5)*W*0.5;B2D.arrows.push({sx,sy:H*0.74,ex:sx+(Math.random()-0.5)*W*0.12,ey:H*0.44,arc:H*0.26+Math.random()*H*0.1,t0:now+Math.random()*220,dur:560});}}}
-  else if(tac==='charge')B2D.fx.ring={t0:now,dur:640};
+  else if(tac==='charge'){B2D.fx.ring={t0:now,dur:640};
+    if(side==='A'&&B&&B.siege&&!B.breached){const W=B2D.w,H=B2D.h,wy=H*0.27;B2D.stones=B2D.stones||[];for(let i=0;i<6;i++){const ex=W/2+(Math.random()-0.5)*W*0.28;B2D.stones.push({sx:W/2+(Math.random()-0.5)*W*0.2,sy:H*0.74,ex,ey:wy+H*0.03,arc:H*0.32+Math.random()*H*0.08,r:(3+Math.random()*2)*(H/170),t0:now+Math.random()*200,dur:660});}}}
   else if(tac==='guard')B2D.fx.dome={t0:now,dur:920,side};
   else if(tac==='scheme')B2D.fx.smoke={t0:now,dur:920,side:side==='A'?'D':'A'};
   else if(tac==='duel')B2D.fx.spark={t0:now,dur:580};}
@@ -1690,7 +1703,7 @@ function battle2dInit(){
   const mkBadge=a=>{const d=document.createElement('div');d.className='b3badge';
     d.innerHTML=`<div class="pf" style="border-color:${fcolor(a.owner)}">${a.g&&a.g.id?genPortrait(a.g):'<span style="font-family:Gugi;color:#8a7a5a;font-size:16px">無</span>'}</div><div class="nm">${a.g&&a.g.name?a.g.name:'—'}</div><div class="tp"></div>`;
     wrap.appendChild(d);return{el:d,tp:d.querySelector('.tp'),army:a};};
-  B2D={wrap,canvas,ctx,dpr,w:W,h:H,t0:performance.now(),armyA,armyD,strike:null,fx:{},arrows:[],wall:B.D.wall||1,badges:[]};
+  B2D={wrap,canvas,ctx,dpr,w:W,h:H,t0:performance.now(),armyA,armyD,strike:null,fx:{},arrows:[],stones:[],wall:B.D.wall||1,badges:[]};
   B2D.badges=[mkBadge(armyA),mkBadge(armyD)];
   battle2dShow('A',B.A.troops,B.A.startT);battle2dShow('D',B.D.troops,B.D.startT);
   const frame=()=>{ if(!B2D)return; B2D.raf=requestAnimationFrame(frame);
@@ -1706,7 +1719,7 @@ function battle2dInit(){
     b2dBackground(ctx); b2dDrawWall(ctx);
     b2dDrawArmy(ctx,armyD); b2dDrawArmy(ctx,armyA);
     b2dDrawBanner(ctx,armyA,W*0.16); b2dDrawBanner(ctx,armyD,W*0.84);
-    b2dArrows(ctx); b2dEffects(ctx);
+    b2dArrows(ctx); b2dStones(ctx); b2dEffects(ctx);
     ctx.restore(); b2dBadges();
   };
   frame();
@@ -1979,6 +1992,8 @@ function openBattle(fromId,toId,opts){
   B.scorched=(B.D.p.owner==='goguryeo');   // 고구려 수비 시 청야전술
   if(B.scorched){B.A.troops=Math.round(B.A.troops*0.9);B.A.morale=Math.round(B.A.morale*0.5);}
   B.A.startT=B.A.troops;B.D.startT=B.D.troops;
+  B.siege=B.D.wall>=2; B.wallMax=20+B.D.wall*18; B.wallHP=B.wallMax; B.breached=false;   // 공성전: 성벽 내구도
+  if(B.siege)blog('sys',`🏯 공성전 — ${B.D.p.name} 성벽 ${B.D.wall}성(내구 ${B.wallMax}). 돌격·계략으로 성벽을 허물어야 적을 압도한다`);
   if(B.A.lowFood)blog('atk',`🌾 군량 부족 — 아군 사기 -15`);
   if(B.D.lowFood)blog('def',`🌾 군량 부족 — 적 사기 -15`);
   if(B.scorched)blog('def',`🔥 청야전술 — 고구려가 들판을 비우고 굳게 지키니, 공격군 병력 -10%·사기 절반`);
@@ -2021,6 +2036,7 @@ function renderBattle(){
         <div class="bst">통${D.g.lead} 무${D.g.might} 지${D.g.int}</div></div></div>
       <div class="metric"><div class="ml"><span>병력</span><b>${fmt(D.troops)}</b></div>${bar(D.troops,D.startT,'linear-gradient(90deg,#7a1f1a,'+fcolor(D.p.owner)+')')}</div>
       <div class="metric"><div class="ml"><span>사기</span><b>${Math.round(D.morale)}</b></div>${bar(D.morale,100,'linear-gradient(90deg,#3a5a8c,#5aa8d8)')}</div>
+      ${B.siege?`<div class="metric"><div class="ml"><span>🧱 성벽</span><b>${B.breached?'붕괴':Math.round(B.wallHP)+'/'+B.wallMax}</b></div>${bar(B.breached?0:B.wallHP,B.wallMax,'linear-gradient(90deg,#5a4632,#caa72e)')}</div>`:''}
     </div></div>`;
   const weather=[B.rain?'⛆폭우':'',B.fog?'🌫안개':'',B.ambush?'🗡매복호기':''].filter(Boolean).join(' · ');
   if(weather)h+=`<div class="evt">${weather}</div>`;
@@ -2102,6 +2118,14 @@ function resolveRound(tac,duelRes){
   if(A.unit&&A.unit.defMul)dA*=A.unit.defMul;
   // 세력 특기 방어(가야 철벽진 등) — 받는 피해 감소
   {const fA=activeSkill(A.p.owner);if(fA&&fA.def)dA*=fA.def;const fD=activeSkill(D.p.owner);if(fD&&fD.def)dD*=fD.def;}
+  // 공성전: 성벽이 공격군 피해를 흡수(허물수록 회복) · 수비는 성벽 위 높이 우세 · 돌격/계략으로 성벽 파괴
+  let wallDmg=0;
+  if(B.siege&&!B.breached){ const wf=B.wallHP/Math.max(1,B.wallMax);
+    dD*=(0.5+0.5*(1-wf)); dA*=(1+0.22*wf);
+    const SIEGE={charge:1,scheme:0.55,volley:0.25,duel:0,guard:0};
+    const sb=(A.unit&&/부병|쇠뇌|공성|철기/.test(A.unit.name||''))?1.5:1;   // 공성 병종 가산(쇠뇌·충차 등)
+    wallDmg=Math.round(B.wallMax*0.2*(SIEGE[tac]||0)*sb*(0.6+0.4*Math.min(1,A.troops/Math.max(1,D.startT))));
+  }
   // 실제 사상자는 잔여 병력을 넘지 않도록(표기/수치 음수 방지)
   const dDshown=Math.min(Math.round(dD),D.troops), dAshown=Math.min(Math.round(dA),A.troops);
   // 사기 손실(왜병 등은 손실 가중)
@@ -2124,6 +2148,10 @@ function resolveRound(tac,duelRes){
   battle2dStrike('A',aPush,tac); battle2dEffect(tac,'A');
   setTimeout(()=>{ if(!B||B.over){if(B)B.busy=false;return;} try{
     applyD(); battle2dShow('D',D.troops,D.startT);
+    if(B.siege&&!B.breached&&wallDmg>0){ B.wallHP=Math.max(0,B.wallHP-wallDmg);   // 성벽 파괴
+      blog('atk',`🧱 성벽을 두드린다 — 내구 ${Math.round(B.wallHP)}/${B.wallMax}`);
+      if(B.wallHP<=0){ B.breached=true; D.morale=Math.max(0,D.morale-22);
+        blog('crit',`<span class="crit">💥 성벽 붕괴! 무너진 틈으로 아군이 쏟아져 들어간다 (적 사기 -22)</span>`); } }
     blog('atk',`▸ 아군 [${TACTICS[tac].n}] — 적 ${fmt(dDshown)}명 격파`); ra.log.forEach(([c,t])=>blog(c,t));
     renderBattle(); battleFx(0,dDshown,crit);
     if(D.troops<=0||D.morale<=0){ endBattle('win'); B.busy=false; return; }   // 적 전멸 시 반격 없음
@@ -2644,7 +2672,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.12.1';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.13.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
