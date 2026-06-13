@@ -2555,6 +2555,9 @@ const EVENT_ART={
   j_intro:'court',j_hangang:'march',j_gwansan:'fall',j_daegaya:'siege',j_sunsubi:'court',
   u_decree:'court',u_war1:'clash',u_ansi:'siege',u_retreat:'march',u_fall:'fall',
 };
+/* 이벤트 일러스트(생성물) — tools/gen-events.mjs 가 폴더 스캔해 갱신. 없으면 절차 SVG(eventArt)로 폴백 */
+const EVENT_IMG={
+};
 function eventArt(type){
   const W=320,H=140,DK='#0d0a06';
   const banner=(x,y,h,c)=>`<line x1="${x}" y1="${y}" x2="${x}" y2="${y-h}" stroke="#2a2014" stroke-width="2"/><path d="M${x} ${y-h} l16 4 l-16 5 Z" fill="${c}"><animateTransform attributeName="transform" type="rotate" values="-2 ${x} ${y-h};2 ${x} ${y-h};-2 ${x} ${y-h}" dur="2s" repeatCount="indefinite"/></path>`;
@@ -2608,7 +2611,9 @@ function eventArt(type){
   return s+`<rect width="${W}" height="${H}" fill="none" stroke="#c9a227" stroke-width="2" opacity="0.4" rx="5"/></svg>`;
 }
 function renderEventModal(e){
-  const art=eventArt(EVENT_ART[e.id]||'march');
+  const art=EVENT_IMG[e.id]
+    ? `<img src="${EVENT_IMG[e.id]}" alt="${e.title}" loading="lazy" decoding="async" style="width:100%;border-radius:6px;display:block;border:1px solid #4a3a24;box-shadow:0 6px 20px rgba(0,0,0,.55)" onerror="this.style.display='none'">`
+    : eventArt(EVENT_ART[e.id]||'march');
   $('centerBox').innerHTML=`<div style="font-size:12px;color:#9c8c6a;letter-spacing:3px;margin-bottom:6px">史 · ${gameYear()}년</div>
     <h1 style="font-size:28px">${e.title}</h1>
     <div style="max-width:480px;margin:12px auto 0">${art}</div>
@@ -2759,7 +2764,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.16.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.17.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
