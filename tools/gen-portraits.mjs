@@ -78,10 +78,10 @@ function ageEN(g) {
   if (/태자|관창|사다함/.test(g.name)) return 'a young';
   return 'a young to middle-aged';
 }
-const FAC_EN = { goguryeo: 'Goguryeo (deep blue/gold)', baekje: 'Baekje (green/gold)', silla: 'Silla (crimson/gold)', gaya: 'Gaya (purple/gold)', china: 'a Chinese northern/Tang-era dynasty (gray/black with imperial accents)', wa: 'Wa/Yamato (white/red)' };
+const FAC_EN = { goguryeo: 'Goguryeo (polished silver-steel iron armor with deep crimson-red cloth accents and gold trim)', baekje: 'Baekje (green/gold)', silla: 'Silla (crimson/gold)', gaya: 'Gaya (purple/gold)', china: 'a Chinese northern/Tang-era dynasty (gray/black with imperial accents)', wa: 'Wa/Yamato (white/red)' };
 /* 세력별 고증 참조 — 실제 공개 유물·고분벽화 기반(저작권 무관) */
 const FAC_REF = {
-  goguryeo: 'historically grounded in 4th-7th century Goguryeo: lamellar scale armor and feathered jeolpung cap as seen in Anak Tomb No.3 and Muyongchong tomb murals, heavy cavalry (gaemamusa) aesthetic',
+  goguryeo: 'historically grounded in a real Goguryeo gaemamusa (heavy cavalry) armor reconstruction: a full suit of polished silvery iron lamellar made of hundreds of small overlapping rectangular steel scales laced together with cords, deep red cloth lining and trim at the collar, sleeves and hem, broad lamellar shoulder guards and a knee-length skirt of iron scales, exactly like the displayed museum reconstruction of Goguryeo warrior armor, as also seen in Anak Tomb No.3 and Muyongchong tomb murals',
   baekje: 'historically grounded in Baekje: refined gilt-bronze crown ornaments from the Tomb of King Muryeong, motifs of the Baekje gilt-bronze incense burner, elegant courtly attire',
   silla: 'historically grounded in Silla: ornate gold crown with comma-shaped jade (gogok) from Cheonmachong/Hwangnam Daechong, gold ornaments and belt',
   gaya: 'historically grounded in Gaya: iron plate armor (pan-gap) and iron helmet, ingot-iron warrior aesthetic',
@@ -89,10 +89,14 @@ const FAC_REF = {
   wa: 'historically grounded in Kofun-period Yamato armor and attire',
 };
 const NEGATIVE = 'period-accurate ancient costume, do NOT resemble any modern actor, TV drama still, or existing copyrighted artwork; original imagined face';
+/* 세력별 갑옷 강제 지정 — 정의된 세력만 적용(나머지는 COMMON 그대로) */
+const FAC_ARMOR = {
+  goguryeo: 'CRITICAL armor styling for every Goguryeo character — render the armor exactly like the iconic Goguryeo gaemamusa reconstruction: a full suit of polished silvery iron lamellar made of hundreds of small overlapping rectangular steel scales laced with visible cords, with deep crimson-red cloth trim and lining at the collar, sleeve openings and hem, broad lamellar shoulder guards and a knee-length skirt of iron scales; a tall pointed segmented iron helmet crowned with an upright bright-red horsehair plume and fitted with lamellar neck-guard and cheek-flaps; the overall color scheme is steel-grey metallic iron with crimson-red accents and a few gold rivets — the armor is iron and silver, never blue',
+};
 /* 주요 영웅 맞춤 묘사 — 인물별 나이·기질·외형 특색(고증/설화 기반) */
 const NAME_EN = {
   // 고구려
-  '광개토대왕': 'a Goguryeo conquering king in his early 30s, broad-shouldered, fierce determined gaze, ornate gold crown over a feathered jeolpung cap, lamellar scale armor with a crimson cape',
+  '광개토대왕': 'a Goguryeo conquering king in his early 30s, broad-shouldered, fierce determined gaze, ornate gold crown over a pointed iron helmet with an upright red plume, a full suit of silvery iron lamellar scale armor with deep red trim and a crimson cape',
   '고국원왕': 'a careworn middle-aged Goguryeo king, grave resolute bearded face, gold crown and lamellar armor',
   '소수림왕': 'a middle-aged scholarly Goguryeo king, calm reform-minded dignity, gold crown and royal robe',
   '장수왕': 'an elderly long-reigning Goguryeo king with a long white beard, serene authoritative gaze, gold crown and royal robe',
@@ -141,7 +145,7 @@ const NAME_EN = {
 function buildPrompt(g) {
   const t = archetype(g);
   const subj = NAME_EN[g.name] || `${ageEN(g)} man, ${TYPE_EN[t]}`;   // 영웅별 고증 묘사가 있으면 그것이 주 묘사(나이·복식 충돌 제거)
-  return `${COMMON}. ${subj}. Faction: ${FAC_EN[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
+  return `${COMMON}. ${subj}. Faction: ${FAC_EN[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${FAC_ARMOR[g.f] ? FAC_ARMOR[g.f] + '. ' : ''}${NEGATIVE}.`;
 }
 
 /* ---------- 이미지 변환 (sharp 있으면 webp 4:5, 없으면 원본 png) ---------- */
