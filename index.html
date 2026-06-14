@@ -1089,7 +1089,7 @@ function showHelp(){
     ${sec('🚩 성 키우기','징용(금·백성 → 병력) · 훈련(사기·훈련도) · 🧱축성(수비력) · 🌾둔전(군량 생산). 병력 이동·장수 이동으로 전선을 다집니다.')}
     ${sec('⚔ 출병과 전법','출병하면 보낼 병력 수를 직접 정합니다. 전법 상성은 돌격▶궁격▶계략▶돌격 — 적 전법을 받아치면 위력이 오르고 사기를 깎습니다. 일기토는 무력 대결(3선 2승), 수비는 피해를 줄입니다.')}
     ${sec('🪖 병종','세력 고유 — 고구려 개마무사(돌격), 백제 궁수(궁격), 신라 화랑(일기토), 가야 판갑(방어), 당 부병(전법+쇠뇌), 왜병(돌격).')}
-    ${sec('✦ 세력 특기','상단 특기 버튼으로 발동(쿨다운) — 신라 세속오계·백제 결사대·가야 철벽진·왜 해적기습·중국 대군물량. 고구려는 수비 시 청야전술(적 사기 절반·병력↓).')}
+    ${sec('✦ 세력 특기','상단 특기 버튼으로 발동(쿨다운) — 신라 세속오계·백제 결사대·가야 철벽진·왜 해적기습·중국 대군물량. 고구려는 수비 시 청야전술(적 사기 -30%·병력↓).')}
     ${sec('🌾 군량·보급·계절','병력은 매 턴 군량을 먹습니다. 도성과 길이 끊긴 성은 보급이 막혀 기근이 듭니다. 봄·가을은 풍년, 겨울은 보급난.')}
     ${sec('🗓 연도와 이벤트','6턴이 흐르면 한 해가 지납니다. 그 해에 맞춰 역사 이벤트가 일어나 영토가 바뀌기도 합니다.')}
     ${sec('🌫 정찰','내 영토에 닿은 적 성만 병력·장수가 보입니다. 나머지는 안갯속.')}
@@ -2153,13 +2153,13 @@ function openBattle(fromId,toId,opts){
     B.D.morale=Math.max(8,B.D.morale-15);
   }
   B.scorched=(B.D.p.owner==='goguryeo');   // 고구려 수비 시 청야전술
-  if(B.scorched){B.A.troops=Math.round(B.A.troops*0.9);B.A.morale=Math.round(B.A.morale*0.5);}
+  if(B.scorched){B.A.troops=Math.round(B.A.troops*0.9);B.A.morale=Math.round(B.A.morale*0.7);}
   B.A.startT=B.A.troops;B.D.startT=B.D.troops;
   B.siege=B.D.wall>=2; B.wallMax=20+B.D.wall*18; B.wallHP=B.wallMax; B.breached=false;   // 공성전: 성벽 내구도
   if(B.siege)blog('sys',`🏯 공성전 — ${B.D.p.name} 성벽 ${B.D.wall}성(내구 ${B.wallMax}). 돌격·계략으로 성벽을 허물어야 적을 압도한다`);
   if(B.A.lowFood)blog('atk',`🌾 군량 부족 — 아군 사기 -15`);
   if(B.D.lowFood)blog('def',`🌾 군량 부족 — 적 사기 -15`);
-  if(B.scorched)blog('def',`🔥 청야전술 — 고구려가 들판을 비우고 굳게 지키니, 공격군 병력 -10%·사기 절반`);
+  if(B.scorched)blog('def',`🔥 청야전술 — 고구려가 들판을 비우고 굳게 지키니, 공격군 병력 -10%·사기 -30%`);
   {const fa=activeSkill(B.A.p.owner);if(fa)blog('atk',`${fa.icon} ${fa.name} 발동 중 — ${fa.desc}`);const fd=activeSkill(B.D.p.owner);if(fd)blog('def',`${fd.icon} ${fd.name} 발동 중 — ${fd.desc}`);}
   if(B.pincer)blog('sys',`🦅 협공! ${(opts.names||[]).join('·')}의 군이 합세한다 (병력 +${fmt(opts.extra||0)}, 적은 포위되어 사기 저하)`);
   blog('sys',`${prov(fromId).name}의 군이 ${prov(toId).name}으로 진군한다!`);
@@ -2515,7 +2515,7 @@ function playAiMoves(moves,i,done){
 function aiBattle(fromId,toId,opts){
   let A=mkArmy(fromId,true),D=mkArmy(toId,false);
   if(opts&&opts.pincer){A.troops+=opts.extra||0;D.morale=Math.max(8,D.morale-15);}
-  if(prov(toId).owner==='goguryeo'){A.troops=Math.round(A.troops*0.9);A.morale=Math.round(A.morale*0.5);} // 청야전술(고구려 수비)
+  if(prov(toId).owner==='goguryeo'){A.troops=Math.round(A.troops*0.9);A.morale=Math.round(A.morale*0.7);} // 청야전술(고구려 수비)
   A.startT=A.troops;D.startT=D.troops;
   const Bsave=B;B={D,pincer:!!(opts&&opts.pincer)};
   for(let i=0;i<14&&A.troops>0&&D.troops>0&&A.morale>0&&D.morale>0;i++){
@@ -2934,7 +2934,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.27.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.28.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
