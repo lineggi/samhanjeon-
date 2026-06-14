@@ -37,6 +37,7 @@ const DRY = has('--dry-run');
 const FORCE = has('--force');
 const REGISTER_ONLY = has('--register-only');
 const ORGANIZE = has('--organize');   // 기존 평면 파일을 세력별 폴더로 이동
+const NO_REF = has('--no-ref');       // 레퍼런스 이미지 무시하고 텍스트로만 생성
 const ONLY = (val('--only') || '').split(',').map(s => s.trim()).filter(Boolean);
 
 const MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
@@ -476,7 +477,7 @@ async function main() {
     const exists = findExisting(g.name);
     if (exists && !FORCE) { skipped++; continue; }
     const prompt = buildPrompt(g);
-    const refs = refsFor(g.f);
+    const refs = NO_REF ? [] : refsFor(g.f);
     if (DRY) { console.log(`- ${g.name} [${archetype(g)}]${refs.length ? ` (레퍼런스 ${refs.length}장 기반)` : ''}\n    ${prompt}`); continue; }
     try {
       process.stdout.write(`生成 ${g.name}${refs.length ? `(ref:${refs.length})` : ''} ... `);
