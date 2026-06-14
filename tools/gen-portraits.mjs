@@ -125,15 +125,27 @@ const FAC_NAME = {
   goguryeo: 'Goguryeo', baekje: 'Baekje', silla: 'Silla', gaya: 'Gaya',
   china: 'a Chinese dynasty (Former Yan / Later Yan / Northern Qi / Tang)', wa: 'Wa / Yamato Japan',
 };
+/* 장군·관리용 의상(투구·갑옷 — 절대 왕관 없음) */
 const FAC_STYLE = {
-  goguryeo: 'Costume: authentic Goguryeo lamellar armor EXACTLY like the reference set — a suit of many small vertical iron/steel plates laced tightly together with visible deep-red cords, polished silver-grey metal with crimson-red lacing and trim, broad lamellar shoulder guards and a lamellar skirt, round gilded lion-mask bosses on the chest and a gold lion-head belt buckle; head is EITHER a pointed iron helmet with a gilded wing-and-lion crest and a tall red-and-black horsehair plume plus a lamellar neck-and-cheek guard, OR a bare warrior head with hair tied in a topknot; a deep crimson cloak fastened with gold lion clasps; steel-grey and crimson color scheme with a few gold accents, NEVER blue',
-  baekje: 'Costume: Baekje attire — iron lamellar scale armor (chal-gap, similar to Goguryeo) for warriors, worn over refined jade-green and gold silk robes; delicate gilt-bronze cap and crown ornaments with openwork flame-and-honeysuckle motifs (Baekje gilt-bronze incense-burner style), gilt-bronze fittings; a green or gold silk sash rather than a red cape; elegant cultured courtly bearing; warm jade-green to gold gradient background',
-  silla: 'Costume: Silla armor — for warriors an iron vertical-plate cuirass (jongjang pan-gap) or iron lamellar with gold-trimmed fittings; for royalty a gold openwork crown with branching uprights (chulja form) hung with comma-shaped jade gogok and a gold belt; a crimson-and-gold cape; rich warm gold to deep amber gradient background',
-  gaya: 'Costume: Gaya ironwork — a vertical-plate iron cuirass (jongjang pan-gap) of large riveted iron plates and an iron helmet (vertical-plate jongjang pan-ju or a brimmed chayang-ju), plain leather lacing, muted purple or natural cloth accents, little or no cape; an armored warhorse (ma-gap) for cavalry; cool slate-grey to steel gradient background',
-  wa: 'Costume: Kofun-period Yamato armor — riveted iron keiko cuirass, a visored shokakutsuki helmet with a neck guard, white-and-red cord lacing, a plain white mantle; pale stone-grey to soft white gradient background',
+  goguryeo: 'Costume: authentic Goguryeo lamellar armor EXACTLY like the reference set — a suit of many small vertical iron/steel plates laced tightly together with visible deep-red cords, polished silver-grey metal with crimson-red lacing and trim, broad lamellar shoulder guards and a lamellar skirt, round gilded lion-mask bosses on the chest and a gold lion-head belt buckle; head is EITHER a pointed iron WAR HELMET with a gilded wing-and-lion crest and a tall red-and-black horsehair plume plus a lamellar neck-and-cheek guard, OR a bare warrior head with hair tied in a topknot (NEVER a royal crown); a deep crimson cloak fastened with gold lion clasps; steel-grey and crimson color scheme with a few gold accents, NEVER blue',
+  baekje: 'Costume: Baekje officer attire — iron lamellar scale armor (chal-gap, similar to Goguryeo) worn over jade-green and gold silk, an iron war helmet or a cloth headband, gilt-bronze fittings (NO royal crown); a green or gold silk sash rather than a red cape; warm jade-green to gold gradient background',
+  silla: 'Costume: Silla officer armor — an iron vertical-plate cuirass (jongjang pan-gap) or iron lamellar with gold-trimmed fittings, an iron war helmet, and a gold belt (NO royal crown); a crimson-and-gold cape; rich warm gold to deep amber gradient background',
+  gaya: 'Costume: Gaya ironwork — a vertical-plate iron cuirass (jongjang pan-gap) of large riveted iron plates and an iron war helmet (vertical-plate jongjang pan-ju or a brimmed chayang-ju), plain leather lacing, muted purple or natural cloth accents, little or no cape (NO royal crown); an armored warhorse (ma-gap) for cavalry; cool slate-grey to steel gradient background',
+  wa: 'Costume: Kofun-period Yamato armor — riveted iron keiko cuirass, a visored shokakutsuki war helmet with a neck guard, white-and-red cord lacing, a plain white mantle (NO royal crown); pale stone-grey to soft white gradient background',
+};
+/* 왕·태자(군주)용 의상 — 관·곤룡포 */
+const ROYAL_STYLE = {
+  goguryeo: 'Costume: Goguryeo royal regalia — a tall gold crown with a feathered jeolpung cap and openwork ornaments worn over silk royal robes, lamellar armor with crimson-red lacing beneath, a deep crimson royal cloak; gold-and-crimson, NEVER blue',
+  baekje: 'Costume: Baekje royal regalia — gilt-bronze openwork crown ornaments (flame-and-honeysuckle motif, incense-burner style) worn over fine jade-green and gold silk royal robes, refined and cultured; gold-and-jade',
+  silla: 'Costume: Silla royal regalia — a gold openwork crown with branching chulja-form uprights hung with comma-shaped jade gogok, a gold belt with pendants, worn over crimson-and-gold royal robes; warm gold to amber background',
+  gaya: 'Costume: Gaya royal regalia — a gold-and-iron circlet crown over fine robes with iron-kingdom motifs, restrained and dignified',
+  wa: 'Costume: Yamato royal regalia — a jeweled circlet or cap with magatama beads worn over fine white-and-red robes',
 };
 /* 직접 업로드할 인물 — 자동 생성에서 제외 */
 const SKIP = ['광개토대왕', '고거련', '양만춘', '연개소문'];
+/* 이름에 '왕'이 없지만 군주(왕/마립간) — 왕 의상 적용 */
+const ROYAL_NAMES = new Set(['눌지', '실성']);
+function isRoyalG(g) { return (/왕/.test(g.name) && !/태자/.test(g.name)) || /태자/.test(g.name) || ROYAL_NAMES.has(g.name); }
 /* 역사 장면 배경 — 단색 배경 대신 그 인물의 사실/설화를 반영한 배경(고구려 우선) */
 const FAC_SCENE = { goguryeo: 'a Goguryeo stone fortress rampart or a war-banner-filled battlefield under a dramatic sky' };
 const SCENE_EN = {
@@ -218,10 +230,15 @@ function buildPrompt(g) {
     const w = NAMED_WEAPON[g.name] || (t === '책사' ? null : `gripping ${weaponFor(g)}`);
     if (w) subj += `, ${w}`;
   }
-  const style = g.f === 'china' ? chinaStyle(g) : (FAC_STYLE[g.f] || '');
+  const royal = isRoyalG(g);
+  const style = g.f === 'china' ? chinaStyle(g) : ((royal && ROYAL_STYLE[g.f]) ? ROYAL_STYLE[g.f] : (FAC_STYLE[g.f] || ''));
+  // 왕·장군 신분 명시(장군이 왕처럼 보이지 않도록)
+  const rank = g.f === 'china' ? '' : (royal
+    ? ' This figure is a KING/monarch: he wears a royal crown and royal robes, regal and dignified.'
+    : ' This figure is a military general/officer, NOT a king: he wears a war helmet (or warrior topknot) and battle armor, absolutely no royal crown.');
   const scene = SCENE_EN[g.name] || (g.f === 'goguryeo' ? FAC_SCENE.goguryeo : null);
   const sceneClause = scene ? ` Place the figure in the foreground against this historical background scene instead of a plain gradient: ${scene}; keep the character as the clear main focus.` : '';
-  return `${COMMON}. Subject: ${subj}. ${style}.${sceneClause} Faction: ${FAC_NAME[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
+  return `${COMMON}. Subject: ${subj}. ${style}.${rank}${sceneClause} Faction: ${FAC_NAME[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
 }
 
 /* ---------- 세력 폴더 분류 유틸 ---------- */
