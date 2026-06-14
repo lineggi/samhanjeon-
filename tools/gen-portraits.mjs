@@ -141,10 +141,18 @@ const ROYAL_STYLE = {
   gaya: 'Costume: Gaya royal regalia — a gold-and-iron circlet crown over fine robes with iron-kingdom motifs, restrained and dignified',
   wa: 'Costume: Yamato royal regalia — a jeweled circlet or cap with magatama beads worn over fine white-and-red robes',
 };
+/* 책사(전략가·문관)용 의상 — 도포·관모·부채/두루마리, 갑옷·왕관 아님 */
+const SCHOLAR_STYLE = {
+  goguryeo: "Costume: a Goguryeo scholar-strategist — a fine dark silk robe with crimson-and-gold trim and a scholar's headband or soft official cap, at most light lamellar shoulder pieces, holding a folding fan or a bamboo scroll, wise and composed (NO heavy armor, NO crown)",
+  baekje: "Costume: a Baekje scholar-official — refined jade-green and gold silk robes and a scholar's cap, holding a folding fan or a bamboo scroll, elegant and learned (NO heavy armor, NO crown)",
+  silla: "Costume: a Silla scholar-strategist — gold-trimmed silk robes and a scholar's headband, holding a folding fan or a scroll, composed and shrewd (NO heavy armor, NO crown)",
+  gaya: "Costume: a Gaya elder-strategist — plain dark robes with muted accents and a soft cap, holding a bamboo scroll (NO heavy armor, NO crown)",
+  wa: "Costume: a Yamato court strategist — white-and-red robes and a soft cap, holding a scroll (NO heavy armor, NO crown)",
+};
 /* 직접 업로드할 인물 — 자동 생성에서 제외 */
 const SKIP = ['광개토대왕', '고거련', '양만춘', '연개소문'];
 /* 이름에 '왕'이 없지만 군주(왕/마립간) — 왕 의상 적용 */
-const ROYAL_NAMES = new Set(['눌지', '실성']);
+const ROYAL_NAMES = new Set(['눌지', '실성', '근구수']);
 function isRoyalG(g) { return (/왕/.test(g.name) && !/태자/.test(g.name)) || /태자/.test(g.name) || ROYAL_NAMES.has(g.name); }
 /* 역사 장면 배경 — 단색 배경 대신 그 인물의 사실/설화를 반영한 배경(고구려 우선) */
 const FAC_SCENE = { goguryeo: 'a Goguryeo stone fortress rampart or a war-banner-filled battlefield under a dramatic sky' };
@@ -218,24 +226,32 @@ const NAME_EN = {
   '오토모': 'a Wa Yamato Kofun-era chieftain-warrior, stern face, keiko lamellar armor and a visored helmet',
   '소가': 'a powerful Wa Yamato noble-general, composed shrewd face, Kofun-era armor',
 };
+const NO_WEAPON_POSE = ['standing in a confident commanding pose with arms crossed', 'in a calm dignified stance with hands clasped behind the back', 'arms relaxed at his sides in a steady commanding stance', 'in a composed dignified bust pose, empty-handed'];
 function buildPrompt(g) {
   const t = archetype(g);
+  const royal = isRoyalG(g);
+  const scholar = (t === '책사') && !royal;
   const named = NAME_EN[g.name];
   let subj = named || `${ageEN(g)} man, ${TYPE_EN[t]}`;   // 영웅별 고증 묘사가 있으면 그것이 주 묘사
   // 표정·수염 다양화: 개별 묘사가 없는 비왕 장수에만 부여(전원 동일 표정 방지)
-  if (!named && t !== '왕') subj += `, ${pick(FACE_VAR, g, 7)}, ${pick(MOOD_VAR, g, 13)}`;
-  // 무기 다양화: 무기 언급이 없고 왕이 아니면 부여(책사는 지정된 경우만)
+  if (!named && !royal) subj += `, ${pick(FACE_VAR, g, 7)}, ${pick(MOOD_VAR, g, 13)}`;
+  // 무기: 필수 아님 — 책사·왕 제외, 약 60%만 무기, 나머지는 무기 없는 자세
   const hasWeapon = /\b(sword|swords|spear|glaive|saber|bow|halberd|dao|fan|scroll|axe|blade|polearm|broadsword|weapon)\b/i.test(subj);
-  if (!hasWeapon && t !== '왕') {
-    const w = NAMED_WEAPON[g.name] || (t === '책사' ? null : `gripping ${weaponFor(g)}`);
-    if (w) subj += `, ${w}`;
+  if (!hasWeapon && !royal && !scholar) {
+    if (NAMED_WEAPON[g.name]) subj += `, ${NAMED_WEAPON[g.name]}`;
+    else if (pick([0, 1, 2, 3, 4], g, 23) < 2) subj += `, gripping ${weaponFor(g)}`;   // 약 40%만 무기
+    else subj += `, ${pick(NO_WEAPON_POSE, g, 31)}`;
   }
-  const royal = isRoyalG(g);
-  const style = g.f === 'china' ? chinaStyle(g) : ((royal && ROYAL_STYLE[g.f]) ? ROYAL_STYLE[g.f] : (FAC_STYLE[g.f] || ''));
-  // 왕·장군 신분 명시(장군이 왕처럼 보이지 않도록)
-  const rank = g.f === 'china' ? '' : (royal
-    ? ' This figure is a KING/monarch: he wears a royal crown and royal robes, regal and dignified.'
-    : ' This figure is a military general/officer, NOT a king: he wears a war helmet (or warrior topknot) and battle armor, absolutely no royal crown.');
+  const style = g.f === 'china' ? chinaStyle(g)
+    : royal ? (ROYAL_STYLE[g.f] || FAC_STYLE[g.f] || '')
+    : scholar ? (SCHOLAR_STYLE[g.f] || FAC_STYLE[g.f] || '')
+    : (FAC_STYLE[g.f] || '');
+  // 신분 명시(왕/책사/장군 구분)
+  const rank = g.f === 'china' ? '' : royal
+    ? ' This figure is a KING/monarch: an era-appropriate gold or gilt-bronze crown and Three-Kingdoms-period silk robes, regal and dignified — NOT a later Goryeo/Joseon Chinese-style dragon robe (gonryongpo), no dragon emblems.'
+    : scholar
+    ? ' This figure is a civil strategist/advisor, NOT a king and NOT a heavy-armored soldier: scholarly robes and a soft cap, holding a fan or scroll, no crown.'
+    : ' This figure is a military general/officer, NOT a king: a war helmet (or warrior topknot) and battle armor, absolutely no royal crown.';
   const scene = SCENE_EN[g.name] || (g.f === 'goguryeo' ? FAC_SCENE.goguryeo : null);
   const sceneClause = scene ? ` Place the figure in the foreground against this historical background scene instead of a plain gradient: ${scene}; keep the character as the clear main focus.` : '';
   return `${COMMON}. Subject: ${subj}. ${style}.${rank}${sceneClause} Faction: ${FAC_NAME[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
