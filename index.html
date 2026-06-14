@@ -14,6 +14,9 @@
 <style>
 :root{--ink:#15110c;--paper:#e7d8b6;--line:#3a2c1c;--gold:#c9a227;--crimson:#9e2b27;--blood:#7a1f1a;}
 *{box-sizing:border-box;margin:0;padding:0}
+/* 앱처럼 동작: 일반 텍스트 선택/깜빡이는 커서 비활성화(입력 요소는 예외) */
+*{-webkit-user-select:none;-moz-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;caret-color:transparent}
+input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text;caret-color:auto}
 html,body{height:100%}
 body{font-family:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,sans-serif;
   background:radial-gradient(circle at 20% 10%,#2a2014 0%,transparent 55%),radial-gradient(circle at 85% 90%,#241a10 0%,transparent 50%),#15110c;
@@ -229,6 +232,7 @@ svg{width:100%;height:100%;display:block}
 .herostage .hsstats span{font-size:12px;color:#e7dcc0;background:rgba(0,0,0,.35);border:1px solid #4a3a24;border-radius:4px;padding:3px 9px}
 .herostage .hshint{font-size:12px;color:#9c8c6a;margin-top:12px;line-height:1.5}
 .herostage .hsempty{margin:auto;color:#9c8c6a;font-size:14px}
+.htitle{font-size:.72em;color:var(--gold);font-weight:600;opacity:.88;letter-spacing:0}
 .captured{display:flex;align-items:center;gap:14px;justify-content:center;margin:18px 0;padding:14px;border:1px solid #3a2c1c;border-radius:6px;background:rgba(0,0,0,.3)}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1d160d;border:1.5px solid var(--gold);color:var(--paper);padding:12px 22px;border-radius:4px;z-index:300;font-family:'Pretendard';font-weight:700;opacity:0;transition:.3s;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.6)}
 .verbanner{position:fixed;top:0;left:0;right:0;z-index:600;display:none;align-items:center;justify-content:center;gap:12px;padding:8px 12px;background:linear-gradient(180deg,#2a2114,#1a140c);border-bottom:1px solid var(--gold);color:#f0d98a;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.5)}
@@ -841,6 +845,48 @@ const PORTRAITS={
   '장량':'assets/portraits/장량.webp',
   '풍발':'assets/portraits/풍발.webp',
 };
+/* 실제 이름(휘) + 칭호(시호·묘호) — 내부 키(g.name)는 유지, 표시만 변경 */
+const HERO_TITLE={
+  // 고구려
+  '광개토대왕':{real:'고담덕',title:'광개토대왕'},
+  '고국원왕':{real:'고사유',title:'고국원왕'},
+  '소수림왕':{real:'고구부',title:'소수림왕'},
+  '고거련':{real:'고거련',title:'장수왕'},
+  '양원왕':{real:'고평성',title:'양원왕'},
+  // 백제(부여씨)
+  '근초고왕':{real:'부여구',title:'근초고왕'},
+  '근구수':{real:'부여수',title:'근구수왕'},
+  '전지왕':{real:'부여전지',title:'전지왕'},
+  '아신왕':{real:'부여아신',title:'아신왕'},
+  '성왕':{real:'부여명농',title:'성왕'},
+  '위덕왕':{real:'부여창',title:'위덕왕'},
+  '의자왕':{real:'부여의자',title:'의자왕'},
+  // 신라(김씨)
+  '내물왕':{real:'김내물',title:'내물 마립간'},
+  '눌지':{real:'김눌지',title:'눌지 마립간'},
+  '실성':{real:'김실성',title:'실성 마립간'},
+  '진흥왕':{real:'김삼맥종',title:'진흥왕'},
+  '김춘추':{real:'김춘추',title:'태종무열왕'},
+  // 가야
+  '거질미왕':{real:'거질미',title:'거질미왕'},
+  '하지왕':{real:'하지',title:'하지왕'},
+  '이시품왕':{real:'이시품',title:'이시품왕'},
+  '도설지왕':{real:'도설지',title:'도설지왕'},
+  '월광태자':{real:'월광',title:'월광태자'},
+  // 중국
+  '모용수':{real:'모용수',title:'후연 성무제'},
+  '모용성':{real:'모용성',title:'후연 소무제'},
+  '모용희':{real:'모용희',title:'후연 소문제'},
+  '모용평':{real:'모용평',title:'전연 태부'},
+  '풍발':{real:'풍발',title:'북연 문성제'},
+  '고양':{real:'고양',title:'북제 문선제'},
+  '이세민':{real:'이세민',title:'당 태종'},
+  // 왜
+  '고토쿠':{real:'가루',title:'고토쿠 천황'},
+};
+function heroReal(n){return (HERO_TITLE[n]&&HERO_TITLE[n].real)||n;}
+function heroTitle(n){return (HERO_TITLE[n]&&HERO_TITLE[n].title)||'';}
+function nameTitleHTML(n){const t=HERO_TITLE[n];return t?`${t.real} <span class="htitle">${t.title}</span>`:n;}
 function genPortrait(g){
   const src=g&&g.name?PORTRAITS[g.name]:null;
   if(src){
@@ -1320,7 +1366,7 @@ function renderPanel(){
   </div>`;
   }
   if(g){const sk=genSkill(g);const ly=g.loyalty==null?72:g.loyalty;info+=`<div class="gen"><div class="face">${genPortrait(g)}</div>
-    <div class="ginfo"><div class="gname">${g.name}${sk?` <span style="font-size:11px;color:var(--gold)">⚑${sk.name}</span>`:''}</div>
+    <div class="ginfo"><div class="gname">${nameTitleHTML(g.name)}${sk?` <span style="font-size:11px;color:var(--gold)">⚑${sk.name}</span>`:''}</div>
     <div class="gstats"><span>통솔 <b>${g.lead}</b></span><span>무력 <b>${g.might}</b></span><span>지력 <b>${g.int}</b></span></div>
     ${mine?`<div style="font-size:11px;margin-top:2px;color:${ly<30?'#ff7a6a':ly<55?'#caa72e':'#8fd0c4'}">충성 ${ly}${ly<30?' ⚠ 이탈 위험':ly<55?' △ 불안정':' ✓ 충직'} <span style="color:#9c8c6a">· 수련 ${g.exp||0}/100</span></div>`:''}</div></div>`;
   }else if(seen){info+=`<div class="gen"><div class="face" style="background:#3a2c1c;color:#8a7a5a">無</div>
@@ -1330,7 +1376,7 @@ function renderPanel(){
   const roster=g?gensAt(selected).filter(x=>x.id!==g.id):[];
   if(roster.length){info+=`<div style="margin-top:6px;font-size:11px;color:#9c8c6a">부장 ${roster.length}명</div>`+
     roster.map(x=>`<div style="display:flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 6px;border-bottom:1px dashed #241a10">
-      <span style="font-weight:700;color:#e8dcc0">${x.name}</span>
+      <span style="font-weight:700;color:#e8dcc0">${heroReal(x.name)}${heroTitle(x.name)?`<span style="color:#9c8c6a;font-weight:400"> (${heroTitle(x.name)})</span>`:''}</span>
       <span style="margin-left:auto;color:#9c8c6a">통${x.lead} 무${x.might} 지${x.int}</span></div>`).join('');}
   let act='';
   if(mine){const acted=st.acted;
@@ -1601,7 +1647,7 @@ function gainExp(g,amt){
     const stats=['lead','might','int'].filter(s=>g[s]<99);
     if(!stats.length)break;
     const s=stats.reduce((a,b)=>g[b]>g[a]?b:a); const old=g[s]; g[s]=Math.min(99,g[s]+1);
-    if(g.f===player){const nm={lead:'통솔',might:'무력',int:'지력'}[s];toast(`⭐ ${g.name}이(가) 성장했습니다! ${nm} ${old}→${g[s]}`);}
+    if(g.f===player){const nm={lead:'통솔',might:'무력',int:'지력'}[s];toast(`⭐ ${heroReal(g.name)}이(가) 성장했습니다! ${nm} ${old}→${g[s]}`);}
   }
 }
 function genSkill(g){
@@ -1800,7 +1846,7 @@ function battle2dInit(){
     return {side,col:fcolor(A.p.owner),owner:A.p.owner,g:A.g,archer:/궁|쇠뇌|부병/.test(nm),mounted:/철기|개마|기병|중장기/.test(nm),slots,ox:0,oy:0,n:0};};
   const armyA=mk('A'),armyD=mk('D');
   const mkBadge=a=>{const d=document.createElement('div');d.className='b3badge';
-    d.innerHTML=`<div class="pf" style="border-color:${fcolor(a.owner)}">${a.g&&a.g.id?genPortrait(a.g):'<span style="font-family:Gugi;color:#8a7a5a;font-size:16px">無</span>'}</div><div class="nm">${a.g&&a.g.name?a.g.name:'—'}</div><div class="tp"></div>`;
+    d.innerHTML=`<div class="pf" style="border-color:${fcolor(a.owner)}">${a.g&&a.g.id?genPortrait(a.g):'<span style="font-family:Gugi;color:#8a7a5a;font-size:16px">無</span>'}</div><div class="nm">${a.g&&a.g.name?heroReal(a.g.name):"—"}</div><div class="tp"></div>`;
     wrap.appendChild(d);return{el:d,tp:d.querySelector('.tp'),army:a};};
   B2D={wrap,canvas,ctx,dpr,w:W,h:H,t0:performance.now(),armyA,armyD,strike:null,fx:{},arrows:[],stones:[],wall:B.D.wall||1,badges:[]};
   B2D.badges=[mkBadge(armyA),mkBadge(armyD)];
@@ -1953,7 +1999,7 @@ async function battle3dInit(){
     // ===== 떠다니는 지휘관 배지(초상+이름+병력) — 캔버스 위 HTML 오버레이 =====
     const mkBadge=(g,fac,army,side)=>{const d=document.createElement('div');d.className='b3badge';
       d.innerHTML=`<div class="pf" style="border-color:${fcolor(fac)}">${g&&g.id?genPortrait(g):'<span style="font-family:Gugi;color:#8a7a5a;font-size:16px">無</span>'}</div>`
-        +`<div class="nm">${g&&g.name?g.name:'—'}</div><div class="tp"></div>`;
+        +`<div class="nm">${g&&g.name?heroReal(g.name):"—"}</div><div class="tp"></div>`;
       wrap.appendChild(d);return{el:d,army,side,tp:d.querySelector('.tp')};};
     const badges=[mkBadge(B.A.g,B.A.p.owner,armyA,'A'),mkBadge(B.D.g,B.D.p.owner,armyD,'D')];
 
@@ -2119,7 +2165,7 @@ function renderBattle(){
     <div class="armycard" style="border-color:${fcolor(player)}">
       <h3 style="color:${fcolor(player)}">${A.p.name}군 <span style="font-size:11px;color:#9c8c6a">(공격)</span></h3>
       <div class="bgen"><div class="bface">${A.g.id?genPortrait(A.g):'<span class="noface">無</span>'}</div>
-        <div class="bgi"><div class="who">${A.g.name}</div>
+        <div class="bgi"><div class="who">${nameTitleHTML(A.g.name)}</div>
         ${A.skill?`<div class="bsk" title="${A.skill.desc}">⚑ ${A.skill.name}</div>`:`<div class="bsk none">비기 없음</div>`}
         ${A.unit?`<div class="bsk" style="color:#8fd0c4" title="${A.unit.desc}">${A.unit.icon} ${A.unit.name}</div>`:''}
         <div class="bst">통${A.g.lead} 무${A.g.might} 지${A.g.int}</div></div></div>
@@ -2129,7 +2175,7 @@ function renderBattle(){
     <div class="armycard" style="border-color:${fcolor(D.p.owner)}">
       <h3 style="color:${fcolor(D.p.owner)}">${D.p.name}군 <span style="font-size:11px;color:#9c8c6a">(수비 · 성벽${D.wall})</span></h3>
       <div class="bgen"><div class="bface">${D.g.id?genPortrait(D.g):'<span class="noface">無</span>'}</div>
-        <div class="bgi"><div class="who">${D.g.name}</div>
+        <div class="bgi"><div class="who">${nameTitleHTML(D.g.name)}</div>
         ${D.skill?`<div class="bsk" title="${D.skill.desc}">⚑ ${D.skill.name}</div>`:`<div class="bsk none">비기 없음</div>`}
         ${D.unit?`<div class="bsk" style="color:#8fd0c4" title="${D.unit.desc}">${D.unit.icon} ${D.unit.name}</div>`:''}
         <div class="bst">통${D.g.lead} 무${D.g.might} 지${D.g.int}</div></div></div>
@@ -2792,7 +2838,7 @@ function showFactionPick(){
     const s=sc.str[f]; const lvl=s>=1.3?'압도적':s>=1.05?'강성':s>=0.85?'평이':'험난';
     let gobjs=sc.gens.filter(g=>g[1]===f).slice(0,4).map(a=>({name:a[0],f:a[1],lead:a[3],might:a[4],int:a[5]}));
     let thumbs=gobjs.map(o=>`<div class="pthumb">${genPortrait(o)}</div>`).join('');
-    let gnames=sc.gens.filter(g=>g[1]===f).slice(0,3).map(g=>g[0]).join(', ');
+    let gnames=sc.gens.filter(g=>g[1]===f).slice(0,3).map(g=>heroReal(g[0])).join(', ');
     picks+=`<div class="fpick" id="fp-${f}" onclick="pickF('${f}')" onmouseenter="showHero('${f}')" onmouseleave="showHero(chosenF||heroDefaultF)" style="border-color:${fcolor(f)}">
       <div class="fh" style="color:${fcolor(f)}"><span class="dot" style="background:${fcolor(f)}"></span>${FACTIONS[f].name}</div>
       <div class="fmeta">성 ${cnt}개 · 국력 <b style="color:${fcolor(f)}">${lvl}</b></div>
@@ -2826,11 +2872,12 @@ function showHero(f){
   const fname=f==='china'?(pickedEra.cname||FACTIONS.china.name):FACTIONS[f].name;
   st.style.borderColor=col;
   const cnt=provinces.filter(p=>p.owner===f).length;
+  const ttl=heroTitle(h.name);
   st.innerHTML=`<div class="hsimg">${genPortrait(h)}</div>
     <div class="hsmap">${factionMiniMap(f)}</div>
     <div class="hsinfo">
-      <div class="hsname" style="color:${col}">${h.name}</div>
-      <div class="hssub">${fname} 대표 무장 · 영토 ${cnt}성</div>
+      <div class="hsname" style="color:${col}">${heroReal(h.name)}</div>
+      <div class="hssub">${ttl?`<b style="color:#e7dcc0">${ttl}</b> · `:''}${fname} 대표 무장 · 영토 ${cnt}성</div>
       <div class="hsstats"><span>통솔 ${h.lead}</span><span>무력 ${h.might}</span><span>지력 ${h.int}</span></div>
       <div class="hshint">${chosenF===f?'출진 준비 완료':'카드를 눌러 이 나라를 선택하라'}</div>
     </div>`;
@@ -2869,7 +2916,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.22.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.23.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
