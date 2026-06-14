@@ -880,7 +880,7 @@ const PORTRAITS={
   '의자왕':'assets/portraits/baekje/의자왕.webp',
   '이도종':'assets/portraits/china/이도종.webp',
   '이사부':'assets/portraits/silla/이사부.webp',
-  '이사부02':'assets/portraits/silla/이사부02.png',
+  '이사부02':'assets/portraits/silla/이사부02.webp',
   '이세민':'assets/portraits/china/이세민.webp',
   '이세적':'assets/portraits/china/이세적.webp',
   '이시품왕':'assets/portraits/gaya/이시품왕.webp',
@@ -2976,7 +2976,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.30.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.31.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
