@@ -218,9 +218,11 @@ svg{width:100%;height:100%;display:block}
 .fpick .fh{display:flex;align-items:center;gap:9px;font-family:'Pretendard';font-weight:800;font-size:19px}
 .fpick .fmeta{font-size:11px;color:#b8a880;margin-top:8px}
 .fpick .fd{font-size:11px;color:#9c8c6a;margin-top:6px;line-height:1.5}
-.herostage{display:flex;gap:16px;align-items:center;margin:0 auto 16px;max-width:540px;min-height:172px;border:1.5px solid #4a3a24;border-radius:8px;background:linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.12));padding:13px;box-shadow:0 8px 26px rgba(0,0,0,.4)}
+.herostage{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:0 auto 16px;max-width:660px;min-height:172px;border:1.5px solid #4a3a24;border-radius:8px;background:linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.12));padding:13px;box-shadow:0 8px 26px rgba(0,0,0,.4)}
 .herostage .hsimg{width:138px;height:172px;flex:0 0 auto;border-radius:6px;overflow:hidden;border:1px solid #5a4a30;background:#2a2018;box-shadow:0 6px 18px rgba(0,0,0,.55)}
-.herostage .hsinfo{flex:1;text-align:left;min-width:0}
+.herostage .hsmap{width:150px;height:172px;flex:0 0 auto;border-radius:6px;overflow:hidden;border:1px solid #4a3a24;background:#0f0b07}
+.herostage .hsmap svg{width:100%;height:100%;display:block}
+.herostage .hsinfo{flex:1;text-align:left;min-width:160px}
 .herostage .hsname{font-family:'Gugi';font-size:30px;line-height:1.1}
 .herostage .hssub{font-size:13px;color:#b8a880;margin-top:6px}
 .herostage .hsstats{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
@@ -281,9 +283,10 @@ svg{width:100%;height:100%;display:block}
   .legend{font-size:10px;padding:6px 8px}
   /* 모바일: 출진 버튼을 세력 선택 위로(스크롤 없이 바로 닿게) + 상단 고정 */
   .fpwrap .startbtn{order:-1;margin:0 0 6px;position:sticky;top:0;z-index:4;width:100%;box-shadow:0 6px 16px rgba(0,0,0,.55)}
-  .herostage{gap:12px;min-height:148px;padding:11px}
-  .herostage .hsimg{width:108px;height:135px}
-  .herostage .hsname{font-size:24px}
+  .herostage{gap:10px;min-height:135px;padding:11px}
+  .herostage .hsimg{width:104px;height:130px}
+  .herostage .hsmap{width:110px;height:130px}
+  .herostage .hsname{font-size:23px}
   .herostage .hssub{font-size:12px}
   .herostage .hshint{display:none}
 }
@@ -2822,13 +2825,32 @@ function showHero(f){
   const col=fcolor(f);
   const fname=f==='china'?(pickedEra.cname||FACTIONS.china.name):FACTIONS[f].name;
   st.style.borderColor=col;
+  const cnt=provinces.filter(p=>p.owner===f).length;
   st.innerHTML=`<div class="hsimg">${genPortrait(h)}</div>
+    <div class="hsmap">${factionMiniMap(f)}</div>
     <div class="hsinfo">
       <div class="hsname" style="color:${col}">${h.name}</div>
-      <div class="hssub">${fname} 대표 무장</div>
+      <div class="hssub">${fname} 대표 무장 · 영토 ${cnt}성</div>
       <div class="hsstats"><span>통솔 ${h.lead}</span><span>무력 ${h.might}</span><span>지력 ${h.int}</span></div>
       <div class="hshint">${chosenF===f?'출진 준비 완료':'카드를 눌러 이 나라를 선택하라'}</div>
     </div>`;
+}
+/* 세력 영토 미니맵: 그 세력 보유 성을 세력색으로 강조, 나머지는 흐리게 */
+function factionMiniMap(f){
+  if(!provinces||!provinces.length)return '';
+  let minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9;
+  provinces.forEach(p=>{minx=Math.min(minx,p.x);maxx=Math.max(maxx,p.x);miny=Math.min(miny,p.y);maxy=Math.max(maxy,p.y);});
+  const pad=26;minx-=pad;miny-=pad;maxx+=pad;maxy+=pad;
+  const w=maxx-minx,h=maxy-miny;
+  let edges='';
+  if(typeof EDGES!=='undefined')EDGES.forEach(([a,b])=>{const pa=prov(a),pb=prov(b);if(pa&&pb)edges+=`<line x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}" stroke="#2a2216" stroke-width="1.1"/>`;});
+  let dots='';
+  provinces.forEach(p=>{
+    const mine=p.owner===f, col=mine?fcolor(f):'#46412f', r=mine?(p.cap?5.6:4.2):2.6;
+    if(mine&&p.cap)dots+=`<circle cx="${p.x}" cy="${p.y}" r="9" fill="none" stroke="${col}" stroke-width="1.4" opacity="0.65"/>`;
+    dots+=`<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${col}" ${mine?`stroke="#15110c" stroke-width="1"`:'opacity="0.5"'}/>`;
+  });
+  return `<svg viewBox="${minx} ${miny} ${w} ${h}" preserveAspectRatio="xMidYMid meet"><rect x="${minx}" y="${miny}" width="${w}" height="${h}" fill="#0f0b07"/>${edges}${dots}</svg>`;
 }
 function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.classList.remove('active'));$('fp-'+f).classList.add('active');$('startBtn').disabled=false;showHero(f);}
 function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEvents=[];marchQueue=[];eliminatedFactions=[];eliminatedThisTurn=[];clearUndo();$('centerOverlay').classList.remove('on');render();
@@ -2841,7 +2863,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.20.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.21.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
