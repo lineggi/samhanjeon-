@@ -2876,11 +2876,20 @@ function showFactionPick(){
 }
 let heroDefaultF=null;
 /* 그 시대·세력에서 능력치 합이 가장 높은 대표 무장 */
+/* 군주(왕·마립간·천황·황제) 판별 — 태자 제외 */
+function isMonarch(name){
+  if(/태자/.test(name))return false;
+  if(/왕/.test(name))return true;
+  const t=(HERO_TITLE[name]||{}).title||'';
+  return /마립간|천황/.test(t)||t.endsWith('제')||t.includes('태종');
+}
 function repHero(f){
   if(!pickedEra)return null;
   const gs=pickedEra.gens.filter(g=>g[1]===f).map(a=>({name:a[0],f:a[1],lead:a[3],might:a[4],int:a[5]}));
   if(!gs.length)return null;
-  return gs.sort((a,b)=>(b.lead+b.might+b.int)-(a.lead+a.might+a.int))[0];
+  const kings=gs.filter(g=>isMonarch(g.name));   // 대표는 그 세력의 왕(군주) 우선
+  const pool=kings.length?kings:gs;              // 군주가 없으면(예: 645 고구려) 최고 무장
+  return pool.sort((a,b)=>(b.lead+b.might+b.int)-(a.lead+a.might+a.int))[0];
 }
 function showHero(f){
   const st=$('herostage'); if(!st)return;
@@ -2934,7 +2943,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.28.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.29.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
