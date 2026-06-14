@@ -1740,7 +1740,7 @@ function launchBattle(fromId,toId,opts){
 /* ===== 2D 전투씬 (canvas — 에셋0·CDN無·모바일 경량) ===== */
 let B2D=null;
 function shadeCss(h,amt){const n=parseInt(String(h).replace('#',''),16);const cl=x=>Math.max(0,Math.min(255,x));const r=cl((n>>16)+amt),g=cl(((n>>8)&255)+amt),b=cl((n&255)+amt);return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');}
-function b2dArmyBox(a){const W=B2D.w,H=B2D.h,k=H/170;return a.side==='A'?{cx:W*0.27,cy:H*0.60,scale:k*0.95,dir:1}:{cx:W*0.73,cy:H*0.58,scale:k*0.95,dir:-1};}
+function b2dArmyBox(a){const W=B2D.w,H=B2D.h,k=H/170;return a.side==='A'?{cx:W/2,cy:H*0.80,scale:k*1.0}:{cx:W/2,cy:H*0.43,scale:k*0.82};}
 function b2dSoldier(ctx,x,y,s,col,o){
   ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(x,y+s*0.6,s*3,s*1.3,0,0,Math.PI*2);ctx.fill();
   const bw=s*5,bh=s*8;
@@ -1754,30 +1754,28 @@ function b2dSoldier(ctx,x,y,s,col,o){
   else{ctx.strokeStyle='#6b4423';ctx.beginPath();ctx.moveTo(x+s*2.6,y+s*1.2);ctx.lineTo(x+s*2.6,y-bh-s*5);ctx.stroke();ctx.fillStyle='#c9ccd2';ctx.beginPath();ctx.moveTo(x+s*2.6,y-bh-s*5);ctx.lineTo(x+s*1.8,y-bh-s*3.6);ctx.lineTo(x+s*3.4,y-bh-s*3.6);ctx.closePath();ctx.fill();}
 }
 function b2dDrawArmy(ctx,a){
-  const bx=b2dArmyBox(a),{cx,cy,scale,dir}=bx, COLS=6, colW=Math.min((B2D.w*0.34)/COLS,24*scale), rowH=11*scale, t=(performance.now()-B2D.t0)/1000;
-  const rows=Math.max(1,Math.ceil(a.n/COLS));
+  const {cx,cy,scale}=b2dArmyBox(a), COLS=10, colW=Math.min((B2D.w*0.86)/COLS,30*scale), rowH=12*scale, t=(performance.now()-B2D.t0)/1000;
   for(let i=0;i<a.n;i++){const c=i%COLS,r=Math.floor(i/COLS),sl=a.slots[i];
-    const bob=Math.sin(t*3+sl.ph)*0.8*scale;
+    const bob=Math.sin(t*3+sl.ph)*0.8*scale + (B2D.strike?0:0);
     const x=cx+(c-(COLS-1)/2)*colW+sl.jx*colW*0.4+a.ox;
-    const y=cy+(r-(rows-1)/2)*rowH+sl.jy*rowH*0.5+a.oy+bob;
-    b2dSoldier(ctx,x,y,scale*1.0,a.col,{archer:a.archer,shield:!a.archer});}
-  // 지휘관(주장) — 적을 향한 진영 앞쪽
-  if(a.g&&a.g.id){b2dSoldier(ctx,cx+dir*((COLS-1)/2*colW+colW*1.1)+a.ox,cy+a.oy,scale*1.5,shadeCss(a.col,28),{cmd:true});}
+    const y=cy+(r-1.5)*rowH+sl.jy*rowH*0.5+a.oy+bob;
+    b2dSoldier(ctx,x,y,scale*1.05,a.col,{archer:a.archer,shield:!a.archer});}
+  // 지휘관(주장)
+  if(a.g&&a.g.id){b2dSoldier(ctx,cx+a.ox,cy-2*rowH-rowH*0.4+a.oy,scale*1.5,shadeCss(a.col,28),{cmd:true});}
 }
-function b2dDrawWall(ctx){const W=B2D.w,H=B2D.h,k=H/170;
-  const wt=Math.min(W*0.05,5+B2D.wall*2.0), wh=H*0.74, wy=(H-wh)/2, wx=W*0.585;   // 세로 성벽(수비측 앞)
+function b2dDrawWall(ctx){const W=B2D.w,H=B2D.h,wy=H*0.27,wh=Math.min(H*0.10,5+B2D.wall*2.2),ww=W*0.72,wx=(W-ww)/2,k=H/170;
   const siege=B&&B.siege, breached=B&&B.breached, hpR=siege?Math.max(0,(B.wallHP||0)/Math.max(1,B.wallMax)):1;
-  ctx.fillStyle='#6f6043';ctx.fillRect(wx,wy,wt,wh);
-  ctx.fillStyle=shadeCss('#6f6043',-22);ctx.fillRect(wx+wt-2,wy,2,wh);
-  ctx.fillStyle='#7a6a4a';for(let i=0;i<11;i++){ if(breached&&i%3===1)continue; if(siege&&hpR<i/12)continue; ctx.fillRect(wx+wt,wy+4+i*(wh-8)/11,3,(wh-8)/11*0.55);} // 성가퀴(허물수록 무너짐)
+  ctx.fillStyle='#6f6043';ctx.fillRect(wx,wy,ww,wh);
+  ctx.fillStyle=shadeCss('#6f6043',-22);ctx.fillRect(wx,wy+wh-2,ww,2);
+  ctx.fillStyle='#7a6a4a';for(let i=0;i<11;i++){ if(breached&&i%3===1)continue; if(siege&&hpR<i/12)continue; ctx.fillRect(wx+4+i*(ww-8)/11,wy-3,(ww-8)/11*0.55,3);} // 성가퀴(허물수록 무너짐)
   if(siege&&!breached&&hpR<0.72){ctx.strokeStyle='rgba(20,12,6,.5)';ctx.lineWidth=1;const cr=Math.round((1-hpR)*6);
-    for(let i=0;i<cr;i++){let yy=wy+wh*(0.12+0.74*((i*0.37)%1)),xx=wx;ctx.beginPath();ctx.moveTo(xx,yy);for(let s=0;s<4;s++){yy+=Math.sin(i*9+s)*3;xx+=wt/4;ctx.lineTo(xx,yy);}ctx.stroke();}}
-  [wy-2,wy+wh-10].forEach(ty=>{ctx.fillStyle=shadeCss('#6f6043',8);ctx.fillRect(wx-6,ty,wt+12,12);ctx.fillStyle='#5a3a22';ctx.beginPath();ctx.moveTo(wx-6,ty-2);ctx.lineTo(wx+wt/2,ty-9);ctx.lineTo(wx+wt+6,ty-2);ctx.closePath();ctx.fill();}); // 망루(상·하)
-  if(breached){ctx.fillStyle='#160f06';ctx.beginPath();ctx.moveTo(wx,H/2-15);ctx.lineTo(wx-2,H/2-11);ctx.lineTo(wx-1,H/2+9);ctx.lineTo(wx,H/2+15);ctx.lineTo(wx+wt,H/2+15);ctx.lineTo(wx+wt,H/2-15);ctx.closePath();ctx.fill(); // 무너진 틈
-    ctx.fillStyle='#5a4a32';for(let i=0;i<7;i++)ctx.fillRect(wx+((i*5)%wt),H/2-16+Math.sin(i*3)*18,3,3);} // 잔해
-  else{ctx.fillStyle='#33220f';ctx.fillRect(wx+wt*0.35,H/2-7,wt*0.65,14);} // 성문
-  if(siege&&!breached){const dcol=B2D.armyD.col,n=Math.max(2,Math.round(9*Math.max(0.25,hpR))); // 성벽 위 수비병(세로로 늘어섬)
-    for(let i=0;i<n;i++){const sy=wy+12+i*(wh-24)/Math.max(1,n-1);b2dSoldier(ctx,wx+wt*0.5,sy,2.0*k,dcol,{archer:true});}}
+    for(let i=0;i<cr;i++){let xx=wx+ww*(0.12+0.74*((i*0.37)%1)),yy=wy;ctx.beginPath();ctx.moveTo(xx,yy);for(let s=0;s<4;s++){xx+=Math.sin(i*9+s)*3;yy+=wh/4;ctx.lineTo(xx,yy);}ctx.stroke();}}
+  [wx-2,wx+ww-10].forEach(tx=>{ctx.fillStyle=shadeCss('#6f6043',8);ctx.fillRect(tx,wy-6,12,wh+6);ctx.fillStyle='#5a3a22';ctx.beginPath();ctx.moveTo(tx-2,wy-6);ctx.lineTo(tx+6,wy-13);ctx.lineTo(tx+14,wy-6);ctx.closePath();ctx.fill();}); // 망루
+  if(breached){ctx.fillStyle='#160f06';ctx.beginPath();ctx.moveTo(W/2-15,wy+wh);ctx.lineTo(W/2-11,wy-2);ctx.lineTo(W/2+9,wy-1);ctx.lineTo(W/2+15,wy+wh);ctx.closePath();ctx.fill(); // 무너진 틈
+    ctx.fillStyle='#5a4a32';for(let i=0;i<7;i++)ctx.fillRect(W/2-16+Math.sin(i*3)*18,wy+wh*0.7+((i*5)%wh),3,3);} // 잔해
+  else{ctx.fillStyle='#33220f';ctx.fillRect(W/2-7,wy+wh*0.35,14,wh*0.65);} // 성문
+  if(siege&&!breached){const dcol=B2D.armyD.col,n=Math.max(2,Math.round(9*Math.max(0.25,hpR))); // 성벽 위 수비병
+    for(let i=0;i<n;i++){const sx=wx+12+i*(ww-24)/Math.max(1,n-1);b2dSoldier(ctx,sx,wy,2.0*k,dcol,{archer:true});}}
 }
 function b2dStones(ctx){if(!B2D.stones)return;const now=performance.now();B2D.stones=B2D.stones.filter(a=>(now-a.t0)/a.dur<1.05);
   for(const a of B2D.stones){const e=(now-a.t0)/a.dur;if(e<0||e>1)continue;
@@ -1812,7 +1810,7 @@ function b2dWeather(ctx){if(!B)return;const W=B2D.w,H=B2D.h,t=performance.now();
 }
 function b2dEffects(ctx){const F=B2D.fx,now=performance.now(),W=B2D.w,H=B2D.h,clx=W/2,cly=H*0.6;
   if(F.ring){const e=(now-F.ring.t0)/F.ring.dur;if(e>=1)F.ring=null;else{ctx.strokeStyle=`rgba(255,200,96,${0.9*(1-e*e)})`;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(clx,cly,10+e*W*0.5,(10+e*W*0.5)*0.32,0,0,Math.PI*2);ctx.stroke();}}
-  if(F.dome){const e=(now-F.dome.t0)/F.dome.dur;if(e>=1)F.dome=null;else{const a=F.dome.side==='A'?B2D.armyA:B2D.armyD,bx=b2dArmyBox(a),al=0.34*Math.sin(Math.PI*e);ctx.fillStyle=`rgba(116,192,255,${al*0.5})`;ctx.strokeStyle=`rgba(150,210,255,${al})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(bx.cx,bx.cy,W*0.16,H*0.34,0,Math.PI,Math.PI*2);ctx.fill();ctx.stroke();}}
+  if(F.dome){const e=(now-F.dome.t0)/F.dome.dur;if(e>=1)F.dome=null;else{const a=F.dome.side==='A'?B2D.armyA:B2D.armyD,bx=b2dArmyBox(a),al=0.34*Math.sin(Math.PI*e);ctx.fillStyle=`rgba(116,192,255,${al*0.5})`;ctx.strokeStyle=`rgba(150,210,255,${al})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(bx.cx,bx.cy,W*0.34,H*0.2,0,Math.PI,Math.PI*2);ctx.fill();ctx.stroke();}}
   if(F.smoke){const e=(now-F.smoke.t0)/F.smoke.dur;if(e>=1)F.smoke=null;else{const a=F.smoke.side==='A'?B2D.armyA:B2D.armyD,bx=b2dArmyBox(a);for(let i=0;i<10;i++){const ph=i*0.7,r=(6+e*16)*(0.6+(i%3)*0.2);ctx.fillStyle=`rgba(122,82,168,${0.6*Math.sin(Math.PI*e)*(1-i/14)})`;ctx.beginPath();ctx.arc(bx.cx+Math.sin(ph*3)*W*0.22,bx.cy-e*H*0.25-ph*4,r,0,Math.PI*2);ctx.fill();}}}
   if(F.spark){const e=(now-F.spark.t0)/F.spark.dur;if(e>=1)F.spark=null;else{const fl=Math.sin(Math.PI*e),R=8+e*W*0.16;ctx.fillStyle=`rgba(255,242,192,${fl})`;ctx.beginPath();ctx.arc(clx,cly,R,0,Math.PI*2);ctx.fill();ctx.strokeStyle=`rgba(255,230,150,${fl*0.8})`;ctx.lineWidth=2;for(let i=0;i<8;i++){const an=i/8*Math.PI*2+e*2;ctx.beginPath();ctx.moveTo(clx,cly);ctx.lineTo(clx+Math.cos(an)*R*1.7,cly+Math.sin(an)*R*1.7*0.5);ctx.stroke();}}}
 }
@@ -1823,16 +1821,18 @@ function b2dArrows(ctx){const now=performance.now();B2D.arrows=B2D.arrows.filter
     const x2=a.sx+(a.ex-a.sx)*(e+0.04), y2=a.sy+(a.ey-a.sy)*(e+0.04)-a.arc*Math.sin(Math.PI*(e+0.04));
     ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke();}
 }
-function b2dBadges(){for(const bd of B2D.badges){const bx=b2dArmyBox(bd.army);
-  bd.el.style.left=(bx.cx+bd.army.ox)+'px';
-  bd.el.style.top=(bx.cy-30*bx.scale+bd.army.oy)+'px';
-  const tr=bd.army.side==='A'?(B&&B.A.troops):(B&&B.D.troops);bd.tp.textContent=fmt(Math.max(0,Math.round(tr||0)));}}
+function b2dBadges(){const W=B2D.w,H=B2D.h;
+  const pos={A:{x:W*0.15,y:H*0.62},D:{x:W*0.85,y:H*0.62}};   // 영웅 배지: 공격 좌 / 수비 우 (가로 배치)
+  for(const bd of B2D.badges){const p=pos[bd.army.side]||{x:W/2,y:H*0.5};
+    bd.el.style.left=p.x+'px';
+    bd.el.style.top=p.y+'px';
+    const tr=bd.army.side==='A'?(B&&B.A.troops):(B&&B.D.troops);bd.tp.textContent=fmt(Math.max(0,Math.round(tr||0)));}}
 function battle2dShow(side,troops,startT){if(!B2D)return;const a=side==='A'?B2D.armyA:B2D.armyD;a.n=Math.max(0,Math.min(40,Math.round(40*Math.sqrt(Math.max(0,troops)/Math.max(1,startT)))));}
 function battle2dStrike(side,push,tac){if(!B2D)return;B2D.strike={side,push:Math.min(1,push||0),adv:tacAdv(tac),t0:performance.now(),dur:680};}
 function battle2dEffect(tac,side){if(!B2D)return;const now=performance.now();
-  if(tac==='volley'){if(side==='A'){const W=B2D.w,H=B2D.h;for(let i=0;i<30;i++){const sy=H*0.58+(Math.random()-0.5)*H*0.42;B2D.arrows.push({sx:W*0.34,sy,ex:W*0.66+(Math.random()-0.5)*W*0.06,ey:sy+(Math.random()-0.5)*H*0.12,arc:H*0.16+Math.random()*H*0.08,t0:now+Math.random()*220,dur:560});}}}
+  if(tac==='volley'){if(side==='A'){const W=B2D.w,H=B2D.h;for(let i=0;i<30;i++){const sx=W/2+(Math.random()-0.5)*W*0.5;B2D.arrows.push({sx,sy:H*0.74,ex:sx+(Math.random()-0.5)*W*0.12,ey:H*0.44,arc:H*0.26+Math.random()*H*0.1,t0:now+Math.random()*220,dur:560});}}}
   else if(tac==='charge'){B2D.fx.ring={t0:now,dur:640};
-    if(side==='A'&&B&&B.siege&&!B.breached){const W=B2D.w,H=B2D.h;B2D.stones=B2D.stones||[];for(let i=0;i<6;i++){const sy=H*0.58+(Math.random()-0.5)*H*0.2;B2D.stones.push({sx:W*0.34,sy,ex:W*0.585,ey:H/2+(Math.random()-0.5)*H*0.2,arc:H*0.20+Math.random()*H*0.06,r:(3+Math.random()*2)*(H/170),t0:now+Math.random()*200,dur:660});}}}
+    if(side==='A'&&B&&B.siege&&!B.breached){const W=B2D.w,H=B2D.h,wy=H*0.27;B2D.stones=B2D.stones||[];for(let i=0;i<6;i++){const ex=W/2+(Math.random()-0.5)*W*0.28;B2D.stones.push({sx:W/2+(Math.random()-0.5)*W*0.2,sy:H*0.74,ex,ey:wy+H*0.03,arc:H*0.32+Math.random()*H*0.08,r:(3+Math.random()*2)*(H/170),t0:now+Math.random()*200,dur:660});}}}
   else if(tac==='guard')B2D.fx.dome={t0:now,dur:920,side};
   else if(tac==='scheme')B2D.fx.smoke={t0:now,dur:920,side:side==='A'?'D':'A'};
   else if(tac==='duel')B2D.fx.spark={t0:now,dur:580};}
@@ -1860,12 +1860,12 @@ function battle2dInit(){
     const W=B2D.w,H=B2D.h,now=performance.now();let shake=0;
     if(B2D.strike){const C=B2D.strike,e=(now-C.t0)/C.dur;
       if(e>=1){B2D.strike=null;armyA.ox=armyA.oy=armyD.ox=armyD.oy=0;}
-      else{const s=Math.sin(Math.PI*e),act=C.side==='A'?armyA:armyD,tgt=C.side==='A'?armyD:armyA,dir=C.side==='A'?1:-1;
-        act.ox=dir*s*(W*0.10)*C.adv; tgt.ox=-dir*s*(W*0.035)*(0.3+C.push); shake=s*4*(C.adv*0.6+C.push*0.5);}}
+      else{const s=Math.sin(Math.PI*e),act=C.side==='A'?armyA:armyD,tgt=C.side==='A'?armyD:armyA,dir=C.side==='A'?-1:1;
+        act.oy=dir*s*(H*0.13)*C.adv; tgt.oy=-dir*s*(H*0.045)*(0.3+C.push); shake=s*4*(C.adv*0.6+C.push*0.5);}}
     ctx.save(); if(shake)ctx.translate((Math.random()-0.5)*shake,(Math.random()-0.5)*shake);
     b2dBackground(ctx); b2dDecor(ctx); b2dDrawWall(ctx);
     b2dDrawArmy(ctx,armyD); b2dDrawArmy(ctx,armyA);
-    b2dDrawBanner(ctx,armyA,W*0.07); b2dDrawBanner(ctx,armyD,W*0.93);
+    b2dDrawBanner(ctx,armyA,W*0.16); b2dDrawBanner(ctx,armyD,W*0.84);
     b2dArrows(ctx); b2dStones(ctx); b2dEffects(ctx); b2dWeather(ctx);
     ctx.restore(); b2dBadges();
   };
@@ -2918,7 +2918,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.25.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.26.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
