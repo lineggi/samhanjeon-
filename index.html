@@ -807,7 +807,22 @@ function shade(hex,amt){let c=hex.replace('#','');if(c.length===3)c=c.split('').
    예) '광개토대왕':'assets/portraits/광개토대왕.webp'  (이미지를 추가할 때마다 한 줄씩 등록) */
 const PORTRAITS={
   // 자동 생성: tools/gen-portraits.mjs 가 폴더를 스캔해 갱신합니다.
-  '광개토대왕':'assets/portraits/광개토대왕.webp',
+  '고거련':'assets/portraits/고거련.png',
+  '고양':'assets/portraits/고양.webp',
+  '곡율광':'assets/portraits/곡율광.webp',
+  '광개토대왕.png':'assets/portraits/광개토대왕.png.png',
+  '김춘추':'assets/portraits/김춘추.png',
+  '모용성':'assets/portraits/모용성.webp',
+  '모용수':'assets/portraits/모용수.webp',
+  '모용평':'assets/portraits/모용평.webp',
+  '모용희':'assets/portraits/모용희.webp',
+  '설인귀':'assets/portraits/설인귀.webp',
+  '오토모':'assets/portraits/오토모.webp',
+  '이도종':'assets/portraits/이도종.webp',
+  '이세민':'assets/portraits/이세민.webp',
+  '이세적':'assets/portraits/이세적.webp',
+  '장량':'assets/portraits/장량.webp',
+  '풍발':'assets/portraits/풍발.webp',
 };
 function genPortrait(g){
   const src=g&&g.name?PORTRAITS[g.name]:null;
