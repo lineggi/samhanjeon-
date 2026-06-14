@@ -155,7 +155,14 @@ const SKIP = ['광개토대왕', '고거련', '양만춘', '연개소문'];
 const ROYAL_NAMES = new Set(['눌지', '실성', '근구수']);
 function isRoyalG(g) { return (/왕/.test(g.name) && !/태자/.test(g.name)) || /태자/.test(g.name) || ROYAL_NAMES.has(g.name); }
 /* 역사 장면 배경 — 단색 배경 대신 그 인물의 사실/설화를 반영한 배경(고구려 우선) */
-const FAC_SCENE = { goguryeo: 'a Goguryeo stone fortress rampart or a war-banner-filled battlefield under a dramatic sky' };
+const FAC_SCENE = {
+  goguryeo: 'a Goguryeo stone fortress rampart or a war-banner-filled battlefield under a dramatic sky',
+  baekje: 'a refined Baekje palace court or a riverside fortress with golden banners',
+  silla: 'a Silla fortress or a gold-bannered battlefield under a clear sky',
+  gaya: 'an iron-kingdom Gaya fortress or a forge-lit battlefield with iron banners',
+  china: 'a vast imperial Chinese battlefield with massed banners and siege works',
+  wa: 'a Yamato seashore with warships and Wa banners',
+};
 const SCENE_EN = {
   '온달': "on a windswept battlefield beside his own upright wooden war-coffin, shouting toward the coffin with grief and resolve, war banners behind — depicting the legend that Ondal's coffin would not move from the battlefield",
   '소수림왕': 'fighting on the ramparts of a Goguryeo stone fortress, sword raised amid defenders and war banners',
@@ -166,6 +173,62 @@ const SCENE_EN = {
   '모두루': 'guarding a lonely northern frontier fortress on the Buyeo border, banners snapping in the cold wind',
   '양원왕': 'on the walls of the royal capital directing the defense, banners and soldiers behind',
   '고흘': 'on a Goguryeo fortress rampart amid the clamor of battle',
+  // 백제
+  '근초고왕': 'King Geunchogo at the height of Baekje power, reviewing a great army with golden Baekje banners, majestic and commanding, before a prosperous fortress capital',
+  '근구수': 'crown-prince Geungusu leading Baekje troops to a fierce victory over Goguryeo by a northern river, bold and eager',
+  '전지왕': "King Jeonji, once a hostage prince in Wa, returning by ship across the sea to claim the Baekje throne after his father's death, standing at the ship's prow with Baekje banners and the sea behind",
+  '아신왕': 'King Asin of Baekje, hard-pressed but defiant on his ramparts as Goguryeo heavy cavalry presses the attack, tense and grim',
+  '성왕': 'cultured King Seong of Baekje planning the move to the new capital Sabi, dignified and refined, with palace and the Geum river behind, a faint air of coming tragedy',
+  '위덕왕': 'King Wideok of Baekje, hardened and grave after the war with Silla, standing resolute among war banners',
+  '의자왕': 'King Uija in his Sabi palace at the twilight of Baekje, once brilliant now careworn and melancholic, fading lamplight',
+  '계백': 'General Gyebaek making his last stand at Hwangsanbeol with his five thousand decisive-death warriors against the vast Silla host, grim and resolute, broken banners',
+  '흑치상지': 'General Heukchi Sangji raising the Baekje restoration army from Imjon fortress, tall and defiant, rallying soldiers',
+  '성충': 'the loyal official Seongchung gravely remonstrating, gaunt from imprisonment yet earnest, candle and scroll',
+  '고흥': 'the scholar Goheung compiling the Seogi, the Baekje national history, with brush and bamboo scrolls in a quiet study',
+  '윤충': 'General Yunchung storming Daeya fortress to seize it from Silla, fierce amid the assault',
+  '막고해': 'a seasoned Baekje general counseling restraint after victory (knowing-contentment), composed and wise on the field',
+  '진무': 'General Jinmu leading a hard campaign against Goguryeo across a northern river, determined',
+  // 신라
+  '내물왕': 'King Naemul, first of the Kim Maripgan line, receiving Goguryeo aid to drive off Wa raiders, dignified',
+  '눌지': 'King Nulji of Silla consolidating the realm, grave after the loss of his brothers held hostage abroad',
+  '실성': 'King Silseong of early Silla on his throne, wary and stern',
+  '박제상': 'the loyal Bak Jesang defiant before his Wa captors, refusing to betray Silla, on a windswept shore before his martyrdom',
+  '김무력': 'General Kim Muryeok victorious at Gwansan fortress where the Baekje King Seong fell, planting Silla banners',
+  '진흥왕': 'King Jinheung erecting a tall stone sunsubi monument on a windswept peak, surveying his vastly expanded realm',
+  '이사부': 'General Isabu subduing the island of Usanguk, fearsome wooden lions mounted on his warships at sea',
+  '거칠부': 'the scholar-general Geochilbu compiling the Silla national history with brush and scrolls',
+  '사다함': 'the young hwarang Sadaham first to break through the gates of Daegaya, brave and noble',
+  '김인문': 'prince Kim Inmun as a refined envoy at the Tang court, composed diplomat',
+  '죽지': 'General Jukji of Silla on campaign amid banners',
+  '김유신': 'General Kim Yusin rallying the Silla army at Hwangsanbeol, commanding and resolute',
+  '관창': 'the boy-hwarang Gwanchang charging alone into the Baekje camp at Hwangsanbeol, brave unto death',
+  '알천': 'the veteran general Alcheon, powerful and stern, leader of the Hwabaek council',
+  // 가야
+  '거질미왕': 'King Geojilmi of Geumgwan Gaya in his iron kingdom, surrounded by ironwork and forges',
+  '하지왕': 'King Haji of Daegaya dispatching an envoy to Southern Qi across the sea, dignified',
+  '이시품왕': 'King Isipum of Geumgwan Gaya facing the overwhelming Goguryeo southern campaign, grim',
+  '우륵': 'the master musician Ureuk playing the gayageum he created, composing in melancholy as Gaya wanes',
+  '도설지왕': 'the last King Doseolji of Daegaya as his kingdom falls to Silla, somber and dignified',
+  '월광태자': 'crown prince Wolgwang of Daegaya, melancholy heir of a fading kingdom',
+  // 중국
+  '모용수': 'the warlord Murong Chui founding Later Yan, fierce Xianbei heavy cavalry charging behind',
+  '모용평': 'the Former Yan regent Murong Ping at court, shrewd and proud',
+  '모용희': 'the Later Yan emperor Murong Xi, imperious and volatile, before his palace',
+  '모용성': 'the Later Yan emperor Murong Sheng on campaign, hard-faced',
+  '풍발': 'Feng Ba founding Northern Yan, steady and resolute',
+  '고양': 'Gao Yang founding the Northern Qi dynasty, enthroned in imperial black and gold',
+  '곡율광': 'the Northern Qi general Hulu Guang, a master archer, drawing his great bow on the battlefield',
+  '장량': 'the Tang general Zhang Liang leading the naval crossing of the sea to assault Liaodong',
+  '이도종': 'the Tang prince-general Li Daozong directing the Goguryeo campaign from horseback',
+  '이세민': 'Emperor Taizong of Tang personally leading the vast Tang host across the Liao river against Goguryeo, imperial and commanding',
+  '이세적': 'the Tang general Li Shiji directing the great siege of a Goguryeo fortress, calculating',
+  '설인귀': 'the Tang general Xue Rengui in white armor storming the ramparts, drawing his bow, fearless',
+  // 왜
+  '오토모': 'a Wa Otomo clan warrior-chieftain leading armored warriors aboard ships off the coast',
+  '사데히코': 'Otomo no Sadehiko leading the Wa expedition across the sea toward the Korean peninsula',
+  '소가': 'the powerful Soga clan noble dominating the Yamato court, shrewd and composed',
+  '오노': 'a Wa Yamato general arrayed for battle with keiko-armored troops',
+  '고토쿠': 'Emperor Kotoku of Yamato proclaiming the Taika reforms before his assembled court',
 };
 /* 중국은 인물(시대)별로 의상이 크게 다름 — 한국 세력과 확연히 구분 */
 function chinaStyle(g) {
@@ -252,7 +315,7 @@ function buildPrompt(g) {
     : scholar
     ? ' This figure is a civil strategist/advisor, NOT a king and NOT a heavy-armored soldier: scholarly robes and a soft cap, holding a fan or scroll, no crown.'
     : ' This figure is a military general/officer, NOT a king: a war helmet (or warrior topknot) and battle armor, absolutely no royal crown.';
-  const scene = SCENE_EN[g.name] || (g.f === 'goguryeo' ? FAC_SCENE.goguryeo : null);
+  const scene = SCENE_EN[g.name] || FAC_SCENE[g.f] || null;   // 전 세력 역사 장면 반영
   const sceneClause = scene ? ` Place the figure in the foreground against this historical background scene instead of a plain gradient: ${scene}; keep the character as the clear main focus.` : '';
   return `${COMMON}. Subject: ${subj}. ${style}.${rank}${sceneClause} Faction: ${FAC_NAME[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
 }
