@@ -102,12 +102,28 @@ function archetype(g) {
   if (warrior) return '맹장';
   return '장수';
 }
+/* 특정 인물 나이 보정(역사 반영) — NAME_EN이 없는 인물에 적용. 형용구만(뒤에 'man'이 붙음) */
+const AGE_EN = {
+  '전지왕': 'a youthful, late-twenties',
+  '근구수': 'a vigorous, young',
+  '월광태자': 'a young',
+};
 function ageEN(g) {
-  const isKing = /왕/.test(g.name) && !/태자/.test(g.name);
-  const scholar = (g.int >= 86 && g.int > g.might + 2) && !isKing;
-  if (isKing || scholar || g.int >= 92 || g.lead >= 90) return 'a middle-aged to elderly';
-  if (/태자|관창|사다함/.test(g.name)) return 'a young';
-  return 'a young to middle-aged';
+  if (AGE_EN[g.name]) return AGE_EN[g.name];
+  if (/관창|사다함/.test(g.name)) return 'a teenage';
+  return 'a young';   // 전원 청년 기본
+}
+/* 개별 묘사의 노년·백발·노련 표현을 청년화 */
+function youthify(s) {
+  return s
+    .replace(/\bmiddle-aged to elderly\b/gi, 'young')
+    .replace(/\belderly\b/gi, 'young').replace(/\ban elder\b/gi, 'a young').replace(/\belder\b/gi, 'young')
+    .replace(/\baging\b/gi, 'young').replace(/\baged\b/gi, 'young').replace(/\bmiddle-aged\b/gi, 'young')
+    .replace(/\bveteran\b/gi, '').replace(/\bweathered\b/gi, 'smooth youthful').replace(/\bbattle-scarred\b/gi, 'youthful')
+    .replace(/\bseasoned\b/gi, 'spirited').replace(/\bcareworn\b/gi, 'resolute')
+    .replace(/\blong white beard\b/gi, 'a clean youthful face').replace(/\bwhite beard\b/gi, 'a short beard')
+    .replace(/\blong beard\b/gi, 'a short beard').replace(/\b(grey|gray)-bearded\b/gi, 'youthful')
+    .replace(/\bwrinkl\w*/gi, 'smooth');
 }
 const FAC_EN = { goguryeo: 'Goguryeo (polished silver-steel iron armor with deep crimson-red cloth accents and gold trim)', baekje: 'Baekje (green/gold)', silla: 'Silla (crimson/gold)', gaya: 'Gaya (purple/gold)', china: 'a Chinese northern/Tang-era dynasty (gray/black with imperial accents)', wa: 'Wa/Yamato (white/red)' };
 /* 세력별 고증 참조 — 실제 공개 유물·고분벽화 기반(저작권 무관) */
@@ -316,8 +332,10 @@ function buildPrompt(g) {
     ? ' This figure is a civil strategist/advisor, NOT a king and NOT a heavy-armored soldier: scholarly robes and a soft cap, holding a fan or scroll, no crown.'
     : ' This figure is a military general/officer, NOT a king: a war helmet (or warrior topknot) and battle armor, absolutely no royal crown.';
   const scene = SCENE_EN[g.name] || FAC_SCENE[g.f] || null;   // 전 세력 역사 장면 반영
-  const sceneClause = scene ? ` Place the figure in the foreground against this historical background scene instead of a plain gradient: ${scene}; keep the character as the clear main focus.` : '';
-  return `${COMMON}. Subject: ${subj}. ${style}.${rank}${sceneClause} Faction: ${FAC_NAME[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
+  const sceneClause = scene ? ` Place the figure in the foreground against this historical background scene instead of a plain gradient: ${youthify(scene)}; keep the character as the clear main focus.` : '';
+  subj = youthify(subj);   // 전원 청년화(노년·백발 표현 제거)
+  const YOUTH = ' Render the character as a YOUNG man in his twenties to early thirties (cheongnyeon), handsome and vigorous with smooth youthful skin and a firm jaw; absolutely not elderly, no white/grey hair, no white beard, no heavy wrinkles.';
+  return `${COMMON}. Subject: ${subj}. ${style}.${rank}${sceneClause}${YOUTH} Faction: ${FAC_NAME[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
 }
 
 /* ---------- 세력 폴더 분류 유틸 ---------- */
