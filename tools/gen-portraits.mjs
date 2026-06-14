@@ -52,14 +52,39 @@ function parseGenerals() {
 }
 
 /* ---------- 프롬프트 조립 (PORTRAITS.md와 동일 규칙) ---------- */
-const COMMON = `A bust portrait of an ancient Korean Three-Kingdoms-era figure in the style of Koei's Romance of the Three Kingdoms general portraits, semi-realistic digital painting, head, shoulders and armored upper chest, three-quarter view, dramatic rim lighting, warm amber-to-dark-gold gradient background, lamellar plate armor with leather straps and metal studs, fur shoulder mantle and a flowing crimson cape, gripping a spear or sword when a warrior, highly detailed painterly brushwork, 4:5 aspect ratio, single character, no text, no watermark, no border`;
+const COMMON = `A bust portrait of an ancient Korean Three-Kingdoms-era figure in the style of Koei's Romance of the Three Kingdoms general portraits, semi-realistic digital painting, head, shoulders and armored upper chest, three-quarter view, dramatic rim lighting, warm amber-to-dark-gold gradient background, lamellar plate armor with leather straps and metal studs, fur shoulder mantle and a flowing crimson cape, in a commanding heroic pose, highly detailed painterly brushwork, 4:5 aspect ratio, single character, no text, no watermark, no border`;
 const TYPE_EN = {
-  '왕': 'wearing a golden crown and royal robe, regal calm dignified expression',
+  '왕': 'wearing a golden crown and royal robe, regal calm dignified expression, one hand resting on a sheathed sword',
   '태자': 'a young prince with a light golden circlet, noble refined look',
-  '책사': 'a scholar wearing a headband and robe, calm wise expression, holding a folding fan or scroll',
-  '맹장': 'in heavy lamellar armor with a horned helmet and red plume, fierce intense expression, gripping a spear or glaive',
-  '장수': 'in lamellar armor and a plumed helmet, steady confident expression, holding a spear',
+  '책사': 'a scholar wearing a headband and robe, calm wise expression, holding a folding fan or a bamboo scroll',
+  '맹장': 'in heavy lamellar armor with a horned helmet and red plume, fierce intense expression',
+  '장수': 'in lamellar armor and a plumed helmet, steady confident expression',
 };
+/* 무기 다양화: 묘사에 무기가 없으면 인물명 기반 결정론적으로 배정(전원 창 방지) */
+const WEAPONS = [
+  'a long straight double-edged sword',
+  'a curved single-edged saber',
+  'a long-handled glaive (woldo)',
+  'a heavy halberd (geuk)',
+  'a recurve bow with a quiver of arrows',
+  'a long war spear',
+  'a ring-pommel broadsword (hwandudaedo)',
+  'a long-handled crescent-blade polearm',
+];
+const NAMED_WEAPON = {
+  '양만춘': 'drawing a powerful recurve bow',
+  '설인귀': 'wielding a long halberd',
+  '온달': 'shouldering a massive iron sword',
+  '계백': 'gripping a long curved glaive',
+  '김유신': 'holding a long straight sword',
+  '흑치상지': 'gripping a long-handled glaive',
+  '관창': 'holding a slender light sword',
+  '사다함': 'holding a slender sword',
+  '을지문덕': 'one hand resting on a sheathed sword',
+  '모용수': 'gripping a cavalry saber',
+  '이세민': 'holding a recurve bow',
+};
+function weaponFor(g) { let h = 0; for (const c of g.name) h = (h * 31 + c.charCodeAt(0)) >>> 0; return WEAPONS[h % WEAPONS.length]; }
 function archetype(g) {
   const isKing = /왕/.test(g.name) && !/태자/.test(g.name);
   const isPrince = /태자/.test(g.name);
@@ -144,7 +169,13 @@ const NAME_EN = {
 };
 function buildPrompt(g) {
   const t = archetype(g);
-  const subj = NAME_EN[g.name] || `${ageEN(g)} man, ${TYPE_EN[t]}`;   // 영웅별 고증 묘사가 있으면 그것이 주 묘사(나이·복식 충돌 제거)
+  let subj = NAME_EN[g.name] || `${ageEN(g)} man, ${TYPE_EN[t]}`;   // 영웅별 고증 묘사가 있으면 그것이 주 묘사(나이·복식 충돌 제거)
+  // 무기 다양화: 이미 무기 언급이 없고 왕이 아니면 무기 부여(책사는 지정된 경우만)
+  const hasWeapon = /\b(sword|swords|spear|glaive|saber|bow|halberd|dao|fan|scroll|axe|blade|polearm|broadsword|weapon)\b/i.test(subj);
+  if (!hasWeapon && t !== '왕') {
+    const w = NAMED_WEAPON[g.name] || (t === '책사' ? null : `gripping ${weaponFor(g)}`);
+    if (w) subj += `, ${w}`;
+  }
   return `${COMMON}. ${subj}. Faction: ${FAC_EN[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${FAC_ARMOR[g.f] ? FAC_ARMOR[g.f] + '. ' : ''}${NEGATIVE}.`;
 }
 
