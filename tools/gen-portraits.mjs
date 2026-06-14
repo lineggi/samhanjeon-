@@ -52,13 +52,13 @@ function parseGenerals() {
 }
 
 /* ---------- 프롬프트 조립 (PORTRAITS.md와 동일 규칙) ---------- */
-const COMMON = `A bust portrait of an ancient Korean Three-Kingdoms-era figure in the style of Koei's Romance of the Three Kingdoms general portraits, semi-realistic digital painting, head, shoulders and armored upper chest, three-quarter view, dramatic rim lighting, warm amber-to-dark-gold gradient background, lamellar plate armor with leather straps and metal studs, fur shoulder mantle and a flowing crimson cape, in a commanding heroic pose, highly detailed painterly brushwork, 4:5 aspect ratio, single character, no text, no watermark, no border`;
+const COMMON = `A bust portrait of an ancient East-Asian Three-Kingdoms-era figure in the style of Koei's Romance of the Three Kingdoms general portraits, semi-realistic digital painting, head, shoulders and upper chest, three-quarter view, dramatic rim lighting, in a commanding heroic pose, highly detailed painterly brushwork, 4:5 aspect ratio, single character, no text, no watermark, no border`;
 const TYPE_EN = {
   '왕': 'wearing a golden crown and royal robe, regal calm dignified expression, one hand resting on a sheathed sword',
-  '태자': 'a young prince with a light golden circlet, noble refined look',
-  '책사': 'a scholar wearing a headband and robe, calm wise expression, holding a folding fan or a bamboo scroll',
-  '맹장': 'in heavy lamellar armor with a horned helmet and red plume, fierce intense expression',
-  '장수': 'in lamellar armor and a plumed helmet, steady confident expression',
+  '태자': 'a young prince with a light golden circlet',
+  '책사': 'a scholar wearing a headband and robe, holding a folding fan or a bamboo scroll',
+  '맹장': 'in heavy lamellar armor with a horned helmet and red plume',
+  '장수': 'in lamellar armor and a plumed helmet',
 };
 /* 무기 다양화: 묘사에 무기가 없으면 인물명 기반 결정론적으로 배정(전원 창 방지) */
 const WEAPONS = [
@@ -114,10 +114,28 @@ const FAC_REF = {
   wa: 'historically grounded in Kofun-period Yamato armor and attire',
 };
 const NEGATIVE = 'period-accurate ancient costume, do NOT resemble any modern actor, TV drama still, or existing copyrighted artwork; original imagined face';
-/* 세력별 갑옷 강제 지정 — 정의된 세력만 적용(나머지는 COMMON 그대로) */
-const FAC_ARMOR = {
-  goguryeo: 'CRITICAL armor styling for every Goguryeo character — render the armor exactly like the iconic Goguryeo gaemamusa reconstruction: a full suit of polished silvery iron lamellar made of hundreds of small overlapping rectangular steel scales laced with visible cords, with deep crimson-red cloth trim and lining at the collar, sleeve openings and hem, broad lamellar shoulder guards and a knee-length skirt of iron scales; a tall pointed segmented iron helmet crowned with an upright bright-red horsehair plume and fitted with lamellar neck-guard and cheek-flaps; the overall color scheme is steel-grey metallic iron with crimson-red accents and a few gold rivets — the armor is iron and silver, never blue',
+/* 세력별 의상·망토·배경 — 전원 동일(빨간 망토/호박 배경) 방지, 세력 정체성 부여 */
+const FAC_NAME = {
+  goguryeo: 'Goguryeo', baekje: 'Baekje', silla: 'Silla', gaya: 'Gaya',
+  china: 'a Chinese dynasty (Former Yan / Later Yan / Northern Qi / Tang)', wa: 'Wa / Yamato Japan',
 };
+const FAC_STYLE = {
+  goguryeo: 'Costume: a full suit of polished silvery iron lamellar made of many small overlapping steel scales with deep crimson-red cloth trim, broad lamellar shoulder guards, a pointed segmented iron helmet topped with an upright red horsehair plume and a lamellar neck-guard; steel-and-crimson palette, never blue; cold steel-blue to charcoal gradient background',
+  baekje: 'Costume: elegant Baekje attire — gilt-bronze ornamented scale armor over refined silk robes in jade-green and gold, delicate gilt-bronze cap or crown ornaments with openwork flame motifs (Baekje incense-burner style), a soft green or gold silk sash instead of a red cape; warm jade-green to gold gradient background',
+  silla: 'Costume: ornate Silla regalia — gilded armor heavy with gold ornaments and comma-shaped jade gogok beads, a gold openwork crown or gold-trimmed cap, a crimson-and-gold cape; rich warm gold to deep amber gradient background',
+  gaya: 'Costume: utilitarian Gaya ironwork — dark riveted iron plate armor (pan-gap) and a riveted iron helmet, plain leather straps, muted purple or natural cloth accents, little or no cape; cool slate-grey to steel gradient background',
+  wa: 'Costume: Kofun-period Yamato armor — riveted iron keiko cuirass, a visored shokakutsuki helmet with a neck guard, white-and-red cord lacing, a plain white mantle; pale stone-grey to soft white gradient background',
+};
+/* 중국은 인물(시대)별로 의상이 크게 다름 — 한국 세력과 확연히 구분 */
+function chinaStyle(g) {
+  if (/^모용|^풍발/.test(g.name)) return 'Costume: a Xianbei Former/Later Yan steppe warlord — fur-trimmed lamellar armor, braided hair under a fur-rimmed cap or a pointed nomadic helmet, leather and fur garments, distinctly non-Korean nomadic look; cold dark steppe-blue to charcoal gradient background';
+  if (/^고양|^곡율광/.test(g.name)) return 'Costume: a Northern Qi era general — heavy northern lamellar armor with rounded pauldrons and a tall ridged helmet, sober dark robes; dark slate and bronze gradient background';
+  return 'Costume: a Tang-dynasty general — gilded Mingguang plate armor with two large round polished mirror discs on the chest, beast-head shoulder pauldrons, wide-sleeved court robes, a Tang helmet with an upturned wing crest, distinctly Chinese imperial look; deep black, vermilion and gold, dark crimson gradient background';
+}
+/* 표정·수염 다양화(인물명 결정론적) — 묘사가 이미 있으면 건너뜀 */
+const FACE_VAR = ['with a thick full beard', 'with a long flowing beard', 'with a short pointed beard', 'with a stern mustache and goatee', 'clean-shaven with sharp angular features', 'with a weathered battle-scarred face', 'with a braided beard', 'with a broad rugged face'];
+const MOOD_VAR = ['a fierce battle-hardened glare', 'a calm composed gaze', 'a proud confident look', 'a grim resolute expression', 'a shrewd watchful gaze', 'a bold defiant stare', 'a stern commanding frown', 'an intense piercing stare'];
+function pick(arr, g, salt) { let h = salt >>> 0; for (const c of g.name) h = (h * 31 + c.charCodeAt(0)) >>> 0; return arr[h % arr.length]; }
 /* 주요 영웅 맞춤 묘사 — 인물별 나이·기질·외형 특색(고증/설화 기반) */
 const NAME_EN = {
   // 고구려
@@ -169,14 +187,18 @@ const NAME_EN = {
 };
 function buildPrompt(g) {
   const t = archetype(g);
-  let subj = NAME_EN[g.name] || `${ageEN(g)} man, ${TYPE_EN[t]}`;   // 영웅별 고증 묘사가 있으면 그것이 주 묘사(나이·복식 충돌 제거)
-  // 무기 다양화: 이미 무기 언급이 없고 왕이 아니면 무기 부여(책사는 지정된 경우만)
+  const named = NAME_EN[g.name];
+  let subj = named || `${ageEN(g)} man, ${TYPE_EN[t]}`;   // 영웅별 고증 묘사가 있으면 그것이 주 묘사
+  // 표정·수염 다양화: 개별 묘사가 없는 비왕 장수에만 부여(전원 동일 표정 방지)
+  if (!named && t !== '왕') subj += `, ${pick(FACE_VAR, g, 7)}, ${pick(MOOD_VAR, g, 13)}`;
+  // 무기 다양화: 무기 언급이 없고 왕이 아니면 부여(책사는 지정된 경우만)
   const hasWeapon = /\b(sword|swords|spear|glaive|saber|bow|halberd|dao|fan|scroll|axe|blade|polearm|broadsword|weapon)\b/i.test(subj);
   if (!hasWeapon && t !== '왕') {
     const w = NAMED_WEAPON[g.name] || (t === '책사' ? null : `gripping ${weaponFor(g)}`);
     if (w) subj += `, ${w}`;
   }
-  return `${COMMON}. ${subj}. Faction: ${FAC_EN[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${FAC_ARMOR[g.f] ? FAC_ARMOR[g.f] + '. ' : ''}${NEGATIVE}.`;
+  const style = g.f === 'china' ? chinaStyle(g) : (FAC_STYLE[g.f] || '');
+  return `${COMMON}. Subject: ${subj}. ${style}. Faction: ${FAC_NAME[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
 }
 
 /* ---------- 이미지 변환 (sharp 있으면 webp 4:5, 없으면 원본 png) ---------- */
