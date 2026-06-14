@@ -123,11 +123,26 @@ const FAC_NAME = {
   china: 'a Chinese dynasty (Former Yan / Later Yan / Northern Qi / Tang)', wa: 'Wa / Yamato Japan',
 };
 const FAC_STYLE = {
-  goguryeo: 'Costume: authentic Goguryeo lamellar armor EXACTLY like the reference set — a suit of many small vertical iron/steel plates laced tightly together with visible deep-red cords, polished silver-grey metal with crimson-red lacing and trim, broad lamellar shoulder guards and a lamellar skirt, round gilded lion-mask bosses on the chest and a gold lion-head belt buckle; head is EITHER a pointed iron helmet with a gilded wing-and-lion crest and a tall red-and-black horsehair plume plus a lamellar neck-and-cheek guard, OR a bare warrior head with hair tied in a topknot; a deep crimson cloak fastened with gold lion clasps; steel-grey and crimson color scheme with a few gold accents, NEVER blue; dark amber-to-charcoal gradient background',
+  goguryeo: 'Costume: authentic Goguryeo lamellar armor EXACTLY like the reference set — a suit of many small vertical iron/steel plates laced tightly together with visible deep-red cords, polished silver-grey metal with crimson-red lacing and trim, broad lamellar shoulder guards and a lamellar skirt, round gilded lion-mask bosses on the chest and a gold lion-head belt buckle; head is EITHER a pointed iron helmet with a gilded wing-and-lion crest and a tall red-and-black horsehair plume plus a lamellar neck-and-cheek guard, OR a bare warrior head with hair tied in a topknot; a deep crimson cloak fastened with gold lion clasps; steel-grey and crimson color scheme with a few gold accents, NEVER blue',
   baekje: 'Costume: elegant Baekje attire — gilt-bronze ornamented scale armor over refined silk robes in jade-green and gold, delicate gilt-bronze cap or crown ornaments with openwork flame motifs (Baekje incense-burner style), a soft green or gold silk sash instead of a red cape; warm jade-green to gold gradient background',
   silla: 'Costume: ornate Silla regalia — gilded armor heavy with gold ornaments and comma-shaped jade gogok beads, a gold openwork crown or gold-trimmed cap, a crimson-and-gold cape; rich warm gold to deep amber gradient background',
   gaya: 'Costume: utilitarian Gaya ironwork — dark riveted iron plate armor (pan-gap) and a riveted iron helmet, plain leather straps, muted purple or natural cloth accents, little or no cape; cool slate-grey to steel gradient background',
   wa: 'Costume: Kofun-period Yamato armor — riveted iron keiko cuirass, a visored shokakutsuki helmet with a neck guard, white-and-red cord lacing, a plain white mantle; pale stone-grey to soft white gradient background',
+};
+/* 직접 업로드할 인물 — 자동 생성에서 제외 */
+const SKIP = ['광개토대왕', '고거련', '양만춘', '연개소문'];
+/* 역사 장면 배경 — 단색 배경 대신 그 인물의 사실/설화를 반영한 배경(고구려 우선) */
+const FAC_SCENE = { goguryeo: 'a Goguryeo stone fortress rampart or a war-banner-filled battlefield under a dramatic sky' };
+const SCENE_EN = {
+  '온달': "on a windswept battlefield beside his own upright wooden war-coffin, shouting toward the coffin with grief and resolve, war banners behind — depicting the legend that Ondal's coffin would not move from the battlefield",
+  '소수림왕': 'fighting on the ramparts of a Goguryeo stone fortress, sword raised amid defenders and war banners',
+  '고국원왕': 'on the embattled ramparts of Pyeongyang fortress at dusk, an arrow striking him, grave and defiant amid fire and smoke',
+  '고연수': 'leading the Goguryeo relief host on the open field before Ansi fortress, a vast army and banners arrayed behind',
+  '고혜진': 'on the field before Ansi fortress with the Goguryeo army arrayed behind under a grey sky',
+  '고무': 'a veteran commander standing atop a Liaodong fortress wall, surveying the coming battle',
+  '모두루': 'guarding a lonely northern frontier fortress on the Buyeo border, banners snapping in the cold wind',
+  '양원왕': 'on the walls of the royal capital directing the defense, banners and soldiers behind',
+  '고흘': 'on a Goguryeo fortress rampart amid the clamor of battle',
 };
 /* 중국은 인물(시대)별로 의상이 크게 다름 — 한국 세력과 확연히 구분 */
 function chinaStyle(g) {
@@ -201,7 +216,9 @@ function buildPrompt(g) {
     if (w) subj += `, ${w}`;
   }
   const style = g.f === 'china' ? chinaStyle(g) : (FAC_STYLE[g.f] || '');
-  return `${COMMON}. Subject: ${subj}. ${style}. Faction: ${FAC_NAME[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
+  const scene = SCENE_EN[g.name] || (g.f === 'goguryeo' ? FAC_SCENE.goguryeo : null);
+  const sceneClause = scene ? ` Place the figure in the foreground against this historical background scene instead of a plain gradient: ${scene}; keep the character as the clear main focus.` : '';
+  return `${COMMON}. Subject: ${subj}. ${style}.${sceneClause} Faction: ${FAC_NAME[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
 }
 
 /* ---------- 세력 폴더 분류 유틸 ---------- */
@@ -320,6 +337,7 @@ async function main() {
   if (REGISTER_ONLY) { registerAll(); return; }
   let gens = parseGenerals();
   if (ONLY.length) gens = gens.filter(g => ONLY.includes(g.name));
+  else gens = gens.filter(g => !SKIP.includes(g.name));   // 업로드 예정 인물은 자동 생성 제외(단, --only 지정 시 허용)
   console.log(`대상 장수: ${gens.length}명 / 모델 ${MODEL} / 크기 ${SIZE} / 품질 ${QUALITY}${DRY ? ' (DRY-RUN)' : ''}`);
 
   let made = 0, skipped = 0, failed = 0;
