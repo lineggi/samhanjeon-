@@ -152,7 +152,7 @@ const SCHOLAR_STYLE = {
 /* 직접 업로드할 인물 — 자동 생성에서 제외 */
 const SKIP = ['광개토대왕', '고거련', '양만춘', '연개소문'];
 /* 이름에 '왕'이 없지만 군주(왕/마립간) — 왕 의상 적용 */
-const ROYAL_NAMES = new Set(['눌지', '실성']);
+const ROYAL_NAMES = new Set(['눌지', '실성', '근구수']);
 function isRoyalG(g) { return (/왕/.test(g.name) && !/태자/.test(g.name)) || /태자/.test(g.name) || ROYAL_NAMES.has(g.name); }
 /* 역사 장면 배경 — 단색 배경 대신 그 인물의 사실/설화를 반영한 배경(고구려 우선) */
 const FAC_SCENE = { goguryeo: 'a Goguryeo stone fortress rampart or a war-banner-filled battlefield under a dramatic sky' };
