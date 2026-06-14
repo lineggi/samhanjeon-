@@ -1,0 +1,9 @@
+# 의존성(이미지 생성 도구용 — git에 올리지 않음)
+node_modules/
+package.json
+package-lock.json
+
+# OS/에디터 잡파일
+.DS_Store
+Thumbs.db
+*.log
