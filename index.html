@@ -806,7 +806,8 @@ function shade(hex,amt){let c=hex.replace('#','');if(c.length===3)c=c.split('').
 /* 장수 일러스트 매니페스트: 이름→이미지 경로. 항목이 있으면 그 일러스트를, 없으면 절차적 SVG로 폴백.
    예) '광개토대왕':'assets/portraits/광개토대왕.webp'  (이미지를 추가할 때마다 한 줄씩 등록) */
 const PORTRAITS={
-  // '광개토대왕':'assets/portraits/광개토대왕.webp',
+  // 자동 생성: tools/gen-portraits.mjs 가 폴더를 스캔해 갱신합니다.
+  '광개토대왕':'assets/portraits/광개토대왕.webp',
 };
 function genPortrait(g){
   const src=g&&g.name?PORTRAITS[g.name]:null;
@@ -2557,6 +2558,27 @@ const EVENT_ART={
 };
 /* 이벤트 일러스트(생성물) — tools/gen-events.mjs 가 폴더 스캔해 갱신. 없으면 절차 SVG(eventArt)로 폴백 */
 const EVENT_IMG={
+  g_chiljido:'assets/events/g_chiljido.webp',
+  g_intro:'assets/events/g_intro.webp',
+  g_mahan:'assets/events/g_mahan.webp',
+  g_pyeongyang:'assets/events/g_pyeongyang.webp',
+  g_sosurim:'assets/events/g_sosurim.webp',
+  j_daegaya:'assets/events/j_daegaya.webp',
+  j_gwansan:'assets/events/j_gwansan.webp',
+  j_hangang:'assets/events/j_hangang.webp',
+  j_intro:'assets/events/j_intro.webp',
+  j_sunsubi:'assets/events/j_sunsubi.webp',
+  u_ansi:'assets/events/u_ansi.webp',
+  u_decree:'assets/events/u_decree.webp',
+  u_fall:'assets/events/u_fall.webp',
+  u_retreat:'assets/events/u_retreat.webp',
+  u_war1:'assets/events/u_war1.webp',
+  w_baekje:'assets/events/w_baekje.webp',
+  w_buyeo:'assets/events/w_buyeo.webp',
+  w_hanseong:'assets/events/w_hanseong.webp',
+  w_intro:'assets/events/w_intro.webp',
+  w_namjeong:'assets/events/w_namjeong.webp',
+  w_yodong:'assets/events/w_yodong.webp',
 };
 function eventArt(type){
   const W=320,H=140,DK='#0d0a06';
