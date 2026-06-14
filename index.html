@@ -218,6 +218,15 @@ svg{width:100%;height:100%;display:block}
 .fpick .fh{display:flex;align-items:center;gap:9px;font-family:'Pretendard';font-weight:800;font-size:19px}
 .fpick .fmeta{font-size:11px;color:#b8a880;margin-top:8px}
 .fpick .fd{font-size:11px;color:#9c8c6a;margin-top:6px;line-height:1.5}
+.herostage{display:flex;gap:16px;align-items:center;margin:0 auto 16px;max-width:540px;min-height:172px;border:1.5px solid #4a3a24;border-radius:8px;background:linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.12));padding:13px;box-shadow:0 8px 26px rgba(0,0,0,.4)}
+.herostage .hsimg{width:138px;height:172px;flex:0 0 auto;border-radius:6px;overflow:hidden;border:1px solid #5a4a30;background:#2a2018;box-shadow:0 6px 18px rgba(0,0,0,.55)}
+.herostage .hsinfo{flex:1;text-align:left;min-width:0}
+.herostage .hsname{font-family:'Gugi';font-size:30px;line-height:1.1}
+.herostage .hssub{font-size:13px;color:#b8a880;margin-top:6px}
+.herostage .hsstats{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+.herostage .hsstats span{font-size:12px;color:#e7dcc0;background:rgba(0,0,0,.35);border:1px solid #4a3a24;border-radius:4px;padding:3px 9px}
+.herostage .hshint{font-size:12px;color:#9c8c6a;margin-top:12px;line-height:1.5}
+.herostage .hsempty{margin:auto;color:#9c8c6a;font-size:14px}
 .captured{display:flex;align-items:center;gap:14px;justify-content:center;margin:18px 0;padding:14px;border:1px solid #3a2c1c;border-radius:6px;background:rgba(0,0,0,.3)}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1d160d;border:1.5px solid var(--gold);color:var(--paper);padding:12px 22px;border-radius:4px;z-index:300;font-family:'Pretendard';font-weight:700;opacity:0;transition:.3s;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.6)}
 .verbanner{position:fixed;top:0;left:0;right:0;z-index:600;display:none;align-items:center;justify-content:center;gap:12px;padding:8px 12px;background:linear-gradient(180deg,#2a2114,#1a140c);border-bottom:1px solid var(--gold);color:#f0d98a;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.5)}
@@ -272,6 +281,11 @@ svg{width:100%;height:100%;display:block}
   .legend{font-size:10px;padding:6px 8px}
   /* 모바일: 출진 버튼을 세력 선택 위로(스크롤 없이 바로 닿게) + 상단 고정 */
   .fpwrap .startbtn{order:-1;margin:0 0 6px;position:sticky;top:0;z-index:4;width:100%;box-shadow:0 6px 16px rgba(0,0,0,.55)}
+  .herostage{gap:12px;min-height:148px;padding:11px}
+  .herostage .hsimg{width:108px;height:135px}
+  .herostage .hsname{font-size:24px}
+  .herostage .hssub{font-size:12px}
+  .herostage .hshint{display:none}
 }
 @media (max-width:420px){
   .actions{grid-template-columns:1fr 1fr}
@@ -2776,21 +2790,47 @@ function showFactionPick(){
     let gobjs=sc.gens.filter(g=>g[1]===f).slice(0,4).map(a=>({name:a[0],f:a[1],lead:a[3],might:a[4],int:a[5]}));
     let thumbs=gobjs.map(o=>`<div class="pthumb">${genPortrait(o)}</div>`).join('');
     let gnames=sc.gens.filter(g=>g[1]===f).slice(0,3).map(g=>g[0]).join(', ');
-    picks+=`<div class="fpick" id="fp-${f}" onclick="pickF('${f}')" style="border-color:${fcolor(f)}">
+    picks+=`<div class="fpick" id="fp-${f}" onclick="pickF('${f}')" onmouseenter="showHero('${f}')" onmouseleave="showHero(chosenF||heroDefaultF)" style="border-color:${fcolor(f)}">
       <div class="fh" style="color:${fcolor(f)}"><span class="dot" style="background:${fcolor(f)}"></span>${FACTIONS[f].name}</div>
       <div class="fmeta">성 ${cnt}개 · 국력 <b style="color:${fcolor(f)}">${lvl}</b></div>
       <div class="pthumbs">${thumbs}</div>
       <div class="fd">${gnames}${sc.gens.filter(g=>g[1]===f).length>3?' 등':''}</div></div>`;
   });
+  heroDefaultF=sc.factions[0];
   $('centerBox').innerHTML=`<div class="back" onclick="showEra()">◂ 시대 다시 선택</div>
     <h1 style="font-size:34px">${pickedEra.year}<small>${pickedEra.name}</small></h1>
     <p>그대가 이끌 나라를 택하라. 성의 개수가 그 나라의 영토 크기다.</p>
     <div class="fpwrap">
+      <div class="herostage" id="herostage"></div>
       <div class="factionpick">${picks}</div>
       <button class="btn startbtn" id="startBtn" disabled onclick="beginGame()">출진(出陣) ▶</button>
     </div>`;
+  showHero(heroDefaultF);
 }
-function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.classList.remove('active'));$('fp-'+f).classList.add('active');$('startBtn').disabled=false;}
+let heroDefaultF=null;
+/* 그 시대·세력에서 능력치 합이 가장 높은 대표 무장 */
+function repHero(f){
+  if(!pickedEra)return null;
+  const gs=pickedEra.gens.filter(g=>g[1]===f).map(a=>({name:a[0],f:a[1],lead:a[3],might:a[4],int:a[5]}));
+  if(!gs.length)return null;
+  return gs.sort((a,b)=>(b.lead+b.might+b.int)-(a.lead+a.might+a.int))[0];
+}
+function showHero(f){
+  const st=$('herostage'); if(!st)return;
+  const h=f?repHero(f):null;
+  if(!h){st.style.borderColor='#4a3a24';st.innerHTML='<div class="hsempty">세력을 선택하면 대표 무장이 나타난다</div>';return;}
+  const col=fcolor(f);
+  const fname=f==='china'?(pickedEra.cname||FACTIONS.china.name):FACTIONS[f].name;
+  st.style.borderColor=col;
+  st.innerHTML=`<div class="hsimg">${genPortrait(h)}</div>
+    <div class="hsinfo">
+      <div class="hsname" style="color:${col}">${h.name}</div>
+      <div class="hssub">${fname} 대표 무장</div>
+      <div class="hsstats"><span>통솔 ${h.lead}</span><span>무력 ${h.might}</span><span>지력 ${h.int}</span></div>
+      <div class="hshint">${chosenF===f?'출진 준비 완료':'카드를 눌러 이 나라를 선택하라'}</div>
+    </div>`;
+}
+function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.classList.remove('active'));$('fp-'+f).classList.add('active');$('startBtn').disabled=false;showHero(f);}
 function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEvents=[];marchQueue=[];eliminatedFactions=[];eliminatedThisTurn=[];clearUndo();$('centerOverlay').classList.remove('on');render();
   focusOnCapital(player);   // PC: 시작 시 우리 수도로 줌인
   const evs=takeDueEvents();   // 1턴(개전) 이벤트
@@ -2801,7 +2841,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.19.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.20.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
