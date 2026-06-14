@@ -38,6 +38,7 @@ const FORCE = has('--force');
 const REGISTER_ONLY = has('--register-only');
 const ORGANIZE = has('--organize');   // 기존 평면 파일을 세력별 폴더로 이동
 const NO_REF = has('--no-ref');       // 레퍼런스 이미지 무시하고 텍스트로만 생성
+const OPTIMIZE = has('--optimize');   // 큰 png/jpg 초상을 webp로 압축
 const ONLY = (val('--only') || '').split(',').map(s => s.trim()).filter(Boolean);
 
 const MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
@@ -167,7 +168,7 @@ const SCHOLAR_STYLE = {
   wa: "Costume: a Yamato court strategist — white-and-red robes and a soft cap, holding a scroll (NO heavy armor, NO crown)",
 };
 /* 직접 업로드할 인물 — 자동 생성에서 제외 */
-const SKIP = ['광개토대왕', '고거련', '양만춘', '연개소문'];
+const SKIP = ['광개토대왕', '고거련', '양만춘', '연개소문', '김춘추'];
 /* 이름에 '왕'이 없지만 군주(왕/마립간) — 왕 의상 적용 */
 const ROYAL_NAMES = new Set(['눌지', '실성', '근구수']);
 function isRoyalG(g) { return (/왕/.test(g.name) && !/태자/.test(g.name)) || /태자/.test(g.name) || ROYAL_NAMES.has(g.name); }
@@ -397,6 +398,24 @@ function organize() {
   }
   console.log(`세력별 정리 완료: ${moved}개 이동`);
 }
+/* 큰 png/jpg 초상을 webp(600x750)로 압축 — 로딩 속도 개선 */
+async function optimize() {
+  let sharp = null;
+  try { sharp = (await import('sharp')).default; } catch (_) { console.error('sharp가 필요합니다: npm i sharp'); return; }
+  const files = walkImages(OUTDIR).filter(f => /\.(png|jpe?g)$/i.test(f));
+  let done = 0, before = 0, after = 0;
+  for (const fp of files) {
+    const out = fp.replace(/\.(png|jpe?g)$/i, '.webp');
+    try {
+      before += fs.statSync(fp).size;
+      await sharp(fp).resize(OUT_W, OUT_H, { fit: 'cover', position: 'top' }).webp({ quality: 82 }).toFile(out);
+      after += fs.statSync(out).size; fs.unlinkSync(fp);
+      console.log('  ✓ ' + path.relative(ROOT, fp) + ' → webp'); done++;
+    } catch (e) { console.log('  ✗ ' + fp + ' ' + e.message); }
+  }
+  console.log(`최적화 완료: ${done}개, ${(before / 1048576).toFixed(1)}MB → ${(after / 1048576).toFixed(2)}MB`);
+  registerAll();
+}
 
 /* ---------- OpenAI 이미지 생성 ---------- */
 /* 세력별 레퍼런스 이미지(최대 4장) — assets/refs/<세력>/ */
@@ -465,6 +484,7 @@ ${lines}
 
 /* ---------- 메인 ---------- */
 async function main() {
+  if (OPTIMIZE) { await optimize(); return; }
   if (ORGANIZE) { organize(); registerAll(); return; }
   if (REGISTER_ONLY) { registerAll(); return; }
   let gens = parseGenerals();

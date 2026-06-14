@@ -825,41 +825,74 @@ function shade(hex,amt){let c=hex.replace('#','');if(c.length===3)c=c.split('').
    예) '광개토대왕':'assets/portraits/광개토대왕.webp'  (이미지를 추가할 때마다 한 줄씩 등록) */
 const PORTRAITS={
   // 자동 생성: tools/gen-portraits.mjs 가 폴더를 스캔해 갱신합니다.
-  '계백':'assets/portraits/baekje/계백.png',
-  '고거련':'assets/portraits/goguryeo/고거련.png',
+  '거질미왕':'assets/portraits/gaya/거질미왕.webp',
+  '거칠부':'assets/portraits/silla/거칠부.webp',
+  '계백':'assets/portraits/baekje/계백.webp',
+  '고거련':'assets/portraits/goguryeo/고거련.webp',
   '고국원왕':'assets/portraits/goguryeo/고국원왕.webp',
   '고무':'assets/portraits/goguryeo/고무.webp',
   '고양':'assets/portraits/china/고양.webp',
-  '고연수':'assets/portraits/goguryeo/고연수.png',
+  '고연수':'assets/portraits/goguryeo/고연수.webp',
+  '고토쿠':'assets/portraits/wa/고토쿠.webp',
+  '고혜진':'assets/portraits/goguryeo/고혜진.webp',
   '고흘':'assets/portraits/goguryeo/고흘.webp',
+  '고흥':'assets/portraits/baekje/고흥.webp',
   '곡율광':'assets/portraits/china/곡율광.webp',
-  '관창':'assets/portraits/silla/관창.png',
-  '광개토대왕':'assets/portraits/goguryeo/광개토대왕.png',
-  '근구수왕':'assets/portraits/baekje/근구수왕.png',
-  '근초고왕':'assets/portraits/baekje/근초고왕.png',
-  '김유신':'assets/portraits/silla/김유신.png',
-  '김춘추':'assets/portraits/silla/김춘추.png',
+  '관창':'assets/portraits/silla/관창.webp',
+  '광개토대왕':'assets/portraits/goguryeo/광개토대왕.webp',
+  '근구수왕':'assets/portraits/baekje/근구수왕.webp',
+  '근초고왕':'assets/portraits/baekje/근초고왕.webp',
+  '김무력':'assets/portraits/silla/김무력.webp',
+  '김유신':'assets/portraits/silla/김유신.webp',
+  '김인문':'assets/portraits/silla/김인문.webp',
+  '김춘추':'assets/portraits/silla/김춘추.webp',
+  '내물왕':'assets/portraits/silla/내물왕.webp',
+  '눌지':'assets/portraits/silla/눌지.webp',
+  '도설지왕':'assets/portraits/gaya/도설지왕.webp',
+  '막고해':'assets/portraits/baekje/막고해.webp',
   '모두루':'assets/portraits/goguryeo/모두루.webp',
   '모용성':'assets/portraits/china/모용성.webp',
   '모용수':'assets/portraits/china/모용수.webp',
   '모용평':'assets/portraits/china/모용평.webp',
   '모용희':'assets/portraits/china/모용희.webp',
+  '박제상':'assets/portraits/silla/박제상.webp',
+  '사다함':'assets/portraits/silla/사다함.webp',
+  '사데히코':'assets/portraits/wa/사데히코.webp',
   '설인귀':'assets/portraits/china/설인귀.webp',
+  '성왕':'assets/portraits/baekje/성왕.webp',
+  '성충':'assets/portraits/baekje/성충.webp',
+  '소가':'assets/portraits/wa/소가.webp',
   '소수림왕':'assets/portraits/goguryeo/소수림왕.webp',
-  '양만춘':'assets/portraits/goguryeo/양만춘.png',
+  '실성':'assets/portraits/silla/실성.webp',
+  '아신왕':'assets/portraits/baekje/아신왕.webp',
+  '알천':'assets/portraits/silla/알천.webp',
+  '양만춘':'assets/portraits/goguryeo/양만춘.webp',
   '양원왕':'assets/portraits/goguryeo/양원왕.webp',
-  '연개소문':'assets/portraits/goguryeo/연개소문.png',
+  '연개소문':'assets/portraits/goguryeo/연개소문.webp',
+  '연회':'assets/portraits/baekje/연회.webp',
+  '오노':'assets/portraits/wa/오노.webp',
   '오토모':'assets/portraits/wa/오토모.webp',
   '온달':'assets/portraits/goguryeo/온달.webp',
+  '우륵':'assets/portraits/gaya/우륵.webp',
+  '월광태자':'assets/portraits/gaya/월광태자.webp',
+  '위덕왕':'assets/portraits/baekje/위덕왕.webp',
+  '윤충':'assets/portraits/baekje/윤충.webp',
+  '의자왕':'assets/portraits/baekje/의자왕.webp',
   '이도종':'assets/portraits/china/이도종.webp',
-  '이사부':'assets/portraits/silla/이사부.png',
-  '이세민':'assets/portraits/china/이세민.png',
+  '이사부':'assets/portraits/silla/이사부.webp',
+  '이사부02':'assets/portraits/silla/이사부02.png',
+  '이세민':'assets/portraits/china/이세민.webp',
   '이세적':'assets/portraits/china/이세적.webp',
+  '이시품왕':'assets/portraits/gaya/이시품왕.webp',
   '장량':'assets/portraits/china/장량.webp',
   '전지왕':'assets/portraits/baekje/전지왕.webp',
-  '진흥왕':'assets/portraits/silla/진흥왕.png',
+  '죽지':'assets/portraits/silla/죽지.webp',
+  '진무':'assets/portraits/baekje/진무.webp',
+  '진흥왕':'assets/portraits/silla/진흥왕.webp',
   '풍발':'assets/portraits/china/풍발.webp',
-  'rhgowls':'assets/portraits/goguryeo/rhgowls.png',
+  '하지왕':'assets/portraits/gaya/하지왕.webp',
+  '해충':'assets/portraits/baekje/해충.webp',
+  '흑치상지':'assets/portraits/baekje/흑치상지.webp',
 };
 /* 실제 이름(휘) + 칭호(시호·묘호) — 내부 키(g.name)는 유지, 표시만 변경 */
 const HERO_TITLE={
@@ -1089,7 +1122,7 @@ function showHelp(){
     ${sec('🚩 성 키우기','징용(금·백성 → 병력) · 훈련(사기·훈련도) · 🧱축성(수비력) · 🌾둔전(군량 생산). 병력 이동·장수 이동으로 전선을 다집니다.')}
     ${sec('⚔ 출병과 전법','출병하면 보낼 병력 수를 직접 정합니다. 전법 상성은 돌격▶궁격▶계략▶돌격 — 적 전법을 받아치면 위력이 오르고 사기를 깎습니다. 일기토는 무력 대결(3선 2승), 수비는 피해를 줄입니다.')}
     ${sec('🪖 병종','세력 고유 — 고구려 개마무사(돌격), 백제 궁수(궁격), 신라 화랑(일기토), 가야 판갑(방어), 당 부병(전법+쇠뇌), 왜병(돌격).')}
-    ${sec('✦ 세력 특기','상단 특기 버튼으로 발동(쿨다운) — 신라 세속오계·백제 결사대·가야 철벽진·왜 해적기습·중국 대군물량. 고구려는 수비 시 청야전술(적 사기 절반·병력↓).')}
+    ${sec('✦ 세력 특기','상단 특기 버튼으로 발동(쿨다운) — 신라 세속오계·백제 결사대·가야 철벽진·왜 해적기습·중국 대군물량. 고구려는 수비 시 청야전술(적 사기 -30%·병력↓).')}
     ${sec('🌾 군량·보급·계절','병력은 매 턴 군량을 먹습니다. 도성과 길이 끊긴 성은 보급이 막혀 기근이 듭니다. 봄·가을은 풍년, 겨울은 보급난.')}
     ${sec('🗓 연도와 이벤트','6턴이 흐르면 한 해가 지납니다. 그 해에 맞춰 역사 이벤트가 일어나 영토가 바뀌기도 합니다.')}
     ${sec('🌫 정찰','내 영토에 닿은 적 성만 병력·장수가 보입니다. 나머지는 안갯속.')}
@@ -2153,13 +2186,13 @@ function openBattle(fromId,toId,opts){
     B.D.morale=Math.max(8,B.D.morale-15);
   }
   B.scorched=(B.D.p.owner==='goguryeo');   // 고구려 수비 시 청야전술
-  if(B.scorched){B.A.troops=Math.round(B.A.troops*0.9);B.A.morale=Math.round(B.A.morale*0.5);}
+  if(B.scorched){B.A.troops=Math.round(B.A.troops*0.9);B.A.morale=Math.round(B.A.morale*0.7);}
   B.A.startT=B.A.troops;B.D.startT=B.D.troops;
   B.siege=B.D.wall>=2; B.wallMax=20+B.D.wall*18; B.wallHP=B.wallMax; B.breached=false;   // 공성전: 성벽 내구도
   if(B.siege)blog('sys',`🏯 공성전 — ${B.D.p.name} 성벽 ${B.D.wall}성(내구 ${B.wallMax}). 돌격·계략으로 성벽을 허물어야 적을 압도한다`);
   if(B.A.lowFood)blog('atk',`🌾 군량 부족 — 아군 사기 -15`);
   if(B.D.lowFood)blog('def',`🌾 군량 부족 — 적 사기 -15`);
-  if(B.scorched)blog('def',`🔥 청야전술 — 고구려가 들판을 비우고 굳게 지키니, 공격군 병력 -10%·사기 절반`);
+  if(B.scorched)blog('def',`🔥 청야전술 — 고구려가 들판을 비우고 굳게 지키니, 공격군 병력 -10%·사기 -30%`);
   {const fa=activeSkill(B.A.p.owner);if(fa)blog('atk',`${fa.icon} ${fa.name} 발동 중 — ${fa.desc}`);const fd=activeSkill(B.D.p.owner);if(fd)blog('def',`${fd.icon} ${fd.name} 발동 중 — ${fd.desc}`);}
   if(B.pincer)blog('sys',`🦅 협공! ${(opts.names||[]).join('·')}의 군이 합세한다 (병력 +${fmt(opts.extra||0)}, 적은 포위되어 사기 저하)`);
   blog('sys',`${prov(fromId).name}의 군이 ${prov(toId).name}으로 진군한다!`);
@@ -2515,7 +2548,7 @@ function playAiMoves(moves,i,done){
 function aiBattle(fromId,toId,opts){
   let A=mkArmy(fromId,true),D=mkArmy(toId,false);
   if(opts&&opts.pincer){A.troops+=opts.extra||0;D.morale=Math.max(8,D.morale-15);}
-  if(prov(toId).owner==='goguryeo'){A.troops=Math.round(A.troops*0.9);A.morale=Math.round(A.morale*0.5);} // 청야전술(고구려 수비)
+  if(prov(toId).owner==='goguryeo'){A.troops=Math.round(A.troops*0.9);A.morale=Math.round(A.morale*0.7);} // 청야전술(고구려 수비)
   A.startT=A.troops;D.startT=D.troops;
   const Bsave=B;B={D,pincer:!!(opts&&opts.pincer)};
   for(let i=0;i<14&&A.troops>0&&D.troops>0&&A.morale>0&&D.morale>0;i++){
@@ -2876,11 +2909,20 @@ function showFactionPick(){
 }
 let heroDefaultF=null;
 /* 그 시대·세력에서 능력치 합이 가장 높은 대표 무장 */
+/* 군주(왕·마립간·천황·황제) 판별 — 태자 제외 */
+function isMonarch(name){
+  if(/태자/.test(name))return false;
+  if(/왕/.test(name))return true;
+  const t=(HERO_TITLE[name]||{}).title||'';
+  return /마립간|천황/.test(t)||t.endsWith('제')||t.includes('태종');
+}
 function repHero(f){
   if(!pickedEra)return null;
   const gs=pickedEra.gens.filter(g=>g[1]===f).map(a=>({name:a[0],f:a[1],lead:a[3],might:a[4],int:a[5]}));
   if(!gs.length)return null;
-  return gs.sort((a,b)=>(b.lead+b.might+b.int)-(a.lead+a.might+a.int))[0];
+  const kings=gs.filter(g=>isMonarch(g.name));   // 대표는 그 세력의 왕(군주) 우선
+  const pool=kings.length?kings:gs;              // 군주가 없으면(예: 645 고구려) 최고 무장
+  return pool.sort((a,b)=>(b.lead+b.might+b.int)-(a.lead+a.might+a.int))[0];
 }
 function showHero(f){
   const st=$('herostage'); if(!st)return;
@@ -2934,7 +2976,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.27.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.30.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
