@@ -226,7 +226,7 @@ const NAME_EN = {
   '오토모': 'a Wa Yamato Kofun-era chieftain-warrior, stern face, keiko lamellar armor and a visored helmet',
   '소가': 'a powerful Wa Yamato noble-general, composed shrewd face, Kofun-era armor',
 };
-const NO_WEAPON_POSE = ['standing in a confident commanding pose with arms crossed', 'in a calm dignified stance with hands clasped behind the back', 'arms relaxed at his sides in a steady commanding stance', 'one hand resting calmly at his belt'];
+const NO_WEAPON_POSE = ['standing in a confident commanding pose with arms crossed', 'in a calm dignified stance with hands clasped behind the back', 'arms relaxed at his sides in a steady commanding stance', 'in a composed dignified bust pose, empty-handed'];
 function buildPrompt(g) {
   const t = archetype(g);
   const royal = isRoyalG(g);
@@ -239,7 +239,7 @@ function buildPrompt(g) {
   const hasWeapon = /\b(sword|swords|spear|glaive|saber|bow|halberd|dao|fan|scroll|axe|blade|polearm|broadsword|weapon)\b/i.test(subj);
   if (!hasWeapon && !royal && !scholar) {
     if (NAMED_WEAPON[g.name]) subj += `, ${NAMED_WEAPON[g.name]}`;
-    else if (pick([0, 1, 2, 3, 4], g, 23) < 3) subj += `, gripping ${weaponFor(g)}`;
+    else if (pick([0, 1, 2, 3, 4], g, 23) < 2) subj += `, gripping ${weaponFor(g)}`;   // 약 40%만 무기
     else subj += `, ${pick(NO_WEAPON_POSE, g, 31)}`;
   }
   const style = g.f === 'china' ? chinaStyle(g)
@@ -248,7 +248,7 @@ function buildPrompt(g) {
     : (FAC_STYLE[g.f] || '');
   // 신분 명시(왕/책사/장군 구분)
   const rank = g.f === 'china' ? '' : royal
-    ? ' This figure is a KING/monarch: he wears a royal crown and royal robes, regal and dignified.'
+    ? ' This figure is a KING/monarch: an era-appropriate gold or gilt-bronze crown and Three-Kingdoms-period silk robes, regal and dignified — NOT a later Goryeo/Joseon Chinese-style dragon robe (gonryongpo), no dragon emblems.'
     : scholar
     ? ' This figure is a civil strategist/advisor, NOT a king and NOT a heavy-armored soldier: scholarly robes and a soft cap, holding a fan or scroll, no crown.'
     : ' This figure is a military general/officer, NOT a king: a war helmet (or warrior topknot) and battle armor, absolutely no royal crown.';
