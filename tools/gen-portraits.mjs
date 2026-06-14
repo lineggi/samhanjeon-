@@ -10,6 +10,8 @@
  *   node tools/gen-portraits.mjs --force    # 이미 있어도 다시 생성
  *   node tools/gen-portraits.mjs --dry-run  # 호출 없이 대상/프롬프트만 출력
  *   node tools/gen-portraits.mjs --register-only   # 폴더 스캔해 PORTRAITS만 갱신
+ *   node tools/gen-portraits.mjs --organize        # 기존 평면 이미지를 세력별 폴더로 이동 + 재등록
+ *   (생성 시에도 assets/portraits/<세력>/ 하위 폴더에 자동 분류 저장)
  *
  * 옵션 환경변수:
  *   OPENAI_IMAGE_MODEL (기본 gpt-image-1)
@@ -31,6 +33,7 @@ const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null
 const DRY = has('--dry-run');
 const FORCE = has('--force');
 const REGISTER_ONLY = has('--register-only');
+const ORGANIZE = has('--organize');   // 기존 평면 파일을 세력별 폴더로 이동
 const ONLY = (val('--only') || '').split(',').map(s => s.trim()).filter(Boolean);
 
 const MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
@@ -201,21 +204,63 @@ function buildPrompt(g) {
   return `${COMMON}. Subject: ${subj}. ${style}. Faction: ${FAC_NAME[g.f] || g.f}; ${FAC_REF[g.f] || ''}. ${NEGATIVE}.`;
 }
 
-/* ---------- 이미지 변환 (sharp 있으면 webp 4:5, 없으면 원본 png) ---------- */
+/* ---------- 세력 폴더 분류 유틸 ---------- */
+function facOf(name) {   // 인물 → 세력 폴더명(goguryeo/baekje/...)
+  if (!facOf._m) { facOf._m = {}; parseGenerals().forEach(g => { facOf._m[g.name] = g.f; }); }
+  return facOf._m[name] || '_misc';
+}
+function walkImages(dir) {   // 하위폴더 포함 이미지 재귀 수집
+  const out = [];
+  if (!fs.existsSync(dir)) return out;
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fp = path.join(dir, ent.name);
+    if (ent.isDirectory()) out.push(...walkImages(fp));
+    else if (/\.(webp|png|jpg|jpeg)$/i.test(ent.name)) out.push(fp);
+  }
+  return out;
+}
+function findExisting(name) {   // 세력폴더·평면 어디에 있든 기존 파일 탐지
+  for (const dir of [path.join(OUTDIR, facOf(name)), OUTDIR])
+    for (const e of ['webp', 'png', 'jpg', 'jpeg']) {
+      const fp = path.join(dir, `${name}.${e}`);
+      if (fs.existsSync(fp)) return fp;
+    }
+  return null;
+}
+
+/* ---------- 이미지 변환 (sharp 있으면 webp 4:5, 없으면 원본 png) — 세력 폴더에 저장 ---------- */
 async function saveImage(buf, name) {
-  fs.mkdirSync(OUTDIR, { recursive: true });
+  const dir = path.join(OUTDIR, facOf(name));
+  fs.mkdirSync(dir, { recursive: true });
   let sharp = null;
   try { sharp = (await import('sharp')).default; } catch (_) {}
   if (sharp) {
-    const out = path.join(OUTDIR, `${name}.webp`);
+    const out = path.join(dir, `${name}.webp`);
     await sharp(buf).resize(OUT_W, OUT_H, { fit: 'cover', position: 'top' }).webp({ quality: 82 }).toFile(out);
     return path.relative(ROOT, out);
   } else {
-    const out = path.join(OUTDIR, `${name}.png`);
+    const out = path.join(dir, `${name}.png`);
     fs.writeFileSync(out, buf);
     console.warn('  ⚠ sharp 미설치 → png 원본 저장(권장: npm i sharp). 파일:', path.relative(ROOT, out));
     return path.relative(ROOT, out);
   }
+}
+/* 기존 평면 파일을 세력별 폴더로 이동 */
+function organize() {
+  const items = fs.existsSync(OUTDIR) ? fs.readdirSync(OUTDIR, { withFileTypes: true }) : [];
+  let moved = 0;
+  for (const ent of items) {
+    if (!ent.isFile() || !/\.(webp|png|jpg|jpeg)$/i.test(ent.name)) continue;
+    const name = ent.name.replace(/\.(webp|png|jpg|jpeg)$/i, '');
+    const fac = facOf(name);
+    if (fac === '_misc') { console.warn('  ? 세력 불명 → 유지:', ent.name); continue; }
+    const dir = path.join(OUTDIR, fac);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.renameSync(path.join(OUTDIR, ent.name), path.join(dir, ent.name));
+    console.log(`  ${ent.name} → ${fac}/`);
+    moved++;
+  }
+  console.log(`세력별 정리 완료: ${moved}개 이동`);
 }
 
 /* ---------- OpenAI 이미지 생성 ---------- */
@@ -247,10 +292,14 @@ async function generate(prompt) {
 
 /* ---------- index.html의 PORTRAITS 블록 자동 갱신 ---------- */
 function registerAll() {
-  const files = fs.existsSync(OUTDIR) ? fs.readdirSync(OUTDIR).filter(f => /\.(webp|png|jpg|jpeg)$/i.test(f)) : [];
-  const entries = files
-    .map(f => ({ name: f.replace(/\.(webp|png|jpg|jpeg)$/i, ''), p: `assets/portraits/${f}` }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  const files = walkImages(OUTDIR);   // 세력 하위폴더까지 재귀 스캔
+  const seen = {};
+  files.forEach(fp => {
+    const name = path.basename(fp).replace(/\.(webp|png|jpg|jpeg)$/i, '');
+    const p = path.relative(ROOT, fp).split(path.sep).join('/');
+    if (!seen[name] || /\.webp$/i.test(p)) seen[name] = { name, p };   // 같은 이름이면 webp 우선
+  });
+  const entries = Object.values(seen).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   const lines = entries.map(e => `  '${e.name}':'${e.p}',`).join('\n');
   const block =
 `const PORTRAITS={
@@ -267,6 +316,7 @@ ${lines}
 
 /* ---------- 메인 ---------- */
 async function main() {
+  if (ORGANIZE) { organize(); registerAll(); return; }
   if (REGISTER_ONLY) { registerAll(); return; }
   let gens = parseGenerals();
   if (ONLY.length) gens = gens.filter(g => ONLY.includes(g.name));
@@ -274,7 +324,7 @@ async function main() {
 
   let made = 0, skipped = 0, failed = 0;
   for (const g of gens) {
-    const exists = ['webp', 'png', 'jpg', 'jpeg'].some(e => fs.existsSync(path.join(OUTDIR, `${g.name}.${e}`)));
+    const exists = findExisting(g.name);
     if (exists && !FORCE) { skipped++; continue; }
     const prompt = buildPrompt(g);
     if (DRY) { console.log(`- ${g.name} [${archetype(g)}]\n    ${prompt}`); continue; }

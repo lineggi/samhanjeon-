@@ -828,22 +828,22 @@ function shade(hex,amt){let c=hex.replace('#','');if(c.length===3)c=c.split('').
    예) '광개토대왕':'assets/portraits/광개토대왕.webp'  (이미지를 추가할 때마다 한 줄씩 등록) */
 const PORTRAITS={
   // 자동 생성: tools/gen-portraits.mjs 가 폴더를 스캔해 갱신합니다.
-  '고거련':'assets/portraits/고거련.png',
-  '고양':'assets/portraits/고양.webp',
-  '곡율광':'assets/portraits/곡율광.webp',
-  '광개토대왕':'assets/portraits/광개토대왕.png',
-  '김춘추':'assets/portraits/김춘추.png',
-  '모용성':'assets/portraits/모용성.webp',
-  '모용수':'assets/portraits/모용수.webp',
-  '모용평':'assets/portraits/모용평.webp',
-  '모용희':'assets/portraits/모용희.webp',
-  '설인귀':'assets/portraits/설인귀.webp',
-  '오토모':'assets/portraits/오토모.webp',
-  '이도종':'assets/portraits/이도종.webp',
-  '이세민':'assets/portraits/이세민.webp',
-  '이세적':'assets/portraits/이세적.webp',
-  '장량':'assets/portraits/장량.webp',
-  '풍발':'assets/portraits/풍발.webp',
+  '고거련':'assets/portraits/goguryeo/고거련.png',
+  '고양':'assets/portraits/china/고양.webp',
+  '곡율광':'assets/portraits/china/곡율광.webp',
+  '광개토대왕':'assets/portraits/goguryeo/광개토대왕.png',
+  '김춘추':'assets/portraits/silla/김춘추.png',
+  '모용성':'assets/portraits/china/모용성.webp',
+  '모용수':'assets/portraits/china/모용수.webp',
+  '모용평':'assets/portraits/china/모용평.webp',
+  '모용희':'assets/portraits/china/모용희.webp',
+  '설인귀':'assets/portraits/china/설인귀.webp',
+  '오토모':'assets/portraits/wa/오토모.webp',
+  '이도종':'assets/portraits/china/이도종.webp',
+  '이세민':'assets/portraits/china/이세민.webp',
+  '이세적':'assets/portraits/china/이세적.webp',
+  '장량':'assets/portraits/china/장량.webp',
+  '풍발':'assets/portraits/china/풍발.webp',
 };
 /* 실제 이름(휘) + 칭호(시호·묘호) — 내부 키(g.name)는 유지, 표시만 변경 */
 const HERO_TITLE={
@@ -2916,7 +2916,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.23.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.24.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
