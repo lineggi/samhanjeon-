@@ -12,6 +12,8 @@
  *   node tools/gen-portraits.mjs --register-only   # 폴더 스캔해 PORTRAITS만 갱신
  *   node tools/gen-portraits.mjs --organize        # 기존 평면 이미지를 세력별 폴더로 이동 + 재등록
  *   (생성 시에도 assets/portraits/<세력>/ 하위 폴더에 자동 분류 저장)
+ *   레퍼런스 기반 생성: assets/refs/<세력>/ 에 이미지를 넣으면 그 갑옷·복식을 참조(edits)해 생성.
+ *   세력별 의상 기준 문서: FACTION_COSTUME.md
  *
  * 옵션 환경변수:
  *   OPENAI_IMAGE_MODEL (기본 gpt-image-1)
@@ -26,6 +28,7 @@ const __dir = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dir, '..');
 const INDEX = path.join(ROOT, 'index.html');
 const OUTDIR = path.join(ROOT, 'assets', 'portraits');
+const REFDIR = path.join(ROOT, 'assets', 'refs');   // 세력별 레퍼런스 이미지(assets/refs/<세력>/)
 
 const args = process.argv.slice(2);
 const has = f => args.includes(f);
@@ -281,30 +284,44 @@ function organize() {
 }
 
 /* ---------- OpenAI 이미지 생성 ---------- */
-async function generate(prompt) {
+/* 세력별 레퍼런스 이미지(최대 4장) — assets/refs/<세력>/ */
+function refsFor(fac) {
+  const d = path.join(REFDIR, fac);
+  if (!fs.existsSync(d)) return [];
+  return fs.readdirSync(d).filter(f => /\.(png|jpe?g|webp)$/i.test(f)).slice(0, 4).map(f => path.join(d, f));
+}
+async function postImages(url, body, headers) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error('OPENAI_API_KEY 환경변수가 없습니다.');
   for (let attempt = 1; attempt <= 5; attempt++) {
-    const res = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, prompt, size: SIZE, quality: QUALITY, n: 1 }),
-    });
+    const res = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${key}`, ...headers }, body });
     if (res.ok) {
       const j = await res.json();
       const b64 = j.data?.[0]?.b64_json;
       if (!b64) throw new Error('응답에 이미지 데이터 없음: ' + JSON.stringify(j).slice(0, 200));
       return Buffer.from(b64, 'base64');
     }
-    if (res.status === 429 || res.status >= 500) {
-      const wait = 2 ** attempt;
-      console.warn(`  재시도 ${attempt} (HTTP ${res.status}) ${wait}s 대기...`);
-      await new Promise(r => setTimeout(r, wait * 1000));
-      continue;
-    }
+    if (res.status === 429 || res.status >= 500) { const w = 2 ** attempt; console.warn(`  재시도 ${attempt} (HTTP ${res.status}) ${w}s 대기...`); await new Promise(r => setTimeout(r, w * 1000)); continue; }
     throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
   }
   throw new Error('재시도 초과');
+}
+/* 텍스트 프롬프트 생성 (generations) */
+function generate(prompt) {
+  return postImages('https://api.openai.com/v1/images/generations',
+    JSON.stringify({ model: MODEL, prompt, size: SIZE, quality: QUALITY, n: 1 }),
+    { 'Content-Type': 'application/json' });
+}
+/* 레퍼런스 이미지 기반 생성 (edits) — 레퍼런스의 갑옷·복식을 참조 */
+async function generateWithRefs(prompt, refs) {
+  const mime = f => f.toLowerCase().endsWith('.png') ? 'image/png' : f.toLowerCase().endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+  const fd = new FormData();
+  fd.append('model', MODEL);
+  fd.append('prompt', prompt + ' Match the armor, helmet, weapon style and overall costume design shown in the provided reference image(s); keep period accuracy.');
+  fd.append('size', SIZE);
+  fd.append('quality', QUALITY);
+  for (const rp of refs) fd.append('image[]', new Blob([fs.readFileSync(rp)], { type: mime(rp) }), path.basename(rp));
+  return postImages('https://api.openai.com/v1/images/edits', fd, {});   // multipart 경계는 fetch가 설정
 }
 
 /* ---------- index.html의 PORTRAITS 블록 자동 갱신 ---------- */
@@ -345,10 +362,11 @@ async function main() {
     const exists = findExisting(g.name);
     if (exists && !FORCE) { skipped++; continue; }
     const prompt = buildPrompt(g);
-    if (DRY) { console.log(`- ${g.name} [${archetype(g)}]\n    ${prompt}`); continue; }
+    const refs = refsFor(g.f);
+    if (DRY) { console.log(`- ${g.name} [${archetype(g)}]${refs.length ? ` (레퍼런스 ${refs.length}장 기반)` : ''}\n    ${prompt}`); continue; }
     try {
-      process.stdout.write(`生成 ${g.name} ... `);
-      const buf = await generate(prompt);
+      process.stdout.write(`生成 ${g.name}${refs.length ? `(ref:${refs.length})` : ''} ... `);
+      const buf = refs.length ? await generateWithRefs(prompt, refs) : await generate(prompt);
       const rel = await saveImage(buf, g.name);
       console.log('✓ ' + rel);
       made++;
