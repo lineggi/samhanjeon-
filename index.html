@@ -607,7 +607,7 @@ const SCENARIOS=[
   desc:'백제 근초고왕이 마한을 아우르고 북으로 평양성을 쳐 고국원왕을 전사시킨 백제 최전성기. 고구려는 수세에 몰리고 신라·가야는 약소하며, 왜와 동맹을 맺었다. 북방에는 전연이 버티고 있다.',
   factions:['baekje','goguryeo','silla','gaya','china','wa'],
   cname:'전연', chanzi:'燕',
-  str:{baekje:1.32,goguryeo:1.0,silla:0.68,gaya:0.85,china:1.05,wa:0.85},
+  str:{baekje:1.32,goguryeo:1.0,silla:0.85,gaya:0.85,china:1.05,wa:0.85},
   own:{yodong:'china',bisa:'china',ansi:'china',sinseong:'china',baegam:'china',gaemo:'china',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'china',pyeongyang:'goguryeo',hanseong:'baekje',gwanmi:'baekje',michuhol:'baekje',ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',geumseong:'silla',myeonghwal:'silla',busan:'silla',samnyeon:'baekje',gwansan:'baekje',daeya:'gaya',danghang:'baekje',bukhan:'baekje',maeso:'baekje',golbeol:'silla',geumgwan:'gaya',daegaya:'gaya',ara:'gaya',seongsan:'gaya',dara:'gaya',youzhou:'china',linyu:'china',yongseong:'china',cheongju:'china',deungju:'china',tsushima:'wa',iki:'wa',fukuoka:'wa',mujin:'baekje',balla:'baekje',haseulla:'goguryeo',siljik:'silla'},
   gens:[
    ['근초고왕','baekje','hanseong',92,86,90],['소수림왕','goguryeo','gungnae',82,68,86],['고흥','baekje','sabi',66,50,90],['근구수','baekje','ungjin',88,90,80],['막고해','baekje','sabi',82,84,78],['고국원왕','goguryeo','pyeongyang',80,80,76],['고무','goguryeo','yodong',80,84,70],['내물왕','silla','geumseong',78,66,82],['거질미왕','gaya','geumgwan',76,78,72],['하지왕','gaya','daegaya',74,80,70],['모용수','china','yongseong',88,90,82],['모용평','china','youzhou',76,74,78],['오토모','wa','fukuoka',76,82,66],
@@ -634,7 +634,7 @@ const SCENARIOS=[
   desc:'고구려가 사방으로 뻗어나가는 전성기. 광개토대왕의 철기가 요동과 한강을 휩쓴다. 백제는 수세에 몰리고, 신라는 약소하며, 가야 연맹이 남방에 건재하다.',
   factions:['goguryeo','baekje','silla','gaya','china','wa'],
   cname:'후연', chanzi:'燕',
-  str:{goguryeo:1.35,baekje:1.0,silla:0.72,gaya:0.9,china:1.1,wa:0.85},
+  str:{goguryeo:1.35,baekje:1.0,silla:0.85,gaya:0.9,china:1.1,wa:0.85},
   own:{
    yodong:'china',ansi:'china',sinseong:'china',baegam:'china',gaemo:'china',bisa:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',gwanmi:'goguryeo',
    hanseong:'baekje',michuhol:'baekje',ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',
@@ -678,7 +678,7 @@ const SCENARIOS=[
   desc:'신라 진흥왕이 한강 유역을 차지하며 급부상한다. 백제 성왕은 빼앗긴 땅을 되찾으려 관산성으로 진군하고, 가야는 신라에 잠식되어 멸망 직전이다. 고구려는 북방으로 물러섰다.',
   factions:['goguryeo','baekje','silla','gaya','china','wa'],
   cname:'북제', chanzi:'齊',
-  str:{goguryeo:0.95,baekje:1.02,silla:1.3,gaya:0.5,china:1.05,wa:0.9},
+  str:{goguryeo:0.82,baekje:1.02,silla:1.3,gaya:0.5,china:1.05,wa:0.9},
   own:{
    yodong:'goguryeo',bisa:'goguryeo',ansi:'goguryeo',sinseong:'goguryeo',baegam:'goguryeo',gaemo:'goguryeo',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'goguryeo',pyeongyang:'goguryeo',
    ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',
@@ -2228,7 +2228,7 @@ function openBattle(fromId,toId,opts){
   B.reserve=(opts&&opts.commit!=null)?Math.max(0,pstate[fromId].troops-Math.round(opts.commit)):0; // 출병 안 한 잔류 수비대
   if(opts&&opts.pincer){           // 협공: 합세 병력 + 적 사기 저하 + 위력 보너스
     B.pincer=true; B.A.troops+=opts.extra||0;
-    B.D.morale=Math.max(8,B.D.morale-15);
+    B.D.morale=Math.max(8,B.D.morale-8);
   }
   B.scorched=(B.D.p.owner==='goguryeo');   // 고구려 수비 시 청야전술
   if(B.scorched){B.A.troops=Math.round(B.A.troops*0.9);B.A.morale=Math.round(B.A.morale*0.7);}
@@ -2351,13 +2351,12 @@ function resolveRound(tac,duelRes){
     blog('def',`<span class="crit">적의 ${CNAME[dTac]}에 ${CNAME[tac]}이(가) 받아쳐졌다 (피해↑·사기 -10)</span>`);}
   // 매복 호기(1회 한정 위력 +60%)
   if(B.ambush){dD*=1.6;B.ambush=false;crit=true;blog('atk',`<span class="crit">매복의 일격! 적진이 무너진다</span>`);}
-  if(B.pincer)dD*=1.12;   // 협공: 양면 압박으로 가하는 피해 +12%
+  if(B.pincer)dD*=1.06;   // 협공: 양면 압박으로 가하는 피해 +6%
   if(D._g)dD*=0.4; if(A._g)dA*=0.4;
   if(D.skill&&D.skill.type==='wall')dD*=0.75;
   if(A.skill&&A.skill.type==='wall')dA*=0.75;
-  // 병종 방어 보정(판갑 등)
+  // 병종 방어 보정(판갑 등) — 수비 측만 피해 감소(공격 시 미적용)
   if(D.unit&&D.unit.defMul)dD*=D.unit.defMul;
-  if(A.unit&&A.unit.defMul)dA*=A.unit.defMul;
   // 세력 특기 방어(가야 철벽진 등) — 받는 피해 감소
   {const fA=activeSkill(A.p.owner);if(fA&&fA.def)dA*=fA.def;const fD=activeSkill(D.p.owner);if(fD&&fD.def)dD*=fD.def;}
   // 공성전: 성벽이 공격군 피해를 흡수(허물수록 회복) · 수비는 성벽 위 높이 우세 · 돌격/계략으로 성벽 파괴
@@ -2595,15 +2594,15 @@ function playAiMoves(moves,i,done){
 }
 function aiBattle(fromId,toId,opts){
   let A=mkArmy(fromId,true),D=mkArmy(toId,false);
-  if(opts&&opts.pincer){A.troops+=opts.extra||0;D.morale=Math.max(8,D.morale-15);}
+  if(opts&&opts.pincer){A.troops+=opts.extra||0;D.morale=Math.max(8,D.morale-8);}
   if(prov(toId).owner==='goguryeo'){A.troops=Math.round(A.troops*0.9);A.morale=Math.round(A.morale*0.7);} // 청야전술(고구려 수비)
   A.startT=A.troops;D.startT=D.troops;
   const Bsave=B;B={D,pincer:!!(opts&&opts.pincer)};
   for(let i=0;i<14&&A.troops>0&&D.troops>0&&A.morale>0&&D.morale>0;i++){
     const ta=aiTactic(A,D),td=aiTactic(D,A);A._g=D._g=false;
     const ra=resolveTactic(A,D,ta,true),rd=resolveTactic(D,A,td,false);
-    let dD=ra.dmg,dA=rd.dmg+ra.self;if(opts&&opts.pincer)dD*=1.12;if(D._g)dD*=.4;if(A._g)dA*=.4;
-    if(D.unit&&D.unit.defMul)dD*=D.unit.defMul; if(A.unit&&A.unit.defMul)dA*=A.unit.defMul;
+    let dD=ra.dmg,dA=rd.dmg+ra.self;if(opts&&opts.pincer)dD*=1.06;if(D._g)dD*=.4;if(A._g)dA*=.4;
+    if(D.unit&&D.unit.defMul)dD*=D.unit.defMul; // 판갑 등: 수비 측만 피해 감소
     {const fA=activeSkill(A.p.owner);if(fA&&fA.def)dA*=fA.def;const fD=activeSkill(D.p.owner);if(fD&&fD.def)dD*=fD.def;}
     D.troops=Math.max(0,D.troops-dD);A.troops=Math.max(0,A.troops-dA);
     D.morale=Math.max(0,D.morale-dD/D.startT*60*((D.unit&&D.unit.moraleFrail)||1));A.morale=Math.max(0,A.morale-dA/A.startT*60*((A.unit&&A.unit.moraleFrail)||1));
@@ -3163,7 +3162,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.35.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.36.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
