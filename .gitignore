@@ -7,3 +7,7 @@ package-lock.json
 .DS_Store
 Thumbs.db
 *.log
+
+# 파이썬 캐시(이벤트 생성 스크립트)
+__pycache__/
+*.pyc
