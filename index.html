@@ -360,7 +360,7 @@ svg{width:100%;height:100%;display:block}
       <span class="sc-name lee">이선기</span>
     </div>
     <div class="splash-sub">presents</div>
-    <div class="splash-title">삼한전</div>
+    <div class="splash-title">三韓戰</div>
     <div class="splash-tap">화면을 눌러 시작</div>
     <div class="splash-ver" id="splashver"></div>
   </div>
@@ -3131,7 +3131,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.33.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.34.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
