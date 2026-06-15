@@ -2228,7 +2228,7 @@ function openBattle(fromId,toId,opts){
   B.reserve=(opts&&opts.commit!=null)?Math.max(0,pstate[fromId].troops-Math.round(opts.commit)):0; // 출병 안 한 잔류 수비대
   if(opts&&opts.pincer){           // 협공: 합세 병력 + 적 사기 저하 + 위력 보너스
     B.pincer=true; B.A.troops+=opts.extra||0;
-    B.D.morale=Math.max(8,B.D.morale-5);
+    B.D.morale=Math.max(8,B.D.morale-3);
   }
   B.scorched=(B.D.p.owner==='goguryeo');   // 고구려 수비 시 청야전술
   if(B.scorched){B.A.troops=Math.round(B.A.troops*0.9);B.A.morale=Math.round(B.A.morale*0.7);}
@@ -2351,7 +2351,7 @@ function resolveRound(tac,duelRes){
     blog('def',`<span class="crit">적의 ${CNAME[dTac]}에 ${CNAME[tac]}이(가) 받아쳐졌다 (피해↑·사기 -10)</span>`);}
   // 매복 호기(1회 한정 위력 +60%)
   if(B.ambush){dD*=1.6;B.ambush=false;crit=true;blog('atk',`<span class="crit">매복의 일격! 적진이 무너진다</span>`);}
-  if(B.pincer)dD*=1.03;   // 협공: 양면 압박으로 가하는 피해 +3%
+  if(B.pincer)dD*=1.015;  // 협공: 양면 압박으로 가하는 피해 +1.5%
   if(D._g)dD*=0.4; if(A._g)dA*=0.4;
   if(D.skill&&D.skill.type==='wall')dD*=0.75;
   if(A.skill&&A.skill.type==='wall')dA*=0.75;
@@ -2594,14 +2594,14 @@ function playAiMoves(moves,i,done){
 }
 function aiBattle(fromId,toId,opts){
   let A=mkArmy(fromId,true),D=mkArmy(toId,false);
-  if(opts&&opts.pincer){A.troops+=opts.extra||0;D.morale=Math.max(8,D.morale-5);}
+  if(opts&&opts.pincer){A.troops+=opts.extra||0;D.morale=Math.max(8,D.morale-3);}
   if(prov(toId).owner==='goguryeo'){A.troops=Math.round(A.troops*0.9);A.morale=Math.round(A.morale*0.7);} // 청야전술(고구려 수비)
   A.startT=A.troops;D.startT=D.troops;
   const Bsave=B;B={D,pincer:!!(opts&&opts.pincer)};
   for(let i=0;i<14&&A.troops>0&&D.troops>0&&A.morale>0&&D.morale>0;i++){
     const ta=aiTactic(A,D),td=aiTactic(D,A);A._g=D._g=false;
     const ra=resolveTactic(A,D,ta,true),rd=resolveTactic(D,A,td,false);
-    let dD=ra.dmg,dA=rd.dmg+ra.self;if(opts&&opts.pincer)dD*=1.03;if(D._g)dD*=.4;if(A._g)dA*=.4;
+    let dD=ra.dmg,dA=rd.dmg+ra.self;if(opts&&opts.pincer)dD*=1.015;if(D._g)dD*=.4;if(A._g)dA*=.4;
     if(D.unit&&D.unit.defMul)dD*=D.unit.defMul; // 판갑 등: 수비 측만 피해 감소
     {const fA=activeSkill(A.p.owner);if(fA&&fA.def)dA*=fA.def;const fD=activeSkill(D.p.owner);if(fD&&fD.def)dD*=fD.def;}
     D.troops=Math.max(0,D.troops-dD);A.troops=Math.max(0,A.troops-dA);
@@ -3162,7 +3162,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.37.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.38.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
