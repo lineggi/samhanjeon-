@@ -1510,27 +1510,59 @@ function pincerAllies(targetId,mainId){
   return allies;
 }
 let pincerCtx=null;
+function pincerClampOne(cid,v){return Math.max(0,Math.min(pstate[cid].troops,Math.round(v)));}
 function openPincerChoice(mainId,targetId,sup){
-  pincerCtx={main:mainId,target:targetId,sup};
-  const supNames=sup.map(s=>prov(s).name).join('·');
-  const extra=sup.reduce((a,s)=>a+Math.floor(pstate[s].troops*0.5),0);
-  $('centerBox').innerHTML=`<h1 style="font-size:30px">출병<small>${prov(targetId).name} 공략</small></h1>
-    <p>이 성은 그대의 여러 성과 길이 닿아 있다.<br>여러 성에서 동시에 치는 <b style="color:var(--gold)">협공</b>이 가능하다.</p>
+  const sel={};
+  sup.forEach(s=>{ sel[s]=pincerClampOne(s,Math.round(Math.floor(pstate[s].troops*0.5)/100)*100); }); // 기본: 각 성 절반 합세
+  pincerCtx={main:mainId,target:targetId,sup:sup.slice(),sel};
+  renderPincerChoice();
+  $('centerOverlay').classList.add('on');
+}
+function pincerExtra(){const c=pincerCtx;return c?c.sup.reduce((a,s)=>a+(c.sel[s]||0),0):0;}
+function pincerSet(cid,op){
+  const c=pincerCtx; if(!c)return;
+  const cur=c.sel[cid]||0, max=pstate[cid].troops;
+  if(op==='zero')c.sel[cid]=0;
+  else if(op==='half')c.sel[cid]=pincerClampOne(cid,Math.round(max*0.5/100)*100);
+  else if(op==='all')c.sel[cid]=max;
+  else c.sel[cid]=pincerClampOne(cid,cur+op);
+  renderPincerChoice();
+}
+function renderPincerChoice(){
+  const c=pincerCtx; const extra=pincerExtra(), active=c.sup.filter(s=>(c.sel[s]||0)>0).length;
+  const btn=(s,label,op,danger)=>`<button class="btn sm ${danger?'danger':''}" onclick="pincerSet('${s}','${op}')">${label}</button>`;
+  const adj=(s,label,delta)=>`<button class="btn sm" ${pincerClampOne(s,(c.sel[s]||0)+delta)===(c.sel[s]||0)?'disabled':''} onclick="pincerSet('${s}',${delta})">${label}</button>`;
+  const rows=c.sup.map(s=>{
+    const p=prov(s), tot=pstate[s].troops, give=c.sel[s]||0, on=give>0;
+    return `<div style="border:1px solid ${on?'rgba(202,167,46,.5)':'rgba(255,255,255,.12)'};border-radius:10px;padding:8px 10px;margin:6px 0;background:${on?'rgba(202,167,46,.08)':'rgba(255,255,255,.02)'}">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+        <span>${on?'🦅':'▫️'} <b>${p.name}</b> <span style="font-size:12px;color:#9c8c6a">보유 ${fmt(tot)}</span></span>
+        <span style="font-family:'Pretendard';font-size:20px;color:var(--gold)">+${fmt(give)}</span>
+      </div>
+      <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:7px">
+        ${btn(s,'제외','zero',true)}${adj(s,'-천',-1000)}${adj(s,'-백',-100)}${adj(s,'+백',100)}${adj(s,'+천',1000)}${btn(s,'절반','half')}${btn(s,'전부','all')}
+      </div></div>`;
+  }).join('');
+  $('centerBox').innerHTML=`<h1 style="font-size:30px">협공 편성<small>${prov(c.target).name} 공략</small></h1>
+    <p style="margin-bottom:4px">이 성은 그대의 여러 성과 길이 닿아 있다.<br>합세할 성과 보낼 <b style="color:var(--gold)">병력</b>을 정하시오.</p>
+    <div style="max-height:46vh;overflow:auto;padding:0 2px">${rows}</div>
+    <p style="margin:8px 0 2px;font-size:14px">합세 ${active}곳 · 합계 <b style="color:var(--gold)">+${fmt(extra)}</b> <span style="font-size:12px;color:#9c8c6a">(적 사기↓ · 위력↑)</span></p>
     <div class="startmenu">
-      <button class="btn" onclick="confirmAttack(false)">⚔ 단독 출병<small>${prov(mainId).name}의 군으로만</small></button>
-      <button class="btn" onclick="confirmAttack(true)">🦅 협공 출병<small>${supNames} 합세 · 병력 +${fmt(extra)} · 적 사기↓ · 위력↑</small></button>
+      <button class="btn" onclick="confirmAttack(true)" ${extra<=0?'disabled':''}>🦅 협공 출병<small>위 편성으로 합세</small></button>
+      <button class="btn" onclick="confirmAttack(false)">⚔ 단독 출병<small>${prov(c.main).name}의 군으로만</small></button>
       <button class="btn danger" onclick="cancelPincer()">취소</button>
     </div>`;
-  $('centerOverlay').classList.add('on');
 }
 function cancelPincer(){pincerCtx=null;$('centerOverlay').classList.remove('on');attackMode=false;render();}
 function confirmAttack(pincer){
   const c=pincerCtx; if(!c)return;
   pincerCtx=null; $('centerOverlay').classList.remove('on');
   if(!pincer){openAttackDialog(c.main,c.target,{});return;}
-  // 협공: 합세 병력은 출병 확정 시점에 실제 차출(취소 시 손실 방지)
-  const preview=c.sup.reduce((a,s)=>a+Math.floor(pstate[s].troops*0.5),0);
-  openAttackDialog(c.main,c.target,{pincer:true,_sup:c.sup.slice(),extra:preview});
+  // 협공: 선택한 성·병력만 합세 (실제 차출은 출병 확정 시점 — 취소 시 손실 방지)
+  const sel={}; c.sup.forEach(s=>{ if((c.sel[s]||0)>0) sel[s]=c.sel[s]; });
+  const preview=Object.values(sel).reduce((a,v)=>a+v,0);
+  if(preview<=0){openAttackDialog(c.main,c.target,{});return;}
+  openAttackDialog(c.main,c.target,{pincer:true,_supSel:sel,extra:preview});
 }
 /* 출병 병력 수 선택 (백/천/만 단위) */
 let attackDlg=null;
@@ -1580,10 +1612,10 @@ function confirmAttackTroops(){
   const d=attackDlg; if(!d)return;
   $('centerOverlay').classList.remove('on'); attackDlg=null;
   const base={...d.base};
-  if(base._sup){ // 협공 합세 성에서 병력 차출(확정 시점)
+  if(base._supSel){ // 협공: 선택한 성에서 지정한 병력만 차출(확정 시점)
     let extra=0;const names=[],froms=[d.from];
-    base._sup.forEach(s=>{const give=Math.floor(pstate[s].troops*0.5);if(give<=0)return;extra+=give;pstate[s].troops-=give;pstate[s].acted=true;names.push(prov(s).name);froms.push(s);});
-    base.extra=extra;base.names=names;base.froms=froms;delete base._sup;
+    Object.keys(base._supSel).forEach(s=>{let give=Math.min(base._supSel[s],pstate[s].troops);if(give<=0)return;extra+=give;pstate[s].troops-=give;pstate[s].acted=true;names.push(prov(s).name);froms.push(s);});
+    base.extra=extra;base.names=names;base.froms=froms;delete base._supSel;
   }
   base.commit=d.amt;
   launchBattle(d.from,d.to,base);
@@ -3131,7 +3163,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.34.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.35.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
