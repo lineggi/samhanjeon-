@@ -197,6 +197,18 @@ svg{width:100%;height:100%;display:block}
 .startmenu .btn:disabled small{color:#6a5a3a}
 .backstart{display:inline-block;font-size:12px;color:#9c8c6a;cursor:pointer;margin-bottom:8px}
 .backstart:hover{color:var(--gold)}
+.codex{max-height:64vh;overflow-y:auto;text-align:left;margin-top:10px;padding-right:4px}
+.codex-fac{font-family:'Pretendard';font-weight:800;font-size:16px;display:flex;align-items:center;gap:7px;margin:16px 2px 8px}
+.codex-fac .dot{width:10px;height:10px;border-radius:50%}
+.codex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.codex-card{border:1px solid #3a2c1c;border-radius:8px;background:rgba(0,0,0,.25);padding:8px;display:flex;flex-direction:column;gap:5px}
+.codex-card .cc-face{width:100%;aspect-ratio:4/5;border-radius:6px;overflow:hidden;border:1px solid #4a3a24;background:#2a2018}
+.codex-card .cc-face img,.codex-card .cc-face svg{width:100%;height:100%;object-fit:cover;display:block}
+.codex-card .cc-name{font-family:'Pretendard';font-weight:800;font-size:14px;color:var(--paper);line-height:1.2}
+.codex-card .cc-st{display:flex;gap:5px;font-size:10.5px;color:#cdbf9a}
+.codex-card .cc-st span{background:rgba(0,0,0,.3);border:1px solid #3a2c1c;border-radius:4px;padding:1px 5px}
+.codex-card .cc-bio{font-size:11px;color:#9c8c6a;line-height:1.45}
+@media (max-width:480px){.codex-grid{grid-template-columns:repeat(2,1fr);gap:8px}.codex-card .cc-bio{font-size:10.5px}}
 .center-modal h1{font-family:'Pretendard';font-size:48px;color:var(--gold);text-shadow:0 4px 20px rgba(0,0,0,.6)}
 .center-modal h1 small{display:block;font-family:'Pretendard';font-size:14px;color:#9c8c6a;letter-spacing:6px;margin-top:6px}
 .center-modal p{color:#c8b890;line-height:1.8;margin:16px 0;font-size:14px}
@@ -2849,6 +2861,115 @@ function saveInfo(){
     return {year:sc?sc.year:'?', turn:d.turn||1, faction:FACTIONS[d.player]?FACTIONS[d.player].name:'?'};}
   catch(_){return null;}
 }
+/* 명장 列傳 — 인물 한 줄 소개(역사 기반) */
+const CODEX_BIO={
+  // 고구려
+  '광개토대왕':'사방을 정복해 고구려 최대 판도를 이룬 정복군주. 영락 연호를 세웠다.',
+  '연개소문':'정변으로 권력을 잡은 막리지. 당 태종의 침공을 막아낸 철권의 실력자.',
+  '양만춘':'안시성에서 당 태종의 대군을 끝내 막아낸 수성의 명장.',
+  '온달':'평민에서 부마·장군이 된 「바보 온달」 설화의 주인공. 아단성에서 전사했다.',
+  '양원왕':'내우외환 속에서 고구려를 지켜낸 왕.',
+  '고연수':'안시성 전투에서 고구려 구원군을 이끈 장군.',
+  '소수림왕':'율령 반포·불교 수용·태학 설립으로 국가 체제를 정비한 개혁군주.',
+  '고국원왕':'전연과 백제에 맞서다 평양성에서 화살에 전사한 비운의 왕.',
+  '고무':'요동의 성들을 지켜낸 고구려의 노장.',
+  '고거련':'79년을 재위하며 남진으로 한강 유역을 장악한 장수왕.',
+  '고혜진':'안시성 구원군을 이끈 고구려 장수.',
+  '모두루':'북부여 방면을 지킨 고구려 변경의 장수.',
+  '고흘':'전장을 누빈 고구려의 장수.',
+  // 백제
+  '근초고왕':'마한을 통합하고 고구려를 쳐 백제 전성기를 연 정복군주.',
+  '흑치상지':'백제 부흥운동을 이끈 명장. 뒷날 당의 장군이 되었다.',
+  '근구수':'태자 시절 고구려를 격파한 백제의 용장(근구수왕).',
+  '계백':'황산벌에서 5천 결사대로 신라 대군에 맞선 백제 최후의 장군.',
+  '성왕':'사비 천도와 중흥을 이끌었으나 관산성에서 전사한 왕.',
+  '위덕왕':'관산성 패전의 위기에서 백제를 추스른 왕.',
+  '의자왕':'한때 「해동증자」로 불린 백제 마지막 왕. 나당연합에 멸망했다.',
+  '막고해':'「만족할 줄 알라」며 무리한 추격을 만류한 백제의 지장.',
+  '성충':'의자왕에게 충간하다 옥사한 백제의 충신.',
+  '아신왕':'광개토대왕에 맞서 싸우다 끝내 굴복한 백제 왕.',
+  '진무':'아신왕의 외척으로 고구려와 거듭 싸운 백제 장수.',
+  '윤충':'대야성을 함락시켜 신라를 위협한 백제 장군.',
+  '연회':'백제의 장수.',
+  '해충':'백제 조정의 대신.',
+  '전지왕':'왜에 볼모로 갔다가 귀국해 즉위한 백제 왕.',
+  '고흥':'백제 최초의 역사서 「서기(書記)」를 편찬한 박사.',
+  // 신라
+  '김유신':'가야 왕족 출신의 신라 대장군. 삼국통일의 주역.',
+  '이사부':'우산국과 대가야를 정복한 신라의 명장.',
+  '진흥왕':'한강 유역을 차지하고 곳곳에 순수비를 세운 정복군주.',
+  '김무력':'관산성에서 백제 성왕을 사로잡은 김유신의 조부.',
+  '알천':'화백회의를 이끈 신라의 노장.',
+  '김춘추':'나당동맹을 성사시킨 통일의 설계자, 태종무열왕.',
+  '거칠부':'「국사(國史)」를 편찬하고 한강 점령에 공을 세운 장군.',
+  '사다함':'대가야 정벌의 선봉에 선 꽃다운 화랑.',
+  '김인문':'당과의 외교를 도맡은 신라의 왕자.',
+  '죽지':'삼국통일기 신라의 장군.',
+  '눌지':'고구려의 그늘에서 벗어나 왕권을 다진 눌지 마립간.',
+  '박제상':'왜에 볼모로 간 왕제를 구하고 순절한 충신.',
+  '내물왕':'김씨 왕위 세습을 확립한 내물 마립간.',
+  '실성':'내물왕 사후 즉위한 실성 마립간.',
+  '관창':'황산벌에서 단신으로 돌격해 산화한 어린 화랑.',
+  // 가야
+  '이시품왕':'광개토대왕의 남정에 시달린 금관가야 왕.',
+  '도설지왕':'신라에 멸망한 대가야의 마지막 왕.',
+  '하지왕':'남제에 사신을 보낸 대가야의 왕.',
+  '거질미왕':'금관가야의 왕.',
+  '월광태자':'대가야의 태자.',
+  '우륵':'가야금을 만든 악성(樂聖). 뒷날 신라로 귀화했다.',
+  // 중국
+  '이세민':'정관의 치를 이룬 당의 명군. 고구려를 친정했다(당 태종).',
+  '이세적':'고구려 정벌을 이끈 당의 명장.',
+  '모용수':'후연을 세운 선비족의 명장(성무제).',
+  '설인귀':'백색 갑옷으로 이름 떨친 당의 맹장.',
+  '고양':'북제를 건국한 문선제.',
+  '곡율광':'북제의 명장이자 활의 명수.',
+  '이도종':'고구려 원정에 참전한 당 종실의 장군.',
+  '모용성':'후연의 황제(소무제).',
+  '장량':'당의 수군을 이끌고 요동으로 건너간 장수.',
+  '풍발':'북연을 세운 군주(문성제).',
+  '모용평':'전연의 권신, 태부(太傅).',
+  '모용희':'후연의 폭군.',
+  // 왜
+  '소가':'야마토 조정을 장악한 소가씨의 실력자.',
+  '오토모':'야마토의 무장 호족.',
+  '오노':'야마토의 장수.',
+  '고토쿠':'다이카 개신을 단행한 야마토의 천황.',
+  '사데히코':'한반도로 원정한 야마토의 장수.',
+};
+function codexRoster(){
+  const m=new Map();
+  SCENARIOS.forEach(s=>s.gens.forEach(a=>{
+    const o={name:a[0],f:a[1],lead:a[3],might:a[4],int:a[5]};
+    const p=m.get(o.name); if(!p||(o.lead+o.might+o.int)>(p.lead+p.might+p.int))m.set(o.name,o);
+  }));
+  return [...m.values()];
+}
+function openCodex(){
+  const all=codexRoster(), order=['goguryeo','baekje','silla','gaya','china','wa'];
+  let html=`<div class="backstart" onclick="showStart()">◂ 처음으로</div>
+    <h1 style="font-size:32px">名將 列傳<small>삼한을 누빈 영웅 ${all.length}인</small></h1>
+    <p>한국 삼국시대의 군주와 장수들. 그 면면을 한자리에서 살펴보라.</p>
+    <div class="codex">`;
+  for(const f of order){
+    const list=all.filter(g=>g.f===f).sort((a,b)=>(b.lead+b.might+b.int)-(a.lead+a.might+a.int));
+    if(!list.length)continue;
+    html+=`<div class="codex-fac" style="color:${fcolor(f)}"><span class="dot" style="background:${fcolor(f)}"></span>${FACTIONS[f].name} · ${list.length}인</div><div class="codex-grid">`;
+    for(const g of list){
+      const ttl=heroTitle(g.name);
+      html+=`<div class="codex-card">
+        <div class="cc-face">${genPortrait(g)}</div>
+        <div class="cc-name">${heroReal(g.name)}${ttl?` <span class="htitle">${ttl}</span>`:''}</div>
+        <div class="cc-st"><span>통 ${g.lead}</span><span>무 ${g.might}</span><span>지 ${g.int}</span></div>
+        <div class="cc-bio">${CODEX_BIO[g.name]||''}</div>
+      </div>`;
+    }
+    html+=`</div>`;
+  }
+  html+=`</div>`;
+  $('centerBox').innerHTML=html;
+  $('centerOverlay').classList.add('on');
+}
 function showStart(){
   const info=saveInfo();
   const load=info
@@ -2859,6 +2980,7 @@ function showStart(){
     <div class="startmenu">
       <button class="btn" onclick="showEra()">⚔ 새로하기<small>시대를 골라 새 천하를 연다</small></button>
       ${load}
+      <button class="btn" onclick="openCodex()">📜 명장 列傳<small>삼한의 군주·장수 도감</small></button>
     </div>`;
   $('centerOverlay').classList.add('on');
 }
@@ -2976,7 +3098,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.31.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.32.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
