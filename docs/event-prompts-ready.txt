@@ -1,0 +1,162 @@
+삼한전 이벤트 이미지 — GPT 레퍼런스 첨부용 프롬프트 (21종)
+======================================================================
+사용법: 이벤트마다
+  1) [첨부] 파일을 GPT에 업로드 (인물 초상화 assets/portraits/... + 세력 갑옷 assets/refs/...)
+  2) 아래 [공통 머리말] + 해당 [SCENE] 문장을 붙여넣어 생성
+  3) 결과 PNG를 assets/_raw_events/<id>.png 로 저장 → webp 가공 후 교체
+
+[공통 머리말] (복붙)
+Use the attached images as the exact reference for the characters' faces and for the
+armor/costume and banner style — keep the same facial features, hairstyle, crown/helmet,
+and clothing as in the references. Then create a single illustration:
+Painterly cinematic historical scene, Korean Three Kingdoms era, dramatic chiaroscuro lighting,
+muted earthy palette with gold and crimson accents, semi-realistic game key-art, 3:2 landscape
+(960x640), atmospheric haze. No text, no letters, no watermark.
+SCENE:
+
+[네거티브] (네거티브 칸 있을 때)
+text, letters, hangul, chinese characters, watermark, signature, modern clothing,
+edo-period samurai, ming/qing armor, blurry, lowres, extra limbs
+
+======================================================================
+시나리오 1 · 371 근초고왕 (백제)
+======================================================================
+
+[g_intro] 백제의 전성
+첨부: portraits/baekje/근초고왕.webp, refs/baekje/백제갑옷.png
+A Baekje king (the man in the reference) in gilt-bronze crown and ornate scale armor stands on a
+hilltop palace terrace at golden dawn, overlooking a fertile river plain with thatched villages
+and ships on the sea horizon, purple royal banners in the wind, hand resting on his sword toward
+the north. Peak of prosperity.
+
+[g_pyeongyang] 평양성 공격 — 고국원왕 전사
+첨부: portraits/baekje/근구수왕.webp, portraits/goguryeo/고국원왕.webp
+Night siege of a Goguryeo mountain fortress. Baekje troops in scale armor storm the gate under
+purple banners; in the foreground the Goguryeo king (reference face) in brown lamellar reels
+backward struck by an arrow in the chest, green banner falling. Fire, arrows, embers. Tragic.
+
+[g_chiljido] 칠지도와 왜의 동맹
+첨부: refs/baekje/칠지도.png, portraits/wa/오토모.webp
+A diplomatic hall: a Baekje envoy in purple robes presents the iron Seven-Branched Sword (straight
+blade with three prongs each side, per reference) on a lacquer tray to a seated Wa chieftain
+(reference face) in simple short armor. Teal banners, incense, lamplight.
+
+[g_sosurim] 고구려의 중흥 — 소수림왕
+첨부: portraits/goguryeo/소수림왕.webp, refs/goguryeo/고구려 갑옷03.png
+The Goguryeo king (reference face) in dark lamellar and feather-cap receives a saffron-robed
+Buddhist monk in a new temple hall, scholars unrolling bamboo law scrolls, a bronze Buddha glowing
+in candlelight. Green banners. Rebuilding, enlightenment.
+
+[g_mahan] 마한 평정
+첨부: portraits/baekje/근초고왕.webp
+Baekje cavalry and infantry in scale armor march south through humid green wetlands, receiving the
+submission of kneeling Mahan village chiefs, purple banners, rice paddies, low golden light.
+
+======================================================================
+시나리오 2 · 400 광개토대왕 (고구려)
+======================================================================
+
+[w_intro] 광개토대왕 즉위
+첨부: portraits/goguryeo/광개토대왕.webp, refs/goguryeo/고구려 갑옷03.png
+The young Goguryeo king (reference face, age 18) crowned, in gleaming brown lamellar and plumed
+feather-cap, raising a sword skyward; massed cataphract cavalry and green banners behind under a
+vast dawn sky. Youthful conquering ambition.
+
+[w_baekje] 백제 정벌 — 아신왕의 굴복
+첨부: portraits/goguryeo/광개토대왕.webp, portraits/baekje/아신왕.webp
+By a wide river: the defeated Baekje king (reference face) in dented scale armor kneels in mud in
+surrender before the towering Goguryeo king (reference) on an armored warhorse; captured purple
+banners in the dirt, green banners rising, ash in air.
+
+[w_namjeong] 경자년 남정 — 신라 구원
+첨부: portraits/goguryeo/광개토대왕.webp, refs/gaya/가야갑옷02.png
+Goguryeo heavy cataphracts (gaema musa, full iron horse-and-rider armor) charge through a river
+ford, routing lightly-armored Wa warriors with curved swords and crimson iron-plate Gaya troops;
+water spray, broken teal and crimson banners, dawn.
+
+[w_yodong] 요동 정벌 — 후연을 몰아내다
+첨부: portraits/goguryeo/광개토대왕.webp
+Goguryeo army assaults a great Liaodong plains fortress at dusk: brown-lamellar troops scale walls
+with ladders, cataphracts ride down fleeing Later-Yan soldiers in red; flat horizon, smoke pillars,
+green banners on the ramparts.
+
+[w_buyeo] 동부여 복속
+첨부: portraits/goguryeo/광개토대왕.webp
+A Goguryeo column marches across a frozen northern snowfield toward a palisaded Buyeo settlement,
+breath fogging, green banners stiff with frost, the king on horseback surveying distant forts.
+Pale winter light.
+
+[w_hanseong] 장수왕의 남하 — 위례성 함락
+첨부: portraits/goguryeo/고거련.webp
+A Baekje capital burns at night; the Goguryeo king Jangsu (reference face) in imperial lamellar
+watches from a ridge as his army storms the walls; a captured Baekje king led away in chains under
+green banners. Smoke, collapsing gate.
+
+======================================================================
+시나리오 3 · 554 진흥왕 (신라)
+======================================================================
+
+[j_intro] 나제동맹과 진흥왕
+첨부: portraits/silla/진흥왕.webp, portraits/baekje/성왕.webp
+Two allied kings — the Silla king (reference) in a radiant gold crown and the Baekje king
+(reference) in gilt-bronze crown — clasp arms before a battle map table, gold and purple banners
+side by side, hidden ambition in the Silla king's eyes. War-tent lamplight.
+
+[j_hangang] 한강 쟁탈 — 신라의 배신
+첨부: portraits/silla/진흥왕.webp, portraits/baekje/성왕.webp
+Silla cavalry in gilt armor under gold banners launch a surprise dawn attack to seize Han River
+forts, planting a new gold banner on a captured wall; in the distance the Baekje king (reference)
+watches trembling with rage, his purple banner cut down.
+
+[j_gwansan] 관산성 전투 — 성왕 전사
+첨부: portraits/baekje/성왕.webp, portraits/silla/김무력.webp
+Ambush at Gwansan fortress: the Baekje king (reference face) dragged from his horse by Silla
+soldiers from wooded hills, Silla general Kim Muryeok (reference) looking on under gold banners;
+purple banners collapsing. Dusk, dust, tragedy.
+
+[j_daegaya] 대가야 정복
+첨부: portraits/silla/이사부.webp, portraits/silla/사다함.webp, portraits/gaya/도설지왕.webp
+The fall of Daegaya: Silla general Isabu (reference) and a young hwarang (reference, floral
+feather-cap) breach a crimson-bannered Gaya fortress with iron-plate defenders; a Gaya musician
+clutches a gayageum amid ruin, gold banners over crimson. Elegiac dusk.
+
+[j_sunsubi] 진흥왕 순수비
+첨부: portraits/silla/진흥왕.webp
+The Silla king (reference) in gold crown stands atop a windswept mountain peak beside a newly
+erected blank stone monument, gazing over a vast realm to distant northern plains, gold banners,
+eagles, sweeping clouds. Triumphant dawn.
+
+======================================================================
+시나리오 4 · 645 여당전쟁
+======================================================================
+
+[u_decree] 당 태종의 친정
+첨부: portraits/china/이세민.webp, portraits/goguryeo/연개소문.webp
+Emperor Tang Taizong (reference face) in Tang bright-armor (round breastplate discs) raises his
+hand before an endless host crossing the Liao River, countless red dragon banners to the horizon;
+distant grim Goguryeo dictator Yeon Gaesomun (reference) in black lamellar with twin swords. Epic
+scale, dust.
+
+[u_war1] 제1차 여당전쟁 발발
+첨부: portraits/china/이세적.webp
+Tang army in red banners and bright-armor storms a Goguryeo wall-fortress with siege ladders and
+rams; brown-lamellar Goguryeo defenders hurl stones from ramparts; a long stone wall snakes across
+hills behind. Smoke, chaos.
+
+[u_ansi] 안시성 공방전 — 양만춘의 분전
+첨부: portraits/goguryeo/양만춘.webp
+The siege of Ansi: the Goguryeo commander Yang Manchun (reference face) in brown lamellar stands
+defiant atop an unbroken stone wall under green banners, a massive Tang earthen siege ramp beside
+the wall, a red sea of Tang troops below, arrows flying. Indomitable.
+
+[u_retreat] 당군의 회군 — 안시성의 승리
+첨부: portraits/china/이세민.webp, portraits/goguryeo/양만춘.webp
+Winter retreat: the Tang army trudges away in a snowstorm across the frozen Liao plain, red banners
+drooping, wagons stuck; the emperor (reference) looks back bitterly at the distant green-bannered
+Ansi fortress. Cold blue light.
+
+[u_fall] 요동 함락 — 당의 진격 (안시성 함락 분기)
+첨부: portraits/china/이세적.webp
+Dark fate: Ansi fortress falls, green banners burning, the Liaodong line collapses; a vast Tang
+army in red pours south through a shattered gate at blood-red sunset, Goguryeo survivors fleeing.
+Ominous peril.
