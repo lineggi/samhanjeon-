@@ -2308,7 +2308,7 @@ function battle3dDispose(){ if(!B3D)return; cancelAnimationFrame(B3D.raf);
   try{B3D.renderer.dispose();B3D.renderer.domElement.remove();}catch(_){}B3D=null; }
 function openBattle(fromId,toId,opts){
   B={from:fromId,to:toId,round:1,over:false,A:mkArmy(fromId,true,opts&&opts.commit),D:mkArmy(toId,false),log:[],
-     rain:false,fog:false,ambush:false,evtCount:0,busy:false,pincer:false};
+     rain:false,fog:false,ambush:false,evtCount:0,busy:false,pincer:false,momentum:0};
   B.reserve=(opts&&opts.commit!=null)?Math.max(0,pstate[fromId].troops-Math.round(opts.commit)):0; // 출병 안 한 잔류 수비대
   if(opts&&opts.defense){          // 포위 방어전(출격): 플레이어=수비(B.A), 적=공성군(B.D)
     B.defense=true; B.siegeRef=opts.siegeRef; B.D.troops=Math.max(1,Math.round(opts.siegeRef.atkTroops));
@@ -2355,6 +2355,7 @@ function renderBattle(){
         <div class="bst">통${A.g.lead} 무${A.g.might} 지${A.g.int}</div></div></div>
       <div class="metric"><div class="ml"><span>병력</span><b>${fmt(A.troops)}</b></div>${bar(A.troops,A.startT,'linear-gradient(90deg,#7a1f1a,var(--gold))')}</div>
       <div class="metric"><div class="ml"><span>사기</span><b>${Math.round(A.morale)}</b></div>${bar(A.morale,100,'linear-gradient(90deg,#3a5a8c,#5aa8d8)')}</div>
+      <div class="metric"><div class="ml"><span>⚡기세</span><b style="color:${(B.momentum||0)>=100?'#ffd24a':'#c8b890'}">${Math.round(B.momentum||0)}${(B.momentum||0)>=100?' · 총공세!':''}</b></div>${bar(B.momentum||0,100,'linear-gradient(90deg,#7a3a8c,#e0a52e)')}</div>
     </div><div class="vs">VS</div>
     <div class="armycard" style="border-color:${fcolor(D.p.owner)}">
       <h3 style="color:${fcolor(D.p.owner)}">${D.p.name}군 <span style="font-size:11px;color:#9c8c6a">(${B.defense?'공성군':'수비 · 성벽'+D.wall})</span></h3>
@@ -2373,9 +2374,10 @@ function renderBattle(){
   h+=`<div class="cti">상성 <b>돌격 ▸ 궁격 ▸ 계략 ▸ 돌격</b>${B.lastDTac?` · 적 지난 합 <b style="color:#ff9a6a">${TACTICS[B.lastDTac].n}</b>`:''}</div><div class="tactics">`;
   const cbadge={charge:'궁격에 강',volley:'계략에 강',scheme:'돌격에 강'};
   for(const k in TACTICS){h+=`<div class="tac ${dis}" onclick="${(B.over||B.busy)?'':`playTactic('${k}')`}"><div class="tn">${TACTICS[k].n}</div><div class="td">${TACTICS[k].d}</div>${cbadge[k]?`<div class="cbadge" style="color:#7bbf63">▲ ${cbadge[k]}</div>`:''}</div>`;}
+  if((B.momentum||0)>=100&&!B.over)h+=`<div class="tac" style="border-color:#e0a52e;box-shadow:0 0 12px rgba(224,165,46,.55)" onclick="${B.busy?'':`playTactic('finisher')`}"><div class="tn" style="color:#ffd24a">⚡ 총공세</div><div class="td">기세 폭발 — 막대한 피해·적 사기 -25</div><div class="cbadge" style="color:#ffd24a">필살</div></div>`;
   h+=`</div><div class="blog">${B.log.map(l=>`<div class="le ${l.c}">${l.t}</div>`).join('')}</div>`;
   h+=`<div class="bfoot"><span style="font-size:11px;color:#7a6a4a">사기가 0이 되면 군은 무너진다</span>`;
-  h+= B.over?`<button class="btn" onclick="closeBattle()">전장을 떠난다 ▶</button>`:`<button class="btn danger sm" onclick="retreat()">퇴각</button>`;
+  h+= B.over?`<button class="btn" onclick="closeBattle()">전장을 떠난다 ▶</button>`:`<span style="display:flex;gap:8px"><button class="btn sm" onclick="${B.busy?'':'quickBattle()'}">⚡ 빠른 전투</button><button class="btn danger sm" onclick="retreat()">퇴각</button></span>`;
   h+=`</div>`;
   ($('bcontent')||$('battleBox')).innerHTML=h;
 }
@@ -2403,6 +2405,7 @@ function resolveTactic(att,def,tac,isAtk,duelRes){
     else{att.morale=Math.max(0,att.morale-12);def.morale=Math.min(100,def.morale+8);log.push([isAtk?'def':'atk',`${att.g.name}이(가) 일기토에서 밀렸다 (사기 -12)`]);}}
     else{att.morale=Math.max(0,att.morale-4);log.push(['sys',`${def.p.name}에 맞설 장수가 없어 일기토가 무산됐다`]);}}
   else if(tac==='guard'){dmg=base*0.25*r();att.morale=Math.min(100,att.morale+12);att._g=true;}
+  else if(tac==='finisher'){dmg=base*2.6*(0.7+att.g.might/200)*r();self=base*0.14*r();att.morale=Math.min(100,att.morale+6);} // 필살기: 기세를 쏟아붓는 총공세
   let skMul=1;
   if(sk==='veteran')skMul*=1.1;
   if(sk==='charge'&&tac==='charge')skMul*=1.25;
@@ -2431,7 +2434,9 @@ function resolveRound(tac,duelRes){
   let crit=false;
   const ra=resolveTactic(A,D,tac,true,duelRes), rd=resolveTactic(D,A,dTac,false,null);
   let dD=ra.dmg, dA=rd.dmg+ra.self;
+  const SPEED=1.4; dD*=SPEED; dA*=SPEED;   // 전투 길이 단축(인터랙티브 전용 — aiBattle/공성 즉결엔 미적용)
   let dMorD=0,dMorA=0;   // 사기 증감은 델타로 모아 단계별 적용(턴제)
+  if(tac==='finisher'){ dMorD-=25; B.momentum=0; crit=true; blog('atk',`<span class="crit">⚡ 총공세! 기세를 쏟아부어 적진을 강타한다 (적 사기 -25)</span>`); }
   // 전법 상성
   if(COUNTER[tac]===dTac){dD*=1.4;dMorD-=10;crit=true;
     blog('atk',`<span class="crit">상성 적중! ${CNAME[tac]}이(가) ${CNAME[dTac]}을(를) 제압한다 (위력↑·적 사기 -10)</span>`);}
@@ -2493,10 +2498,57 @@ function resolveRound(tac,duelRes){
         blog('def',`▸ 적 [${TACTICS[dTac].n}] — 아군 ${fmt(dAshown)}명 손실`); rd.log.forEach(([c,t])=>blog(c,t));
         renderBattle(); battleFx(dAshown,0,crit);
         if(A.troops<=0||A.morale<=0){ endBattle('lose'); B.busy=false; return; }
+        if(tac!=='finisher')B.momentum=Math.min(100,(B.momentum||0)+((crit||dDshown>dAshown)?28:12)); // 기세 적립(우세한 합일수록↑)
         B.round++; rollEvent(); B.busy=false; renderBattle();   // busy 해제 후 렌더 → 다음 합 전법 버튼 활성
       }catch(e){fail(e);} }, 430);
     }catch(e){fail(e);} }, 520);
   }catch(e){fail(e);} }, 430);
+}
+/* 빠른 전투: 남은 합을 애니메이션 없이 즉시 결판(반복 클릭 제거). resolveRound의 핵심 수식을 동기 미러링 */
+function quickBattle(){
+  if(!B||B.over||B.busy)return; B.busy=true;
+  let guard=0;
+  try{
+  while(!B.over && B.A.troops>0 && B.D.troops>0 && B.A.morale>0 && B.D.morale>0 && guard++<40){
+    const A=B.A,D=B.D; A._g=D._g=false;
+    let tac=((B.momentum||0)>=100&&!B.fog)?'finisher':aiTactic(A,D);
+    if(tac==='duel'&&(!D.g.id||B.fog))tac='charge';
+    const dTac=aiTactic(D,A); B.lastDTac=dTac;
+    const ra=resolveTactic(A,D,tac,true,null), rd=resolveTactic(D,A,dTac,false,null);
+    let dD=ra.dmg, dA=rd.dmg+ra.self; const SPEED=1.4; dD*=SPEED; dA*=SPEED;
+    let dMorD=0,dMorA=0,crit=false;
+    if(tac==='finisher'){dMorD-=25;B.momentum=0;crit=true;}
+    if(COUNTER[tac]===dTac){dD*=1.4;dMorD-=10;crit=true;} else if(COUNTER[dTac]===tac){dA*=1.4;dMorA-=10;}
+    if(B.ambush){dD*=1.6;B.ambush=false;crit=true;}
+    if(B.pincer)dD*=1.015;
+    if(D._g)dD*=0.4; if(A._g)dA*=0.4;
+    if(D.skill&&D.skill.type==='wall')dD*=0.75; if(A.skill&&A.skill.type==='wall')dA*=0.75;
+    if(D.unit&&D.unit.defMul)dD*=D.unit.defMul;
+    {const fA=activeSkill(A.p.owner);if(fA&&fA.def)dA*=fA.def;const fD=activeSkill(D.p.owner);if(fD&&fD.def)dD*=fD.def;}
+    let wallDmg=0;
+    if(B.siege&&!B.breached){const wf=B.wallHP/Math.max(1,B.wallMax);dD*=(0.5+0.5*(1-wf));dA*=(1+0.22*wf);
+      const SIEGE={charge:1,scheme:0.55,volley:0.25,duel:0,guard:0,finisher:1};
+      const sb=(A.unit&&/부병|쇠뇌|공성|철기/.test(A.unit.name||''))?1.5:1;
+      wallDmg=Math.round(B.wallMax*0.2*(SIEGE[tac]||0)*sb*(0.6+0.4*Math.min(1,A.troops/Math.max(1,D.startT))));}
+    const dDshown=Math.min(Math.round(dD),D.troops), dAshown=Math.min(Math.round(dA),A.troops);
+    dMorD-=dD/D.startT*60*((D.unit&&D.unit.moraleFrail)||1);
+    dMorA-=dA/A.startT*60*((A.unit&&A.unit.moraleFrail)||1);
+    let regA=0,regD=0;
+    if(A.skill&&A.skill.type==='inspire')regA+=8; if(D.skill&&D.skill.type==='inspire')regD+=8;
+    if(A.unit&&A.unit.moraleRegen)regA+=A.unit.moraleRegen; if(D.unit&&D.unit.moraleRegen)regD+=D.unit.moraleRegen;
+    const fa=activeSkill(A.p.owner);if(fa&&fa.moraleRegen)regA+=fa.moraleRegen;
+    const fd=activeSkill(D.p.owner);if(fd&&fd.moraleRegen)regD+=fd.moraleRegen;
+    D.troops=Math.max(0,D.troops-dD); D.morale=Math.min(100,Math.max(0,D.morale+dMorD)+regD);
+    if(B.siege&&!B.breached&&wallDmg>0){B.wallHP=Math.max(0,B.wallHP-wallDmg);if(B.wallHP<=0){B.breached=true;D.morale=Math.max(0,D.morale-22);}}
+    if(D.troops<=0||D.morale<=0){ endBattle('win'); B.busy=false; return; }
+    A.troops=Math.max(0,A.troops-dA); A.morale=Math.min(100,Math.max(0,A.morale+dMorA)+regA);
+    if(A.troops<=0||A.morale<=0){ endBattle('lose'); B.busy=false; return; }
+    if(tac!=='finisher')B.momentum=Math.min(100,(B.momentum||0)+((crit||dDshown>dAshown)?28:12));
+    B.round++; rollEvent();
+  }
+  }catch(e){try{console&&console.error&&console.error('quickBattle',e);}catch(_){}}
+  B.busy=false;
+  if(!B.over) endBattle(B.A.troops>=B.D.troops?'win':'retreat');   // 안전장치: 교착이면 우세 판정
 }
 /* 합 시작 시 25% 확률 돌발 이벤트(2합부터, 1전투 최대 2회) */
 function rollEvent(){
@@ -3411,7 +3463,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.44.4';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.45.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
