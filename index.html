@@ -765,7 +765,7 @@ const SCENARIOS=[
 
 /* ============ 런타임 ============ */
 let provinces=[], pstate={}, generals=[];
-let player='goguryeo', turn=1, selected=null, attackMode=false, scenario=null, activeFactions=[], zoomScale=1, lastD={}, aiAnimating=false, lostThisTurn=[], moveMode=false, genMoveMode=false, turnEvents=[], firedEvents=[], pendingModals=[], marchQueue=[], sieges=[];
+let player='goguryeo', turn=1, selected=null, attackMode=false, scenario=null, activeFactions=[], zoomScale=1, lastD={}, aiAnimating=false, lostThisTurn=[], moveMode=false, genMoveMode=false, turnEvents=[], firedEvents=[], pendingModals=[], marchQueue=[], sieges=[], pendingSiegeBattles=[];
 const $=id=>document.getElementById(id);
 function adj(id){const r=new Set();EDGES.forEach(([a,b])=>{if(a===id)r.add(b);if(b===id)r.add(a)});return [...r];}
 /* 군량·보급 */
@@ -1111,7 +1111,7 @@ function loadScenario(sc){
   factionHanzi.china=(sc.cname?sc.cname.slice(-1):'중');
   activeFactions=sc.factions.slice();
   initDiplo(sc); factionBuff={}; factionCd={}; diploUsed=false; autoDelegate=false;
-  eliminatedFactions=[]; eliminatedThisTurn=[]; marchQueue=[]; sieges=[]; clearUndo();
+  eliminatedFactions=[]; eliminatedThisTurn=[]; marchQueue=[]; sieges=[]; pendingSiegeBattles=[]; clearUndo();
 }
 /* 첫 플레이 1회 조작 안내 */
 const TUT_KEY='samhanjeon_tut_v1';
@@ -2290,20 +2290,24 @@ function openBattle(fromId,toId,opts){
   B={from:fromId,to:toId,round:1,over:false,A:mkArmy(fromId,true,opts&&opts.commit),D:mkArmy(toId,false),log:[],
      rain:false,fog:false,ambush:false,evtCount:0,busy:false,pincer:false};
   B.reserve=(opts&&opts.commit!=null)?Math.max(0,pstate[fromId].troops-Math.round(opts.commit)):0; // 출병 안 한 잔류 수비대
+  if(opts&&opts.defense){          // 포위 방어전(출격): 플레이어=수비(B.A), 적=공성군(B.D)
+    B.defense=true; B.siegeRef=opts.siegeRef; B.D.troops=Math.max(1,Math.round(opts.siegeRef.atkTroops));
+  }
   if(opts&&opts.pincer){           // 협공: 합세 병력 + 적 사기 저하 + 위력 보너스
     B.pincer=true; B.A.troops+=opts.extra||0;
     B.D.morale=Math.max(8,B.D.morale-2);
   }
-  B.scorched=(B.D.p.owner==='goguryeo');   // 고구려 수비 시 청야전술
+  B.scorched=!B.defense && B.D.p.owner==='goguryeo';   // 고구려 수비 시 청야전술(방어전엔 미적용)
   if(B.scorched){B.A.troops=Math.round(B.A.troops*0.9);B.A.morale=Math.round(B.A.morale*0.7);}
   B.A.startT=B.A.troops;B.D.startT=B.D.troops;
-  B.siege=B.D.wall>=2; B.wallMax=20+B.D.wall*18; B.wallHP=B.wallMax; B.breached=false;   // 공성전: 성벽 내구도
+  B.siege=!B.defense && B.D.wall>=2; B.wallMax=20+B.D.wall*18; B.wallHP=B.wallMax; B.breached=false;   // 공성전: 성벽 내구도
   if(B.siege)blog('sys',`🏯 공성전 — ${B.D.p.name} 성벽 ${B.D.wall}성(내구 ${B.wallMax}). 돌격·계략으로 성벽을 허물어야 적을 압도한다`);
   if(B.A.lowFood)blog('atk',`🌾 군량 부족 — 아군 사기 -15`);
   if(B.D.lowFood)blog('def',`🌾 군량 부족 — 적 사기 -15`);
   if(B.scorched)blog('def',`🔥 청야전술 — 고구려가 들판을 비우고 굳게 지키니, 공격군 병력 -10%·사기 -30%`);
   {const fa=activeSkill(B.A.p.owner);if(fa)blog('atk',`${fa.icon} ${fa.name} 발동 중 — ${fa.desc}`);const fd=activeSkill(B.D.p.owner);if(fd)blog('def',`${fd.icon} ${fd.name} 발동 중 — ${fd.desc}`);}
   if(B.pincer)blog('sys',`🦅 협공! ${(opts.names||[]).join('·')}의 군이 합세한다 (병력 +${fmt(opts.extra||0)}, 적은 포위되어 사기 저하)`);
+  if(B.defense)blog('sys',`🏯 ${prov(fromId).name} 방어전 — 출격하여 포위한 ${FACTIONS[B.D.p.owner].name} 공성군 ${fmt(B.D.troops)}을(를) 물리쳐라!`);
   blog('sys',`${prov(fromId).name}의 군이 ${prov(toId).name}으로 진군한다!`);
   blog('sys',`지형: ${B.D.terr} · 성벽 ${B.D.wall} — ${B.D.terr==='산악'?'수비 유리':B.D.terr==='강'?'수비 약간 유리':'공격 유리'}`);
   if(B.A.unit)blog('atk',`${B.A.unit.icon} 아군 병종 — ${B.A.unit.name}: ${B.A.unit.desc}`);
@@ -2323,7 +2327,7 @@ function renderBattle(){
   const A=B.A,D=B.D,dis=(B.over||B.busy)?'disabled':'';
   let h=`<div class="bhead">
     <div class="armycard" style="border-color:${fcolor(player)}">
-      <h3 style="color:${fcolor(player)}">${A.p.name}군 <span style="font-size:11px;color:#9c8c6a">(공격)</span></h3>
+      <h3 style="color:${fcolor(player)}">${A.p.name}군 <span style="font-size:11px;color:#9c8c6a">(${B.defense?'수비·출격':'공격'})</span></h3>
       <div class="bgen"><div class="bface">${A.g.id?genPortrait(A.g):'<span class="noface">無</span>'}</div>
         <div class="bgi"><div class="who">${nameTitleHTML(A.g.name)}</div>
         ${A.skill?`<div class="bsk" title="${A.skill.desc}">⚑ ${A.skill.name}</div>`:`<div class="bsk none">비기 없음</div>`}
@@ -2333,7 +2337,7 @@ function renderBattle(){
       <div class="metric"><div class="ml"><span>사기</span><b>${Math.round(A.morale)}</b></div>${bar(A.morale,100,'linear-gradient(90deg,#3a5a8c,#5aa8d8)')}</div>
     </div><div class="vs">VS</div>
     <div class="armycard" style="border-color:${fcolor(D.p.owner)}">
-      <h3 style="color:${fcolor(D.p.owner)}">${D.p.name}군 <span style="font-size:11px;color:#9c8c6a">(수비 · 성벽${D.wall})</span></h3>
+      <h3 style="color:${fcolor(D.p.owner)}">${D.p.name}군 <span style="font-size:11px;color:#9c8c6a">(${B.defense?'공성군':'수비 · 성벽'+D.wall})</span></h3>
       <div class="bgen"><div class="bface">${D.g.id?genPortrait(D.g):'<span class="noface">無</span>'}</div>
         <div class="bgi"><div class="who">${nameTitleHTML(D.g.name)}</div>
         ${D.skill?`<div class="bsk" title="${D.skill.desc}">⚑ ${D.skill.name}</div>`:`<div class="bsk none">비기 없음</div>`}
@@ -2541,6 +2545,27 @@ function duelPick(mv){
 }
 function endBattle(result){
   B.over=true;const A=B.A,D=B.D,fromSt=pstate[B.from],toSt=pstate[B.to];fromSt.acted=true;
+  if(B.defense){   // 포위 방어전 결판: 승=사수, 패=함락 (소유는 B.from=내 성 기준)
+    const s=B.siegeRef, atkFac=B.D.p.owner, win=result==='win';
+    gainExp(A.g, win?45:18); gainExp(D.g, win?20:35);
+    if(win){
+      blog('crit',`✊ 공성군을 물리쳤다! ${prov(B.from).name}을(를) 지켜냈다.`);
+      fromSt.troops=Math.max(300,Math.round(A.troops)); fromSt.train=Math.min(95,Math.round(A.morale));
+      if(prov(B.to))toSt.troops=Math.max(300,Math.round((toSt.troops||0)+Math.max(0,D.troops))); // 공성군 잔병 귀환
+    } else {
+      blog('crit',`✖ ${prov(B.from).name} 성이 무너졌다…`);
+      turnEvents.push({atk:atkFac,def:player,castle:prov(B.from).name,pincer:false});
+      prov(B.from).owner=atkFac; fromSt.troops=Math.max(500,Math.round(D.troops)); fromSt.train=Math.min(80,Math.round(D.morale));
+      lostThisTurn.push(prov(B.from).name);
+      generals.forEach(g=>{if(g.loc===B.from&&g.f!==atkFac){if(Math.random()<0.4){g.f=atkFac;g.loyalty=44+Math.floor(Math.random()*10);}else g._gone=true;}});
+      generals=generals.filter(g=>!g._gone);
+    }
+    if(s)liftSiege(s);
+    checkSuccession();checkElimination();
+    renderBattle();render();
+    if(!checkVictory()) setTimeout(()=>{ if(B&&B.over) battleResultModal(result); }, 720);
+    return;
+  }
   const reserve=Math.max(0,Math.round(B.reserve||0)); // 출병 안 한 잔류 병력
   gainExp(A.g, result==='win'?45:result==='lose'?18:10);           // 공격 장수 경험치
   if(result!=='win')gainExp(D.g, 30);                               // 수성 성공 방어 장수
@@ -2565,13 +2590,15 @@ function endBattle(result){
 }
 /* 승리/패배 결과 모달 — 바로 전투 종료(승리 시 적장 처분 포함) */
 function battleResultModal(result){
-  if(!B)return; const win=result==='win', lose=result==='lose', A=B.A, D=B.D;
-  const title=win?'승리':lose?'패배':'퇴각', sub=win?`${D.p.name} 함락`:lose?'아군 붕괴':'전장에서 물러나다';
-  const firstWin=win&&firstWinPending; firstWinPending=false;
+  if(!B)return; const win=result==='win', lose=result==='lose', A=B.A, D=B.D, def=B.defense;
+  const title=def?(win?'사수':'함락'):(win?'승리':lose?'패배':'퇴각');
+  const sub=def?(win?`${prov(B.from).name} 포위 격퇴`:`${prov(B.from).name} 함락`):(win?`${D.p.name} 함락`:lose?'아군 붕괴':'전장에서 물러나다');
+  const firstWin=win&&!def&&firstWinPending; firstWinPending=false;
   const fwBanner=firstWin?`<div style="margin:0 auto 8px;max-width:360px;padding:9px 12px;border:1px solid var(--gold);border-radius:8px;background:rgba(201,162,39,.12);color:var(--gold);font-weight:800">🎉 첫 승리! 첫 성을 손에 넣었다 — 이 기세로 천하를 도모하라!</div>`:'';
-  const tcol=win?'var(--gold)':lose?'var(--crimson)':'#c9a86a';
-  const dg=win?generals.find(g=>g.id===(D.g&&D.g.id)&&g.f!==player):null;
+  const tcol=win?'var(--gold)':(lose||def)?'var(--crimson)':'#c9a86a';
+  const dg=(win&&!def)?generals.find(g=>g.id===(D.g&&D.g.id)&&g.f!==player):null;
   const info=win?`<p style="margin:6px 0 2px">남은 병력 <b style="color:var(--gold)">${fmt(Math.round(A.troops))}</b> · 사기 <b>${Math.round(A.morale)}</b></p>`
+    :def?`<p style="margin:6px 0 2px;color:#e3a39d">성이 적의 손에 넘어갔다…</p>`
     :`<p style="margin:6px 0 2px">잔병 <b>${fmt(Math.round((B.reserve||0)+Math.max(0,A.troops)))}</b>이(가) 본성으로 후퇴</p>`;
   let foot;
   if(dg){ foot=`<div class="captured" style="margin:10px auto 0"><div class="face" style="width:54px;height:66px">${genPortrait(dg)}</div>
@@ -2593,7 +2620,8 @@ function resolveCapture(id,recruit){
           else toast(`${g.name}을(를) 놓아주었습니다.`); }
   finishBattle();
 }
-function closeBattle(){battle2dDispose();$('battleOverlay').classList.remove('on');B=null;render();}
+function closeBattle(){battle2dDispose();$('battleOverlay').classList.remove('on');B=null;render();
+  if(pendingModals.length)advanceModals();}   // 모달 큐에서 띄운 방어전이면 다음 모달로 진행
 function captureModal(dg){
   $('centerBox').innerHTML=`<h1 style="font-size:32px">적장 포로<small>${dg.name} 사로잡다</small></h1>
     <div class="captured"><div class="face" style="width:62px;height:76px">${genPortrait(dg)}</div>
@@ -2645,6 +2673,7 @@ function resolveSiege(s){
 }
 function processSieges(){
   sieges.slice().forEach(s=>{
+    if(s.resolving)return;   // 플레이어 방어전 대기 중 — 모달에서 처리
     const tp=prov(s.target), fp=prov(s.fromId);
     // 무효화: 성 주인이 바뀜 / 공성 거점이 함락됨 / 공성군 소멸
     if(!tp||tp.owner!==s.defFac||!fp||fp.owner!==s.atkFac||s.atkTroops<=0){ liftSiege(s,'lift'); return; }
@@ -2659,8 +2688,9 @@ function processSieges(){
     if(reliefTroops>0){ ds.troops=Math.round(ds.troops+reliefTroops);
       if(s.defFac===player)toast(`🏇 ${prov(s.target).name} 구원군 ${fmt(reliefTroops)} 합류!`); }
     // 결판: 수비가 충분(출격·격퇴) / 한계 턴 / 전멸
-    if(ds.troops>=s.atkTroops*0.85){ resolveSiege(s); return; }
-    if(turn>=s.deadline||ds.troops<=0){ resolveSiege(s); return; }
+    const decide = ds.troops>=s.atkTroops*0.85 || turn>=s.deadline || ds.troops<=0;
+    if(decide){ if(s.defFac===player){ s.resolving=true; pendingSiegeBattles.push(s); } // 플레이어 → 인터랙티브 방어전
+                else resolveSiege(s); return; }
     if(s.defFac===player) toast(`🏯 ${prov(s.target).name} 포위 ${turn-s.started+1}턴째 — ${s.deadline-turn}턴 내 구원 필요`);
   });
 }
@@ -2721,6 +2751,14 @@ function confirmRelief(){
   advanceModals();
 }
 function cancelRelief(){ reliefCtx=null; $('centerOverlay').classList.remove('on'); advanceModals(); }
+/* 포위된 내 성의 인터랙티브 방어전(출격) — 전투씬을 띄워 직접 전법으로 공성군을 친다 */
+function openSiegeDefense(s){
+  if(!sieges.includes(s)){ advanceModals(); return; }
+  const ds=pstate[s.target], def=Math.max(1,Math.round(ds.troops));
+  if(!prov(s.fromId)){ liftSiege(s,'lift'); advanceModals(); return; }
+  $('centerOverlay').classList.remove('on');
+  openBattle(s.target, s.fromId, {commit:def, defense:true, siegeRef:s});
+}
 function planAiTurn(){
   const moves=[];
   // AI 수비 원군: 자기 성이 포위당하면 근거리 아군 성에서 원군 파견(턴 시작, acted 표시 전)
@@ -2888,6 +2926,7 @@ function finishTurn(){
     if(turnEvents.length||starveThisTurn.length||defectThisTurn.some(d=>d.from===player||d.to===player)||eliminatedThisTurn.length)pendingModals.push(renderTurnReportModal);
     evs.forEach(e=>pendingModals.push(()=>renderEventModal(e)));
     sieges.forEach(s=>{ if(prov(s.target).owner===player && !s.offered){ s.offered=true; pendingModals.push(()=>openReliefModal(s)); } }); // 새 포위: 원군 요청
+    pendingSiegeBattles.forEach(s=>pendingModals.push(()=>openSiegeDefense(s))); pendingSiegeBattles=[]; // 포위 결판: 인터랙티브 방어전
     if(pendingModals.length){render();advanceModals();}
     else toast(`${gameYear()}년 · ${turn}턴 — 전선에 큰 변동이 없습니다`);
   }
@@ -3351,7 +3390,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.41.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.42.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -3409,7 +3448,7 @@ function loadGame(){
     firedEvents=data.firedEvents||(scenario.events?scenario.events.filter(e=>gameYear()>=eventYear(e)).map(e=>e.id):[]); // 구버전 저장본: 지난 이벤트는 본 것으로 처리
     eliminatedFactions=data.eliminatedFactions||activeFactions.filter(f=>ownedBy(f).length===0);
     marchQueue=data.marchQueue||[];
-    sieges=data.sieges||[];
+    sieges=(data.sieges||[]).map(s=>{delete s.resolving;return s;}); pendingSiegeBattles=[]; // 대기 중 방어전은 다음 턴 재결판
     if(data.diplo)diplo=data.diplo;   // 구버전 저장본은 loadScenario의 기본 외교 유지
     factionBuff=data.factionBuff||{}; factionCd=data.factionCd||{}; diploUsed=!!data.diploUsed; autoDelegate=!!data.autoDelegate;
     if(data.cname)FACTIONS.china.name=data.cname;
