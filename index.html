@@ -770,7 +770,7 @@ const SCENARIOS=[
     text:'고구려 중앙군 고연수·고혜진이 15만 대군을 이끌고 안시성 구원에 나선다. 주필산을 넘어 포위망을 향해 진군하니, 안시성에 한 가닥 희망이 비친다.',
     cond:()=>sieges.some(s=>s.target==='ansi'&&s.defFac==='goguryeo'),   // 안시성이 고구려로서 포위 중일 때만
     effect:()=>{const s=sieges.find(x=>x.target==='ansi'&&x.defFac==='goguryeo');
-      if(s)s.reliefs.push({from:(prov('gungnae')&&prov('gungnae').owner==='goguryeo')?'gungnae':s.target,fac:'goguryeo',troops:50000,hops:3,arrive:turn+2});}},
+      if(s)s.reliefs.push({from:(prov('gungnae')&&prov('gungnae').owner==='goguryeo')?'gungnae':s.target,fac:'goguryeo',troops:30000,hops:3,arrive:turn+2});}},
    {id:'u_fall', turn:6, title:'요동 함락 — 당의 진격',
     text:'안시성이 무너지며 요동 방어선이 붕괴한다. 당의 대군이 거침없이 남하하니, 고구려의 운명은 풍전등화에 놓인다.',
     cond:()=>!(prov('ansi')&&prov('ansi').owner==='goguryeo'),
@@ -2694,7 +2694,7 @@ function processSieges(){
     // 무효화: 성 주인이 바뀜 / 공성 거점이 함락됨 / 공성군 소멸
     if(!tp||tp.owner!==s.defFac||!fp||fp.owner!==s.atkFac||s.atkTroops<=0){ liftSiege(s,'lift'); return; }
     const ds=pstate[s.target];
-    ds.troops=Math.max(0,ds.troops-Math.round(ds.troops*0.04)-60);   // 포위 소모(수비)
+    ds.troops=Math.max(0,ds.troops-Math.round(ds.troops*0.06)-100);   // 포위 소모(수비)
     ds.train=Math.max(10,ds.train-6);
     ds.food=Math.max(0,(ds.food||0)-Math.round(ds.troops*0.08));
     s.atkTroops=Math.max(0,s.atkTroops-Math.round(s.atkTroops*0.02)); // 공성군 자체 소모
@@ -2781,10 +2781,11 @@ function planAiTurn(){
   sieges.forEach(s=>{
     if(s.defFac===player || !activeFactions.includes(s.defFac)) return;
     if(s.reliefs.some(r=>r.fac===s.defFac)) return;   // 이미 보낸 포위는 건너뜀
+    if(pstate[s.target].troops >= s.atkTroops*0.9) return;   // 수비가 자력 격퇴 가능하면 원군 보내지 않음(분산 패널티 회피)
     const cands=ownedBy(s.defFac).filter(p=>p.id!==s.target && !pstate[p.id].acted && pstate[p.id].troops>1500)
       .map(p=>({id:p.id,hops:pathHops(p.id,s.target)})).filter(o=>isFinite(o.hops)&&o.hops<=3)
       .sort((a,b)=>a.hops-b.hops).slice(0,2);
-    cands.forEach(c=>{ const give=Math.floor(pstate[c.id].troops*0.5); if(give<800)return;
+    cands.forEach(c=>{ const give=Math.floor(pstate[c.id].troops*0.33); if(give<800)return;
       pstate[c.id].troops-=give; pstate[c.id].acted=true;
       s.reliefs.push({from:c.id,fac:s.defFac,troops:give,hops:c.hops,arrive:turn+Math.max(1,c.hops)}); });
   });
@@ -3406,7 +3407,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.43.1';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.43.2';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
