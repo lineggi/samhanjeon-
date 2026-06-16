@@ -3342,7 +3342,21 @@ function showEra(){
   $('centerOverlay').classList.add('on');
 }
 let pickedEra=null,chosenF=null;
-function pickEra(i){pickedEra=SCENARIOS[i];loadScenario(pickedEra);showFactionPick();}
+function pickEra(i){pickedEra=SCENARIOS[i];loadScenario(pickedEra);showDifficultyPick();}
+/* 난이도 선택(시대 다음, 세력 이전) */
+function showDifficultyPick(){
+  const opts=[['easy','🌿','적이 약하고 수입이 적어 통일이 수월합니다'],['normal','⚔','역사 그대로의 표준 밸런스'],['hard','🔥','적이 강하고 풍족해 천하 통일이 험난합니다']];
+  const cards=opts.map(([d,ic,desc])=>`<div class="eracard" onclick="pickDifficulty('${d}')" style="${difficulty===d?'border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)':''}">
+    <div class="eh"><span class="ey">${ic}</span><span class="et">${DIFF_NAME[d]}</span></div>
+    <div class="ed">${desc}</div>
+    <div class="ef"><span class="tag" style="color:#c8b890;border-color:#5a4a30">적 세력 병력·수입 ${Math.round(DIFF_MUL[d]*100)}%</span></div></div>`).join('');
+  $('centerBox').innerHTML=`<div class="backstart" onclick="showEra()">◂ 시대 다시 선택</div>
+    <h1 style="font-size:32px">난이도<small>${pickedEra.year} · ${pickedEra.name}</small></h1>
+    <p>난이도를 고르시오. 플레이어 세력은 그대로이고, <b>적 세력</b>의 병력·수입이 달라집니다.</p>
+    <div class="eragrid">${cards}</div>`;
+  $('centerOverlay').classList.add('on');
+}
+function pickDifficulty(d){if(DIFF_MUL[d])difficulty=d;showFactionPick();}
 function showFactionPick(){
   const sc=pickedEra;chosenF=null;
   let picks='';
@@ -3359,17 +3373,12 @@ function showFactionPick(){
       <div class="fd">${gnames}${sc.gens.filter(g=>g[1]===f).length>3?' 등':''}</div></div>`;
   });
   heroDefaultF=sc.factions[0];
-  $('centerBox').innerHTML=`<div class="back" onclick="showEra()">◂ 시대 다시 선택</div>
-    <h1 style="font-size:34px">${pickedEra.year}<small>${pickedEra.name}</small></h1>
+  $('centerBox').innerHTML=`<div class="back" onclick="showDifficultyPick()">◂ 난이도 다시 선택</div>
+    <h1 style="font-size:34px">${pickedEra.year}<small>${pickedEra.name} · ${DIFF_NAME[difficulty]}</small></h1>
     <p>그대가 이끌 나라를 택하라. 성의 개수가 그 나라의 영토 크기다.</p>
     <div class="fpwrap">
       <div class="herostage" id="herostage"></div>
       <div class="factionpick">${picks}</div>
-      <div class="diffpick" style="display:flex;gap:8px;justify-content:center;align-items:center;margin:10px 0 4px;flex-wrap:wrap">
-        <span style="font-size:12px;color:#9c8c6a">난이도</span>
-        ${['easy','normal','hard'].map(d=>`<button class="btn sm" id="diff-${d}" onclick="setDifficulty('${d}')" style="${difficulty===d?'background:var(--gold);color:#1a140c;font-weight:800;border-color:var(--gold)':''}">${DIFF_NAME[d]}</button>`).join('')}
-      </div>
-      <div id="diffdesc" style="font-size:11px;color:#8a7a5a;text-align:center;margin-bottom:8px">${DIFF_DESC[difficulty]}</div>
       <button class="btn startbtn" id="startBtn" disabled onclick="beginGame()">출진 ▶</button>
     </div>`;
   showHero(heroDefaultF);
@@ -3433,9 +3442,6 @@ function factionMiniMap(f){
     +`</svg>`;
 }
 function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.classList.remove('active'));$('fp-'+f).classList.add('active');$('startBtn').disabled=false;showHero(f);}
-function setDifficulty(d){if(!DIFF_MUL[d])return;difficulty=d;
-  ['easy','normal','hard'].forEach(k=>{const b=$('diff-'+k);if(b)b.style.cssText=(k===d?'background:var(--gold);color:#1a140c;font-weight:800;border-color:var(--gold)':'');});
-  const dd=$('diffdesc');if(dd)dd.textContent=DIFF_DESC[d];}
 /* 첫 승리 온보딩: 가장 쉬운 인접 적 성을 목표로 제시 */
 let firstObjective=null, firstWinPending=false;
 function computeFirstObjective(){
@@ -3478,7 +3484,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='3.0.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='3.0.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
