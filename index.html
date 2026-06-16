@@ -7,6 +7,22 @@
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzE2MTAwOSIvPjxyZWN0IHg9IjEuNSIgeT0iMS41IiB3aWR0aD0iMjkiIGhlaWdodD0iMjkiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNjYWE3MmUiIHN0cm9rZS13aWR0aD0iMS42Ii8+PHRleHQgeD0iMTYiIHk9IjI1IiBmb250LXNpemU9IjIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZTZjNTYwIiBmb250LWZhbWlseT0iR3VnaSxzZXJpZiIgZm9udC13ZWlnaHQ9IjcwMCI+5LiJPC90ZXh0Pjwvc3ZnPg==">
 
 <meta name="theme-color" content="#15110c">
+<meta name="description" content="고구려·백제·신라, 천하를 도모하라. 시대를 골라 명장을 이끌고 공성·외교·전투로 삼한을 통일하는 한국 삼국시대 전략 시뮬레이션.">
+<!-- 링크 공유 미리보기(Open Graph / 트위터 카드) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="삼한전">
+<meta property="og:title" content="삼한전 三韓戰 — 한국 삼국시대 전략 시뮬레이션">
+<meta property="og:description" content="고구려·백제·신라, 천하를 도모하라. 시대를 골라 명장을 이끌고 공성·원군·외교·전투로 삼한을 통일하라.">
+<meta property="og:url" content="https://lineggi.github.io/samhanjeon-/">
+<meta property="og:image" content="https://lineggi.github.io/samhanjeon-/assets/og-cover.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="삼한전 三韓戰 — 고구려·백제·신라">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="삼한전 三韓戰 — 한국 삼국시대 전략 시뮬레이션">
+<meta name="twitter:description" content="고구려·백제·신라, 천하를 도모하라. 시대를 골라 명장을 이끌고 삼한을 통일하라.">
+<meta name="twitter:image" content="https://lineggi.github.io/samhanjeon-/assets/og-cover.png?v=1">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root{--ink:#15110c;--paper:#e7d8b6;--line:#3a2c1c;--gold:#c9a227;--crimson:#9e2b27;--blood:#7a1f1a;}
@@ -3390,7 +3406,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.42.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.43.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
