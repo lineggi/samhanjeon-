@@ -1326,6 +1326,21 @@ function renderMap(){
     const isWall=scenario&&scenario.id==='unification'&&WALL.includes(p.id); // 천리장성 성
     if(showName)labelItems.push({x:px,y:py,r,text:p.name,col,sel:isSel,wall:isWall});
   });
+  // 공성전: 포위 마커 + 원군 행군선
+  sieges.forEach(s=>{
+    const tc=D[s.target]; if(!tc)return;
+    const rr=(11+(prov(s.target).wall||0)*1.5)*ns;
+    // 원군 행군선(출발 성 → 포위 성)
+    (s.reliefs||[]).forEach(r=>{ const fc=D[r.from]; if(!fc)return; const eta=Math.max(0,r.arrive-turn), rc=fcolor(r.fac);
+      h+=`<line x1="${fc.x}" y1="${fc.y}" x2="${tc.x}" y2="${tc.y}" stroke="${rc}" stroke-width="${1.8*ns}" stroke-dasharray="${4*ns} ${2.6*ns}" opacity="0.85" stroke-linecap="round"><animate attributeName="stroke-dashoffset" values="0;${-6.6*ns}" dur="0.6s" repeatCount="indefinite"/></line>`;
+      h+=`<circle r="${2.6*ns}" fill="${rc}" stroke="#15110c" stroke-width="${0.8*ns}"><animateMotion path="M${fc.x} ${fc.y} L${tc.x} ${tc.y}" dur="1.4s" repeatCount="indefinite"/></circle>`;
+      const mx=(fc.x+tc.x)/2, my=(fc.y+tc.y)/2;
+      h+=`<text x="${mx.toFixed(1)}" y="${my.toFixed(1)}" text-anchor="middle" font-size="${6.4*ns}" font-weight="800" fill="${rc}" paint-order="stroke" stroke="#15110c" stroke-width="${2*ns}">🏇${eta}턴</text>`;
+    });
+    // 포위 링(점멸) + 표식
+    h+=`<circle cx="${tc.x}" cy="${tc.y}" r="${rr}" fill="none" stroke="#e0662a" stroke-width="${2.4*ns}" stroke-dasharray="${3.4*ns} ${2.6*ns}"><animate attributeName="r" values="${rr};${rr+4*ns};${rr}" dur="1.2s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="rotate" from="0 ${tc.x} ${tc.y}" to="360 ${tc.x} ${tc.y}" dur="9s" repeatCount="indefinite"/></circle>`;
+    h+=`<text x="${tc.x}" y="${(tc.y-rr-3*ns).toFixed(1)}" text-anchor="middle" font-size="${9*ns}" font-weight="900" fill="#e0662a" paint-order="stroke" stroke="#15110c" stroke-width="${2.4*ns}">🏯포위</text>`;
+  });
   // 라벨 충돌 해소 + 지시선(점선)으로 지도 밖까지 배치
   const fs=Math.max(9.5*ns, 3.2);
   const placed=layoutLabels(labelItems,fs);
