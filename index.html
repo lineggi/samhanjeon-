@@ -783,6 +783,8 @@ const SCENARIOS=[
 /* ============ 런타임 ============ */
 let provinces=[], pstate={}, generals=[];
 let player='goguryeo', turn=1, selected=null, attackMode=false, scenario=null, activeFactions=[], zoomScale=1, lastD={}, aiAnimating=false, lostThisTurn=[], moveMode=false, genMoveMode=false, turnEvents=[], firedEvents=[], pendingModals=[], marchQueue=[], sieges=[], pendingSiegeBattles=[];
+let difficulty='normal'; const DIFF_MUL={easy:0.85,normal:1,hard:1.15}; const DIFF_NAME={easy:'쉬움',normal:'보통',hard:'어려움'};
+const DIFF_DESC={easy:'적 세력 병력·수입 85% — 통일이 수월합니다',normal:'표준 밸런스',hard:'적 세력 병력·수입 115% — 도전적입니다'};
 const $=id=>document.getElementById(id);
 function adj(id){const r=new Set();EDGES.forEach(([a,b])=>{if(a===id)r.add(b);if(b===id)r.add(a)});return [...r];}
 /* 군량·보급 */
@@ -2974,14 +2976,16 @@ function finishTurn(){
      }
    });
    generals=generals.filter(g=>!g._gone);}
+  const _dm=DIFF_MUL[difficulty]||1;   // 난이도: 적 세력 수입 스케일
   provinces.forEach(p=>{const st=pstate[p.id];
+    const eco=(p.owner&&p.owner!==player)?_dm:1;   // 적 세력만 수입 가감(보통=1)
     const maxPop=Math.round(p.base*(p.cap?9:6));
     st.pop=Math.min(maxPop,st.pop+Math.round(st.pop*0.02)+40);   // 백성 자연 증가
-    st.gold+=60+p.wall*25+Math.round(st.pop*0.02);               // 수입 = 백성 세금 + 성벽 교역 + 기본
+    st.gold+=Math.round((60+p.wall*25+Math.round(st.pop*0.02))*eco);               // 수입 = 백성 세금 + 성벽 교역 + 기본
     // 군량 결산: 보급선이 도성에 닿은 성만 생산, 소비 차감
     const supplied=isSupplied(p.id);
     if(st.food==null)st.food=Math.round(p.base*3);
-    st.food=Math.min(foodCap(p), st.food+(supplied?Math.round(foodIncome(p,st)*seasonFoodMul()):0)-Math.round(foodUpkeep(st)*seasonUpkeepMul()));
+    st.food=Math.min(foodCap(p), st.food+(supplied?Math.round(foodIncome(p,st)*seasonFoodMul()*eco):0)-Math.round(foodUpkeep(st)*seasonUpkeepMul()));
     if(st.food<0){ // 기근 — 탈영·사기 저하
       const starve=Math.min(st.troops, Math.round(-st.food/3)+Math.round(st.troops*0.06));
       st.troops=Math.max(0,st.troops-starve); st.train=Math.max(10,st.train-12); st.food=0;
@@ -3361,6 +3365,11 @@ function showFactionPick(){
     <div class="fpwrap">
       <div class="herostage" id="herostage"></div>
       <div class="factionpick">${picks}</div>
+      <div class="diffpick" style="display:flex;gap:8px;justify-content:center;align-items:center;margin:10px 0 4px;flex-wrap:wrap">
+        <span style="font-size:12px;color:#9c8c6a">난이도</span>
+        ${['easy','normal','hard'].map(d=>`<button class="btn sm" id="diff-${d}" onclick="setDifficulty('${d}')" style="${difficulty===d?'background:var(--gold);color:#1a140c;font-weight:800;border-color:var(--gold)':''}">${DIFF_NAME[d]}</button>`).join('')}
+      </div>
+      <div id="diffdesc" style="font-size:11px;color:#8a7a5a;text-align:center;margin-bottom:8px">${DIFF_DESC[difficulty]}</div>
       <button class="btn startbtn" id="startBtn" disabled onclick="beginGame()">출진 ▶</button>
     </div>`;
   showHero(heroDefaultF);
@@ -3424,6 +3433,9 @@ function factionMiniMap(f){
     +`</svg>`;
 }
 function pickF(f){chosenF=f;document.querySelectorAll('.fpick').forEach(e=>e.classList.remove('active'));$('fp-'+f).classList.add('active');$('startBtn').disabled=false;showHero(f);}
+function setDifficulty(d){if(!DIFF_MUL[d])return;difficulty=d;
+  ['easy','normal','hard'].forEach(k=>{const b=$('diff-'+k);if(b)b.style.cssText=(k===d?'background:var(--gold);color:#1a140c;font-weight:800;border-color:var(--gold)':'');});
+  const dd=$('diffdesc');if(dd)dd.textContent=DIFF_DESC[d];}
 /* 첫 승리 온보딩: 가장 쉬운 인접 적 성을 목표로 제시 */
 let firstObjective=null, firstWinPending=false;
 function computeFirstObjective(){
@@ -3449,7 +3461,10 @@ function firstObjectiveModal(){
     <div class="startmenu"><button class="btn" onclick="advanceModals()">출병하러 간다 ▶</button></div>`;
   $('centerOverlay').classList.add('on');
 }
-function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEvents=[];marchQueue=[];eliminatedFactions=[];eliminatedThisTurn=[];clearUndo();$('centerOverlay').classList.remove('on');render();
+function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEvents=[];marchQueue=[];eliminatedFactions=[];eliminatedThisTurn=[];clearUndo();
+  const dm=DIFF_MUL[difficulty]||1;   // 난이도: 적 세력 시작 병력 스케일(보통=1.0)
+  if(dm!==1)provinces.forEach(p=>{ if(p.owner&&p.owner!==player&&pstate[p.id]) pstate[p.id].troops=Math.max(1,Math.round(pstate[p.id].troops*dm)); });
+  $('centerOverlay').classList.remove('on');render();
   focusOnCapital(player);   // PC: 시작 시 우리 수도로 줌인
   firstObjective=null; firstWinPending=false;
   const firstPlay=!tutorialSeen();
@@ -3463,7 +3478,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.45.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.46.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -3491,7 +3506,7 @@ function saveGame(silent){
     sieges:JSON.parse(JSON.stringify(sieges)),
     diplo:{...diplo},
     walls:Object.fromEntries(provinces.map(p=>[p.id,p.wall])),
-    factionBuff:{...factionBuff}, factionCd:{...factionCd}, diploUsed, autoDelegate,
+    factionBuff:{...factionBuff}, factionCd:{...factionCd}, diploUsed, autoDelegate, difficulty,
     cname:FACTIONS.china.name, chanzi:factionHanzi.china,
     owners:Object.fromEntries(provinces.map(p=>[p.id,p.owner])),
     pstate:JSON.parse(JSON.stringify(pstate)),
@@ -3523,7 +3538,7 @@ function loadGame(){
     marchQueue=data.marchQueue||[];
     sieges=(data.sieges||[]).map(s=>{delete s.resolving;return s;}); pendingSiegeBattles=[]; // 대기 중 방어전은 다음 턴 재결판
     if(data.diplo)diplo=data.diplo;   // 구버전 저장본은 loadScenario의 기본 외교 유지
-    factionBuff=data.factionBuff||{}; factionCd=data.factionCd||{}; diploUsed=!!data.diploUsed; autoDelegate=!!data.autoDelegate;
+    factionBuff=data.factionBuff||{}; factionCd=data.factionCd||{}; diploUsed=!!data.diploUsed; autoDelegate=!!data.autoDelegate; difficulty=data.difficulty||'normal';
     if(data.cname)FACTIONS.china.name=data.cname;
     if(data.chanzi)factionHanzi.china=data.chanzi;
     provinces.forEach(p=>{const s=pstate[p.id];if(s&&s.pop==null)s.pop=Math.round(p.base*(p.cap?6:4));if(s&&s.food==null)s.food=Math.round(s.troops*3)+1000;if(s&&s.farm==null)s.farm=0;}); // 구버전 저장본 백성·군량·둔전 보정
