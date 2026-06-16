@@ -750,6 +750,11 @@ const SCENARIOS=[
     text:'겨울이 닥치고 보급이 끊기자, 당 태종은 끝내 안시성을 넘지 못한 채 군을 돌린다. 고구려가 제1차 여당전쟁을 막아냈다.',
     cond:()=>prov('ansi')&&prov('ansi').owner==='goguryeo',
     effect:()=>{['youzhou','linyu','yongseong','cheongju','deungju'].forEach(id=>{if(pstate[id])pstate[id].troops=Math.round(pstate[id].troops*0.6);});eventConquer(['baegam'],'goguryeo');}},
+   {id:'u_anshi_relief', turn:4, title:'고연수·고혜진의 구원군',
+    text:'고구려 중앙군 고연수·고혜진이 15만 대군을 이끌고 안시성 구원에 나선다. 주필산을 넘어 포위망을 향해 진군하니, 안시성에 한 가닥 희망이 비친다.',
+    cond:()=>sieges.some(s=>s.target==='ansi'&&s.defFac==='goguryeo'),   // 안시성이 고구려로서 포위 중일 때만
+    effect:()=>{const s=sieges.find(x=>x.target==='ansi'&&x.defFac==='goguryeo');
+      if(s)s.reliefs.push({from:(prov('gungnae')&&prov('gungnae').owner==='goguryeo')?'gungnae':s.target,fac:'goguryeo',troops:50000,hops:3,arrive:turn+2});}},
    {id:'u_fall', turn:6, title:'요동 함락 — 당의 진격',
     text:'안시성이 무너지며 요동 방어선이 붕괴한다. 당의 대군이 거침없이 남하하니, 고구려의 운명은 풍전등화에 놓인다.',
     cond:()=>!(prov('ansi')&&prov('ansi').owner==='goguryeo'),
@@ -2614,9 +2619,11 @@ function shouldSiege(toId){ const p=prov(toId); return p && (p.wall||0)>=2 && ps
 function holdTurns(toId,atk){ const ds=pstate[toId],p=prov(toId);
   let b=2+(p.wall||0); if(ds.troops>atk)b+=2; if(p.owner==='goguryeo')b+=2; if(p.cap)b+=1;   // 성벽·우세·산성·도성 보정
   return Math.min(8,b); }
-function beginSiege(fromId,toId,fac){
+function beginSiege(fromId,toId,fac,extra){
   let s=sieges.find(x=>x.target===toId);
-  const army=Math.max(1,Math.round(pstate[fromId].troops));
+  const fromArmy=Math.max(1,Math.round(pstate[fromId].troops));
+  const army=fromArmy+Math.round(extra||0);
+  pstate[fromId].troops=Math.max(300,pstate[fromId].troops-fromArmy+300); // 출병 — 잔류 수비 300
   if(s){ s.atkTroops+=army; s.deadline=Math.max(s.deadline,turn+holdTurns(toId,s.atkTroops)); return s; } // 같은 성에 합류
   s={target:toId, atkFac:fac, fromId, atkTroops:army, defFac:prov(toId).owner,
      started:turn, deadline:turn+holdTurns(toId,army), reliefs:[], offered:false};
@@ -2628,8 +2635,7 @@ function marchLoss(r){ const h=r.hops||1; return Math.max(0,Math.round(r.troops*
 function liftSiege(s,reason){ const i=sieges.indexOf(s); if(i>=0)sieges.splice(i,1);
   if(pstate[s.target])pstate[s.target].besieged=false;
   if(reason==='lift'&&s.defFac===player)toast(`✊ ${prov(s.target).name} 포위가 풀렸다`); }
-function resolveSiege(s,reliefTroops){
-  const ds=pstate[s.target]; if(reliefTroops>0)ds.troops=Math.round(ds.troops+reliefTroops); // 원군을 수비에 합산
+function resolveSiege(s){
   if(prov(s.fromId)) pstate[s.fromId].troops=Math.max(1,Math.round(s.atkTroops));            // 공성군을 출발 성에 실어 즉결 호출
   const wasOwner=prov(s.target).owner;
   aiBattle(s.fromId,s.target,null);   // 기존 즉결로 결판(소유·장수·소멸 처리 포함)
@@ -2647,10 +2653,14 @@ function processSieges(){
     ds.train=Math.max(10,ds.train-6);
     ds.food=Math.max(0,(ds.food||0)-Math.round(ds.troops*0.08));
     s.atkTroops=Math.max(0,s.atkTroops-Math.round(s.atkTroops*0.02)); // 공성군 자체 소모
+    // 도착한 원군은 수비에 누적 합류(여러 파 합산) — 빠른 소수가 큰 원군 전에 패전 유발 방지
     const arrived=s.reliefs.filter(r=>r.arrive<=turn); s.reliefs=s.reliefs.filter(r=>r.arrive>turn);
     const reliefTroops=arrived.reduce((a,r)=>a+marchLoss(r),0);
-    if(reliefTroops>0){ resolveSiege(s,reliefTroops); return; }        // 원군 도착 → 결판
-    if(turn>=s.deadline||ds.troops<=0){ resolveSiege(s,0); return; }   // 한계 턴/전멸 → 강습 결판
+    if(reliefTroops>0){ ds.troops=Math.round(ds.troops+reliefTroops);
+      if(s.defFac===player)toast(`🏇 ${prov(s.target).name} 구원군 ${fmt(reliefTroops)} 합류!`); }
+    // 결판: 수비가 충분(출격·격퇴) / 한계 턴 / 전멸
+    if(ds.troops>=s.atkTroops*0.85){ resolveSiege(s); return; }
+    if(turn>=s.deadline||ds.troops<=0){ resolveSiege(s); return; }
     if(s.defFac===player) toast(`🏯 ${prov(s.target).name} 포위 ${turn-s.started+1}턴째 — ${s.deadline-turn}턴 내 구원 필요`);
   });
 }
@@ -2713,6 +2723,17 @@ function confirmRelief(){
 function cancelRelief(){ reliefCtx=null; $('centerOverlay').classList.remove('on'); advanceModals(); }
 function planAiTurn(){
   const moves=[];
+  // AI 수비 원군: 자기 성이 포위당하면 근거리 아군 성에서 원군 파견(턴 시작, acted 표시 전)
+  sieges.forEach(s=>{
+    if(s.defFac===player || !activeFactions.includes(s.defFac)) return;
+    if(s.reliefs.some(r=>r.fac===s.defFac)) return;   // 이미 보낸 포위는 건너뜀
+    const cands=ownedBy(s.defFac).filter(p=>p.id!==s.target && !pstate[p.id].acted && pstate[p.id].troops>1500)
+      .map(p=>({id:p.id,hops:pathHops(p.id,s.target)})).filter(o=>isFinite(o.hops)&&o.hops<=3)
+      .sort((a,b)=>a.hops-b.hops).slice(0,2);
+    cands.forEach(c=>{ const give=Math.floor(pstate[c.id].troops*0.5); if(give<800)return;
+      pstate[c.id].troops-=give; pstate[c.id].acted=true;
+      s.reliefs.push({from:c.id,fac:s.defFac,troops:give,hops:c.hops,arrive:turn+Math.max(1,c.hops)}); });
+  });
   activeFactions.forEach(f=>{
     if(f===player)return;
     // AI 특기 발동(쿨다운 없고 전쟁 중일 때 가끔)
@@ -2752,7 +2773,7 @@ function playAiMoves(moves,i,done){
   toast(`⚔ ${FACTIONS[m.fac].name}군이 ${prov(m.to).name}${_mine?' (우리 성!)':''} 공략`);
   const froms=(m.froms&&m.froms.length)?m.froms.filter(x=>prov(x).owner===m.fac):[m.from];
   marchArmies(froms,m.to,m.fac,()=>{
-    if(prov(m.to).owner===player && shouldSiege(m.to)) beginSiege(m.from,m.to,m.fac); // 플레이어 성벽성 → 포위(다턴)
+    if(shouldSiege(m.to)) beginSiege(m.from,m.to,m.fac,m.pincer?m.extra:0); // 성벽2+ 성 → 다턴 포위(AI끼리도)
     else aiBattle(m.from,m.to,m.pincer?{pincer:true,extra:m.extra}:null);
     render();
     setTimeout(()=>playAiMoves(moves,i+1,done),180);
