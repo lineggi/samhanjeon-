@@ -784,7 +784,8 @@ const SCENARIOS=[
 let provinces=[], pstate={}, generals=[];
 let player='goguryeo', turn=1, selected=null, attackMode=false, scenario=null, activeFactions=[], zoomScale=1, lastD={}, aiAnimating=false, lostThisTurn=[], moveMode=false, genMoveMode=false, turnEvents=[], firedEvents=[], pendingModals=[], marchQueue=[], sieges=[], pendingSiegeBattles=[];
 let difficulty='normal'; const DIFF_MUL={easy:0.85,normal:1,hard:1.15}; const DIFF_NAME={easy:'쉬움',normal:'보통',hard:'어려움'};
-const DIFF_DESC={easy:'적 세력 병력·수입 85% — 통일이 수월합니다',normal:'표준 밸런스',hard:'적 세력 병력·수입 115% — 도전적입니다'};
+const DIFF_GRACE={easy:5,normal:3,hard:0};   // 초반 평화 유예 턴(적이 플레이어를 공격 안 함)
+const DIFF_DESC={easy:'적 세력 병력·수입 85% · 초반 5턴 평화',normal:'표준 밸런스 · 초반 3턴 평화',hard:'적 세력 병력·수입 115% · 평화 유예 없음'};
 const $=id=>document.getElementById(id);
 function adj(id){const r=new Set();EDGES.forEach(([a,b])=>{if(a===id)r.add(b);if(b===id)r.add(a)});return [...r];}
 /* 군량·보급 */
@@ -2856,7 +2857,8 @@ function planAiTurn(){
     }
     ownedBy(f).forEach(p=>{
       const st=pstate[p.id];if(st.acted)return;
-      const targets=adj(p.id).map(prov).filter(t=>t.owner!==f && getRel(f,t.owner)!=='ally');
+      const grace=turn<=(DIFF_GRACE[difficulty]||0);   // 초반 평화 유예: 유예 중엔 플레이어 성 공격 안 함
+      const targets=adj(p.id).map(prov).filter(t=>t.owner!==f && getRel(f,t.owner)!=='ally' && !(grace&&t.owner===player));
       const weak=targets.filter(t=>pstate[t.id].troops<st.troops*0.85).sort((a,b)=>pstate[a.id].troops-pstate[b.id].troops);
       if(weak.length&&st.troops>2500&&(st.food||0)>foodUpkeep(st)&&Math.random()<0.7){
         const t=weak[0];
@@ -3345,11 +3347,11 @@ let pickedEra=null,chosenF=null;
 function pickEra(i){pickedEra=SCENARIOS[i];loadScenario(pickedEra);showDifficultyPick();}
 /* 난이도 선택(시대 다음, 세력 이전) */
 function showDifficultyPick(){
-  const opts=[['easy','🌿','적이 약하고 수입이 적어 통일이 수월합니다'],['normal','⚔','역사 그대로의 표준 밸런스'],['hard','🔥','적이 강하고 풍족해 천하 통일이 험난합니다']];
+  const opts=[['easy','🌿','적이 약하고 수입이 적으며, 초반 5턴 동안 적이 공격해 오지 않습니다'],['normal','⚔','역사 그대로의 표준 밸런스. 초반 3턴 동안 적이 공격해 오지 않습니다'],['hard','🔥','적이 강하고 풍족하며, 평화 유예 없이 즉시 전란이 시작됩니다']];
   const cards=opts.map(([d,ic,desc])=>`<div class="eracard" onclick="pickDifficulty('${d}')" style="${difficulty===d?'border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)':''}">
     <div class="eh"><span class="ey">${ic}</span><span class="et">${DIFF_NAME[d]}</span></div>
     <div class="ed">${desc}</div>
-    <div class="ef"><span class="tag" style="color:#c8b890;border-color:#5a4a30">적 세력 병력·수입 ${Math.round(DIFF_MUL[d]*100)}%</span></div></div>`).join('');
+    <div class="ef"><span class="tag" style="color:#c8b890;border-color:#5a4a30">적 병력·수입 ${Math.round(DIFF_MUL[d]*100)}%</span><span class="tag" style="color:#c8b890;border-color:#5a4a30">평화 ${DIFF_GRACE[d]}턴</span></div></div>`).join('');
   $('centerBox').innerHTML=`<div class="backstart" onclick="showEra()">◂ 시대 다시 선택</div>
     <h1 style="font-size:32px">난이도<small>${pickedEra.year} · ${pickedEra.name}</small></h1>
     <p>난이도를 고르시오. 플레이어 세력은 그대로이고, <b>적 세력</b>의 병력·수입이 달라집니다.</p>
@@ -3481,10 +3483,12 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
   if(firstPlay)pendingModals.unshift(renderTutorialModal);    // 첫 플레이 1회 조작 안내
   if(pendingModals.length)advanceModals();
   else toast(`${FACTIONS[player].name}의 깃발 아래, 천하를 도모하라!`);
+  const g=DIFF_GRACE[difficulty]||0;
+  if(g>0)setTimeout(()=>toast(`🕊 초반 ${g}턴은 적이 공격해 오지 않습니다 — 내정을 다지세요`),700);
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='3.0.2';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='3.1.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
