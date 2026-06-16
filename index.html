@@ -1282,10 +1282,13 @@ function layoutNodes(){
   }
   const m={}; for(const a of arr) m[a.id]={x:a.x,y:a.y}; return m;
 }
+/* 모바일/터치 기기: 무거운 SVG 필터·상시 애니메이션 경량화(이동 시 렉 방지) */
+const LOWFX = (typeof matchMedia!=='undefined') && matchMedia('(hover:none),(pointer:coarse)').matches;
+const ANIM = s => LOWFX ? '' : s;   // LOWFX면 SMIL 애니메이션 비움(정적 마커 유지)
 function renderMap(){
   const D=layoutNodes(); lastD=D; const ens=Math.pow(zoomScale,-0.5);
   const svg=$('map');
-  let h=`<defs><filter id="terrblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="13"/></filter><radialGradient id="seaGrad" cx="0.5" cy="0.48" r="0.72"><stop offset="0" stop-color="rgba(22,42,58,0.34)"/><stop offset="0.62" stop-color="rgba(22,42,58,0.2)"/><stop offset="1" stop-color="rgba(22,42,58,0)"/></radialGradient><clipPath id="landclip">`;
+  let h=`<defs><filter id="terrblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${LOWFX?7:13}"/></filter><radialGradient id="seaGrad" cx="0.5" cy="0.48" r="0.72"><stop offset="0" stop-color="rgba(22,42,58,0.34)"/><stop offset="0.62" stop-color="rgba(22,42,58,0.2)"/><stop offset="1" stop-color="rgba(22,42,58,0)"/></radialGradient><clipPath id="landclip">`;
   MAP_PATHS.forEach(d=>{ h+=`<path d="${d}"/>`; });
   h+=`</clipPath></defs>`;
   // 옅은 바다 톤
@@ -1297,10 +1300,10 @@ function renderMap(){
   provinces.forEach(p=>{ if(!p.owner)return; const c=D[p.id]; const me=p.owner===player;
     h+=`<circle cx="${c.x}" cy="${c.y}" r="${me?40:31}" fill="${fcolor(p.owner)}" opacity="${me?0.52:0.24}"/>`; });
   h+=`</g>`;
-  // 내 세력 경계 강조(번짐 위에 옅은 테두리 느낌)
-  h+=`<g clip-path="url(#landclip)" filter="url(#terrblur)" opacity="0.4">`;
-  ownedBy(player).forEach(p=>{ const c=D[p.id]; h+=`<circle cx="${c.x}" cy="${c.y}" r="22" fill="none" stroke="${fcolor(player)}" stroke-width="9"/>`; });
-  h+=`</g>`;
+  // 내 세력 경계 강조(번짐 위에 옅은 테두리 느낌) — 모바일은 필터 1겹으로 절약(생략)
+  if(!LOWFX){h+=`<g clip-path="url(#landclip)" filter="url(#terrblur)" opacity="0.4">`;
+    ownedBy(player).forEach(p=>{ const c=D[p.id]; h+=`<circle cx="${c.x}" cy="${c.y}" r="22" fill="none" stroke="${fcolor(player)}" stroke-width="9"/>`; });
+    h+=`</g>`;}
   // 주변 세력
   NEIGHBORS.forEach(([n,x,y])=>{h+=`<text class="neighbor" x="${x}" y="${y}">${n}</text>`;});
   // 세력명 (영토 중앙 워터마크) — 줌아웃 시에만
@@ -1335,7 +1338,7 @@ function renderMap(){
     const showName=z>=1.5||p.cap||isSel, showTroop=isSel||z>=6;
     h+=`<g class="prov" onclick="clickProv('${p.id}')">`;
     if(isSel)h+=`<circle class="sel-ring" cx="${px}" cy="${py}" r="${r+7*ns}" style="stroke-width:${2.5*ns}px"/>`;
-    if(p.owner===player&&!st.acted&&!isSel&&!aiAnimating)h+=`<circle cx="${px}" cy="${py}" r="${r+4*ns}" fill="none" stroke="var(--gold)" stroke-width="${1.7*ns}" stroke-dasharray="${2.6*ns} ${2.4*ns}" opacity="0.85"><animate attributeName="stroke-dashoffset" values="0;${10*ns}" dur="0.9s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.45;0.95;0.45" dur="1.3s" repeatCount="indefinite"/></circle><circle cx="${(px+r*0.92).toFixed(1)}" cy="${(py-r*0.92).toFixed(1)}" r="${4.4*ns}" fill="#caa72e" stroke="#15110c" stroke-width="${0.8*ns}"/><text x="${(px+r*0.92).toFixed(1)}" y="${(py-r*0.92+2.3*ns).toFixed(1)}" font-size="${6.4*ns}" text-anchor="middle" fill="#1a140c" font-weight="900" font-family="sans-serif">!</text>`; // 미행동 표시(행진 점선+! 배지)
+    if(p.owner===player&&!st.acted&&!isSel&&!aiAnimating)h+=`<circle cx="${px}" cy="${py}" r="${r+4*ns}" fill="none" stroke="var(--gold)" stroke-width="${1.7*ns}" stroke-dasharray="${2.6*ns} ${2.4*ns}" opacity="0.85">${ANIM(`<animate attributeName="stroke-dashoffset" values="0;${10*ns}" dur="0.9s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.45;0.95;0.45" dur="1.3s" repeatCount="indefinite"/>`)}</circle><circle cx="${(px+r*0.92).toFixed(1)}" cy="${(py-r*0.92).toFixed(1)}" r="${4.4*ns}" fill="#caa72e" stroke="#15110c" stroke-width="${0.8*ns}"/><text x="${(px+r*0.92).toFixed(1)}" y="${(py-r*0.92+2.3*ns).toFixed(1)}" font-size="${6.4*ns}" text-anchor="middle" fill="#1a140c" font-weight="900" font-family="sans-serif">!</text>`; // 미행동 표시(행진 점선+! 배지)
     if(targetable)h+=`<circle cx="${px}" cy="${py}" r="${r+7*ns}" fill="none" stroke="var(--blood)" stroke-width="${2.5*ns}" stroke-dasharray="${3*ns} ${3*ns}"><animate attributeName="r" values="${r+7*ns};${r+12*ns};${r+7*ns}" dur="1.1s" repeatCount="indefinite"/></circle>`;
     if(moveTarget)h+=`<circle cx="${px}" cy="${py}" r="${r+7*ns}" fill="none" stroke="#46b39d" stroke-width="${2.5*ns}" stroke-dasharray="${3*ns} ${3*ns}"><animate attributeName="r" values="${r+7*ns};${r+12*ns};${r+7*ns}" dur="1.1s" repeatCount="indefinite"/></circle>`;
     if(genTarget){const far=!adj(selected).includes(p.id);h+=`<circle cx="${px}" cy="${py}" r="${r+7*ns}" fill="none" stroke="${far?'#c9a227':'#46b39d'}" stroke-width="${2*ns}" stroke-dasharray="${(far?2:3)*ns} ${3*ns}"><animate attributeName="r" values="${r+7*ns};${r+11*ns};${r+7*ns}" dur="1.2s" repeatCount="indefinite"/></circle>`;}
@@ -1354,13 +1357,13 @@ function renderMap(){
     const rr=(11+(prov(s.target).wall||0)*1.5)*ns;
     // 원군 행군선(출발 성 → 포위 성)
     (s.reliefs||[]).forEach(r=>{ const fc=D[r.from]; if(!fc)return; const eta=Math.max(0,r.arrive-turn), rc=fcolor(r.fac);
-      h+=`<line x1="${fc.x}" y1="${fc.y}" x2="${tc.x}" y2="${tc.y}" stroke="${rc}" stroke-width="${1.8*ns}" stroke-dasharray="${4*ns} ${2.6*ns}" opacity="0.85" stroke-linecap="round"><animate attributeName="stroke-dashoffset" values="0;${-6.6*ns}" dur="0.6s" repeatCount="indefinite"/></line>`;
-      h+=`<circle r="${2.6*ns}" fill="${rc}" stroke="#15110c" stroke-width="${0.8*ns}"><animateMotion path="M${fc.x} ${fc.y} L${tc.x} ${tc.y}" dur="1.4s" repeatCount="indefinite"/></circle>`;
+      h+=`<line x1="${fc.x}" y1="${fc.y}" x2="${tc.x}" y2="${tc.y}" stroke="${rc}" stroke-width="${1.8*ns}" stroke-dasharray="${4*ns} ${2.6*ns}" opacity="0.85" stroke-linecap="round">${ANIM(`<animate attributeName="stroke-dashoffset" values="0;${-6.6*ns}" dur="0.6s" repeatCount="indefinite"/>`)}</line>`;
+      if(!LOWFX)h+=`<circle r="${2.6*ns}" fill="${rc}" stroke="#15110c" stroke-width="${0.8*ns}"><animateMotion path="M${fc.x} ${fc.y} L${tc.x} ${tc.y}" dur="1.4s" repeatCount="indefinite"/></circle>`;
       const mx=(fc.x+tc.x)/2, my=(fc.y+tc.y)/2;
       h+=`<text x="${mx.toFixed(1)}" y="${my.toFixed(1)}" text-anchor="middle" font-size="${6.4*ns}" font-weight="800" fill="${rc}" paint-order="stroke" stroke="#15110c" stroke-width="${2*ns}">🏇${eta}턴</text>`;
     });
     // 포위 링(점멸) + 표식
-    h+=`<circle cx="${tc.x}" cy="${tc.y}" r="${rr}" fill="none" stroke="#e0662a" stroke-width="${2.4*ns}" stroke-dasharray="${3.4*ns} ${2.6*ns}"><animate attributeName="r" values="${rr};${rr+4*ns};${rr}" dur="1.2s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="rotate" from="0 ${tc.x} ${tc.y}" to="360 ${tc.x} ${tc.y}" dur="9s" repeatCount="indefinite"/></circle>`;
+    h+=`<circle cx="${tc.x}" cy="${tc.y}" r="${rr}" fill="none" stroke="#e0662a" stroke-width="${2.4*ns}" stroke-dasharray="${3.4*ns} ${2.6*ns}">${ANIM(`<animate attributeName="r" values="${rr};${rr+4*ns};${rr}" dur="1.2s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="rotate" from="0 ${tc.x} ${tc.y}" to="360 ${tc.x} ${tc.y}" dur="9s" repeatCount="indefinite"/>`)}</circle>`;
     h+=`<text x="${tc.x}" y="${(tc.y-rr-3*ns).toFixed(1)}" text-anchor="middle" font-size="${9*ns}" font-weight="900" fill="#e0662a" paint-order="stroke" stroke="#15110c" stroke-width="${2.4*ns}">🏯포위</text>`;
   });
   // 라벨 충돌 해소 + 지시선(점선)으로 지도 밖까지 배치
@@ -3408,7 +3411,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.44.3';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.44.4';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
@@ -3493,8 +3496,13 @@ function setZoom(){zoomScale=BASE_W/view.w; if(_zraf)return; _zraf=requestAnimat
 function clampPan(){view.x=Math.max(0,Math.min(BASE_W-view.w,view.x));view.y=Math.max(0,Math.min(BASE_H-view.h,view.y));}
 
 /* rAF 배칭: 한 프레임에 최대 한 번만 viewBox 갱신(고주사율 기기 잰크 방지) */
-let _praf=0,_needZoom=false;
-function flush(){_praf=0;clampPan();applyView();if(_needZoom){_needZoom=false;setZoom();}}
+let _praf=0,_needZoom=false,_zoomDirty=false;
+function flush(){_praf=0;clampPan();applyView();
+  if(_needZoom){_needZoom=false; zoomScale=BASE_W/view.w;          // 줌 배율(숫자)만 즉시 갱신
+    if(pointers.size>0){ _zoomDirty=true; }                        // 핀치 중: 벡터는 viewBox로 자동 스케일 → 라벨/마커 리렌더는 제스처 끝에 1회(렉 방지)
+    else { _zoomDirty=false; if(!_zraf)_zraf=requestAnimationFrame(()=>{_zraf=0;renderMap();}); } // 휠/버튼 등 단발: 즉시 리렌더
+  }
+}
 function schedule(zoom){if(zoom)_needZoom=true;if(!_praf)_praf=requestAnimationFrame(flush);}
 
 function zoomAt(cx,cy,factor){ // 휠/버튼 확대 (클라이언트 좌표 기준)
@@ -3568,7 +3576,7 @@ function _endPtr(e){
   try{MAP.releasePointerCapture(e.pointerId);}catch(_){}
   pointers.delete(e.pointerId);
   if(pointers.size<2)pinch=null;
-  if(pointers.size===0)panStart=null;
+  if(pointers.size===0){panStart=null; if(_zoomDirty){_zoomDirty=false;renderMap();}} // 핀치 종료 → 라벨/마커 1회 보정 리렌더
   else if(pointers.size===1){beginPan([...pointers.values()][0]);} // 핀치 후 남은 손가락으로 끊김 없이 팬 전환
 }
 window.addEventListener('pointerup',_endPtr);
