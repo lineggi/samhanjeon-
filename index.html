@@ -588,8 +588,8 @@ const EDGES=[
  ['sinseong','gungnae'],['buyeo','gungnae'],['gungnae','hwando'],['gungnae','jolbon'],['hwando','chaek'],
  ['chaek','okjeo'],['hwando','okjeo'],['ansi','ogol'],['ogol','baegam'],['ogol','bakjak'],
  ['jolbon','bakjak'],['bakjak','pyeongyang'],['jolbon','pyeongyang'],['okjeo','pyeongyang'],['buyeo','chaek'],
- // 고구려 추가 연결(성 간 기동·협공 강화)
- ['bisa','ansi'],['bisa','ogol'],['bisa','bakjak'],['yodong','baegam'],['sinseong','ansi'],['baegam','bakjak'],['gungnae','okjeo'],['buyeo','hwando'],['ansi','bakjak'],['ogol','pyeongyang'],
+ // 고구려 추가 연결(성 간 기동·협공) — 천리장성 사슬화: 요동반도 횡단·라인 우회 간선 정리
+ ['bisa','ansi'],['sinseong','ansi'],['gungnae','okjeo'],['buyeo','hwando'],['ogol','gungnae'],
  ['gaemo','sinseong'],['gaemo','yodong'],['gaemo','baegam'],['gaemo','ansi'],  // 개모성(요동)
  // 고구려→남
  ['pyeongyang','hanseong'],['pyeongyang','gwanmi'],['pyeongyang','bukhan'],
@@ -598,7 +598,7 @@ const EDGES=[
  ['ungjin','imjon'],['ungjin','hwangsan'],['ungjin','sabi'],['sabi','garim'],['sabi','juryu'],
  ['imjon','juryu'],['garim','hwangsan'],
  // 백제↔신라
- ['hanseong','danghang'],['hanseong','bukhan'],['danghang','bukhan'],['bukhan','maeso'],['maeso','samnyeon'],['hwangsan','gwansan'],
+ ['hanseong','danghang'],['hanseong','bukhan'],['danghang','bukhan'],['danghang','michuhol'],['bukhan','maeso'],['maeso','samnyeon'],['hwangsan','gwansan'],
  // 신라
  ['geumseong','myeonghwal'],['geumseong','busan'],['geumseong','golbeol'],['geumseong','daeya'],
  ['busan','golbeol'],['golbeol','daeya'],['daeya','gwansan'],['gwansan','samnyeon'],['samnyeon','golbeol'],
@@ -608,7 +608,7 @@ const EDGES=[
  ['geumgwan','ara'],['geumgwan','daegaya'],['ara','daegaya'],['daegaya','dara'],['dara','seongsan'],['seongsan','daegaya'],['ara','dara'],
  // 중국(유주·요서·산동)
  ['youzhou','linyu'],['linyu','yongseong'],['youzhou','cheongju'],['cheongju','deungju'],
- ['yongseong','yodong'],['yongseong','ansi'],['deungju','michuhol'],['cheongju','gwanmi'],
+ ['yongseong','yodong'],['deungju','michuhol'],
  // 왜(대마도·이키·규슈)
  ['tsushima','geumgwan'],['tsushima','iki'],['iki','fukuoka'],['fukuoka','juryu'],
  // 전남·강원
@@ -3407,7 +3407,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.43.3';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.44.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
