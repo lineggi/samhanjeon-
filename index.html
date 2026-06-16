@@ -588,8 +588,9 @@ const EDGES=[
  ['sinseong','gungnae'],['buyeo','gungnae'],['gungnae','hwando'],['gungnae','jolbon'],['hwando','chaek'],
  ['chaek','okjeo'],['hwando','okjeo'],['ansi','ogol'],['ogol','baegam'],['ogol','bakjak'],
  ['jolbon','bakjak'],['bakjak','pyeongyang'],['jolbon','pyeongyang'],['okjeo','pyeongyang'],['buyeo','chaek'],
- // 고구려 추가 연결(성 간 기동·협공) — 천리장성 사슬화: 요동반도 횡단·라인 우회 간선 정리
+ // 고구려 추가 연결 — 안시성/요동 천리장성 상호지원 belt(원군 보급로 = 농성 방어 핵심). 비사성 요동반도 횡단만 정리
  ['bisa','ansi'],['sinseong','ansi'],['gungnae','okjeo'],['buyeo','hwando'],['ogol','gungnae'],
+ ['ansi','bakjak'],['yodong','baegam'],['baegam','bakjak'],   // 안시성 방어 허브 복원(압록강 후방·요동 belt)
  ['gaemo','sinseong'],['gaemo','yodong'],['gaemo','baegam'],['gaemo','ansi'],  // 개모성(요동)
  // 고구려→남
  ['pyeongyang','hanseong'],['pyeongyang','gwanmi'],['pyeongyang','bukhan'],
@@ -608,7 +609,7 @@ const EDGES=[
  ['geumgwan','ara'],['geumgwan','daegaya'],['ara','daegaya'],['daegaya','dara'],['dara','seongsan'],['seongsan','daegaya'],['ara','dara'],
  // 중국(유주·요서·산동)
  ['youzhou','linyu'],['linyu','yongseong'],['youzhou','cheongju'],['cheongju','deungju'],
- ['yongseong','yodong'],['deungju','michuhol'],
+ ['yongseong','yodong'],['yongseong','ansi'],['deungju','michuhol'],
  // 왜(대마도·이키·규슈)
  ['tsushima','geumgwan'],['tsushima','iki'],['iki','fukuoka'],['fukuoka','juryu'],
  // 전남·강원
@@ -2662,7 +2663,7 @@ function closeCenter(){$('centerOverlay').classList.remove('on');render();}
 function shouldSiege(toId){ const p=prov(toId); return p && (p.wall||0)>=2 && pstate[toId] && pstate[toId].troops>=600; }
 function holdTurns(toId,atk){ const ds=pstate[toId],p=prov(toId);
   let b=2+(p.wall||0); if(ds.troops>atk)b+=2; if(p.owner==='goguryeo')b+=1; if(p.cap)b+=1;   // 성벽·우세·산성(청야와 이중 보정 완화)·도성
-  return Math.min(6,b); }
+  return Math.min((p.wall||0)>=4?8:6, b); }   // 전설적 요새(성벽4: 안시·삼년산성·임유관)는 오래 농성
 function beginSiege(fromId,toId,fac,extra){
   let s=sieges.find(x=>x.target===toId);
   const fromArmy=Math.max(1,Math.round(pstate[fromId].troops));
@@ -3407,7 +3408,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='2.44.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='2.44.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
