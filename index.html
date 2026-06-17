@@ -3347,9 +3347,9 @@ let pickedEra=null,chosenF=null;
 function pickEra(i){pickedEra=SCENARIOS[i];loadScenario(pickedEra);showDifficultyPick();}
 /* 난이도 선택(시대 다음, 세력 이전) */
 function showDifficultyPick(){
-  const opts=[['easy','🌿','적이 약하고 수입이 적으며, 초반 5턴 동안 적이 공격해 오지 않습니다'],['normal','⚔','역사 그대로의 표준 밸런스. 초반 3턴 동안 적이 공격해 오지 않습니다'],['hard','🔥','적이 강하고 풍족하며, 평화 유예 없이 즉시 전란이 시작됩니다']];
-  const cards=opts.map(([d,ic,desc])=>`<div class="eracard" onclick="pickDifficulty('${d}')" style="${difficulty===d?'border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)':''}">
-    <div class="eh"><span class="ey">${ic}</span><span class="et">${DIFF_NAME[d]}</span></div>
+  const opts=[['easy','적이 약하고 수입이 적으며, 초반 5턴 동안 적이 공격해 오지 않습니다'],['normal','역사 그대로의 표준 밸런스. 초반 3턴 동안 적이 공격해 오지 않습니다'],['hard','적이 강하고 풍족하며, 평화 유예 없이 즉시 전란이 시작됩니다']];
+  const cards=opts.map(([d,desc])=>`<div class="eracard" onclick="pickDifficulty('${d}')" style="${difficulty===d?'border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)':''}">
+    <div class="eh"><span class="et">${DIFF_NAME[d]}</span></div>
     <div class="ed">${desc}</div>
     <div class="ef"><span class="tag" style="color:#c8b890;border-color:#5a4a30">적 병력·수입 ${Math.round(DIFF_MUL[d]*100)}%</span><span class="tag" style="color:#c8b890;border-color:#5a4a30">평화 ${DIFF_GRACE[d]}턴</span></div></div>`).join('');
   $('centerBox').innerHTML=`<div class="backstart" onclick="showEra()">◂ 시대 다시 선택</div>
@@ -3488,7 +3488,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='3.1.1';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='3.1.2';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
 async function checkVersion(){
