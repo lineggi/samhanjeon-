@@ -344,6 +344,7 @@ svg{width:100%;height:100%;display:block}
       <button class="btn sm" id="menubtn" title="메뉴" onclick="toggleMenu(event)">☰ 메뉴</button>
       <div class="menupop" id="menupop">
         <button id="autobtn" onclick="toggleAuto();closeMenu()">🔁 자동 일임: 끔</button>
+        <button id="soundbtn" onclick="toggleSound()">🔇 사운드: 끔</button>
         <button id="diplobtn" onclick="showDiplomacy();closeMenu()">🕊 외교</button>
         <button id="savebtn" onclick="saveGame();closeMenu()">💾 저장하기</button>
         <button id="loadbtn" onclick="loadGame();closeMenu()">📂 불러오기</button>
@@ -783,6 +784,40 @@ const SCENARIOS=[
 /* ============ 런타임 ============ */
 let provinces=[], pstate={}, generals=[];
 let player='goguryeo', turn=1, selected=null, attackMode=false, scenario=null, activeFactions=[], zoomScale=1, lastD={}, aiAnimating=false, lostThisTurn=[], moveMode=false, genMoveMode=false, turnEvents=[], firedEvents=[], pendingModals=[], marchQueue=[], sieges=[], pendingSiegeBattles=[];
+/* ===== 사운드(절차적 효과음 · 에셋0 · 기본 꺼짐) ===== */
+let soundOn=(()=>{try{return localStorage.getItem('samhanjeon_sound')==='1';}catch(_){return false;}})();
+let _actx=null;
+function audioCtx(){ if(!_actx){try{_actx=new (window.AudioContext||window.webkitAudioContext)();}catch(_){_actx=null;}} if(_actx&&_actx.state==='suspended'){try{_actx.resume();}catch(_){}} return _actx; }
+function updateSoundBtn(){ const b=$('soundbtn'); if(b)b.textContent=soundOn?'🔊 사운드: 켬':'🔇 사운드: 끔'; }
+function toggleSound(){ soundOn=!soundOn; try{localStorage.setItem('samhanjeon_sound',soundOn?'1':'0');}catch(_){} if(soundOn){audioCtx();sfx('ui');} updateSoundBtn(); toast(soundOn?'🔊 사운드 켬':'🔇 사운드 끔'); }
+function _tone(freq,dur,type,vol,when,slideTo){ const ax=audioCtx(); if(!ax)return; const t0=when||ax.currentTime;
+  const o=ax.createOscillator(),g=ax.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,t0);
+  if(slideTo)o.frequency.exponentialRampToValueAtTime(Math.max(40,slideTo),t0+dur);
+  g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(vol||0.18,t0+0.012); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.connect(g).connect(ax.destination); o.start(t0); o.stop(t0+dur+0.03); }
+function _noise(dur,vol,when,filtType,filtFreq){ const ax=audioCtx(); if(!ax)return; const t0=when||ax.currentTime;
+  const n=Math.max(1,Math.floor(ax.sampleRate*dur)), buf=ax.createBuffer(1,n,ax.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);
+  const s=ax.createBufferSource(); s.buffer=buf; const g=ax.createGain(); g.gain.setValueAtTime(vol||0.2,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  let node=s; if(filtFreq){const f=ax.createBiquadFilter(); f.type=filtType||'lowpass'; f.frequency.value=filtFreq; s.connect(f); node=f;}
+  node.connect(g).connect(ax.destination); s.start(t0); s.stop(t0+dur+0.03); }
+function sfx(name){ if(!soundOn)return; const ax=audioCtx(); if(!ax)return; const T=ax.currentTime; try{ switch(name){
+  case 'ui': _tone(660,0.06,'triangle',0.10); break;
+  case 'march': _noise(0.45,0.12,T,'lowpass',520); _tone(120,0.45,'sine',0.09,T,80); break;
+  case 'charge': _noise(0.32,0.18,T,'highpass',280); _tone(180,0.3,'sawtooth',0.12,T,120); break;
+  case 'volley': for(let i=0;i<5;i++)_noise(0.06,0.09,T+i*0.04,'highpass',1900); break;
+  case 'scheme': _tone(440,0.38,'sine',0.09,T,900); break;
+  case 'duel': _tone(700,0.08,'square',0.12,T); _tone(520,0.08,'square',0.12,T+0.1); break;
+  case 'guard': _tone(160,0.3,'sine',0.12,T,150); break;
+  case 'hit': _noise(0.12,0.22,T,'bandpass',900); _tone(90,0.12,'square',0.10,T,60); break;
+  case 'wall': _noise(0.5,0.28,T,'lowpass',200); _tone(70,0.5,'sine',0.16,T,45); break;
+  case 'win': [523,659,784,1047].forEach((f,i)=>_tone(f,0.5,'triangle',0.15,T+i*0.12)); break;
+  case 'lose': [392,330,262].forEach((f,i)=>_tone(f,0.5,'sine',0.13,T+i*0.16,f*0.8)); break;
+  case 'siege': _tone(110,0.8,'sawtooth',0.09,T,82); break;
+  case 'relief': [659,880].forEach((f,i)=>_tone(f,0.3,'triangle',0.11,T+i*0.1)); break;
+  case 'finisher': _noise(0.5,0.26,T,'highpass',200); [262,392,523,784].forEach((f,i)=>_tone(f,0.4,'sawtooth',0.15,T+i*0.05)); break;
+  case 'turn': _tone(330,0.13,'triangle',0.08); break;
+} }catch(_){} }
 let difficulty='normal'; const DIFF_MUL={easy:0.85,normal:1,hard:1.15}; const DIFF_NAME={easy:'쉬움',normal:'보통',hard:'어려움'};
 const DIFF_GRACE={easy:5,normal:3,hard:0};   // 초반 평화 유예 턴(적이 플레이어를 공격 안 함)
 const DIFF_DESC={easy:'적 세력 병력·수입 85% · 초반 5턴 평화',normal:'표준 밸런스 · 초반 3턴 평화',hard:'적 세력 병력·수입 115% · 평화 유예 없음'};
@@ -1867,7 +1902,7 @@ function marchArmies(froms,toId,fac,cb,dur){
   list.forEach(f=>marchArmy(f,toId,fac,()=>{if(++done===n)cb();},dur));
 }
 function launchBattle(fromId,toId,opts){
-  attackMode=false;
+  attackMode=false; sfx('march');
   const defOwner=prov(toId).owner;
   if(getRel(player,defOwner)==='ally'){setRel(player,defOwner,'war');toast(`${FACTIONS[defOwner].name}과(와)의 동맹을 깨고 공격합니다!`);}
   render();
@@ -2424,6 +2459,7 @@ function resolveTactic(att,def,tac,isAtk,duelRes){
 }
 function playTactic(tac){
   if(B.over||B.busy)return;
+  sfx(['charge','volley','scheme','duel','guard','finisher'].includes(tac)?tac:'ui');
   // 플레이어가 일기토 선택 + 적 장수 존재 → 미니게임으로
   if(tac==='duel'){
     if(B.fog){toast('짙은 안개로 일기토를 벌일 수 없습니다');return;}
@@ -2484,11 +2520,11 @@ function resolveRound(tac,duelRes){
   // ── 1막: 우리(공격군)가 먼저 공격 → 적 피해 ──
   battle2dStrike('A',aPush,tac); battle2dEffect(tac,'A');
   setTimeout(()=>{ if(!B||B.over){if(B)B.busy=false;return;} try{
-    applyD(); battle2dShow('D',D.troops,D.startT);
+    applyD(); battle2dShow('D',D.troops,D.startT); sfx('hit');
     if(B.siege&&!B.breached&&wallDmg>0){ B.wallHP=Math.max(0,B.wallHP-wallDmg);   // 성벽 파괴
       wallFx(wallDmg);
       blog('atk',`🧱 성벽을 두드린다 — 내구 ${Math.round(B.wallHP)}/${B.wallMax}`);
-      if(B.wallHP<=0){ B.breached=true; D.morale=Math.max(0,D.morale-22);
+      if(B.wallHP<=0){ B.breached=true; D.morale=Math.max(0,D.morale-22); sfx('wall');
         blog('crit',`<span class="crit">💥 성벽 붕괴! 무너진 틈으로 아군이 쏟아져 들어간다 (적 사기 -22)</span>`); } }
     blog('atk',`▸ 아군 [${TACTICS[tac].n}] — 적 ${fmt(dDshown)}명 격파`); ra.log.forEach(([c,t])=>blog(c,t));
     renderBattle(); battleFx(0,dDshown,crit);
@@ -2624,11 +2660,11 @@ function endBattle(result){
     const s=B.siegeRef, atkFac=B.D.p.owner, win=result==='win';
     gainExp(A.g, win?45:18); gainExp(D.g, win?20:35);
     if(win){
-      blog('crit',`✊ 공성군을 물리쳤다! ${prov(B.from).name}을(를) 지켜냈다.`);
+      sfx('win'); blog('crit',`✊ 공성군을 물리쳤다! ${prov(B.from).name}을(를) 지켜냈다.`);
       fromSt.troops=Math.max(300,Math.round(A.troops)); fromSt.train=Math.min(95,Math.round(A.morale));
       if(prov(B.to))toSt.troops=Math.max(300,Math.round((toSt.troops||0)+Math.max(0,D.troops))); // 공성군 잔병 귀환
     } else {
-      blog('crit',`✖ ${prov(B.from).name} 성이 무너졌다…`);
+      sfx('lose'); blog('crit',`✖ ${prov(B.from).name} 성이 무너졌다…`);
       turnEvents.push({atk:atkFac,def:player,castle:prov(B.from).name,pincer:false});
       prov(B.from).owner=atkFac; fromSt.troops=Math.max(500,Math.round(D.troops)); fromSt.train=Math.min(80,Math.round(D.morale));
       lostThisTurn.push(prov(B.from).name);
@@ -2645,7 +2681,7 @@ function endBattle(result){
   gainExp(A.g, result==='win'?45:result==='lose'?18:10);           // 공격 장수 경험치
   if(result!=='win')gainExp(D.g, 30);                               // 수성 성공 방어 장수
   if(result==='win'){
-    blog('crit',`★ ${D.p.name} 함락! 그대가 성을 차지한다.`);
+    sfx('win'); blog('crit',`★ ${D.p.name} 함락! 그대가 성을 차지한다.`);
     turnEvents.push({atk:player,def:D.p.owner,castle:D.p.name,pincer:!!B.pincer});
     const occupy=Math.max(800,Math.round(A.troops));
     fromSt.troops=reserve;   // 출병군은 점령지로, 잔류 수비대만 본성에 남는다
@@ -2657,7 +2693,7 @@ function endBattle(result){
     // 주장 외 적 부장들: 30% 투항, 아니면 흩어짐
     generals.forEach(g=>{if(g.loc===B.to&&g.f!==player&&g.id!==D.g.id){if(Math.random()<0.3){g.f=player;g.loyalty=44+Math.floor(Math.random()*10);}else g._gone=true;}});
     generals=generals.filter(g=>!g._gone);
-  }else if(result==='lose'){blog('crit','✖ 아군이 무너졌다…');fromSt.troops=reserve+Math.max(0,Math.round(A.troops));fromSt.train=Math.max(20,fromSt.train-15);}
+  }else if(result==='lose'){sfx('lose');blog('crit','✖ 아군이 무너졌다…');fromSt.troops=reserve+Math.max(0,Math.round(A.troops));fromSt.train=Math.max(20,fromSt.train-15);}
   else{fromSt.troops=reserve+Math.max(0,Math.round(A.troops));fromSt.train=Math.max(25,fromSt.train-8);}
   checkSuccession();checkElimination();
   renderBattle();render();
@@ -2731,7 +2767,7 @@ function beginSiege(fromId,toId,fac,extra){
   s={target:toId, atkFac:fac, fromId, atkTroops:army, defFac:prov(toId).owner,
      started:turn, deadline:turn+holdTurns(toId,army), reliefs:[], offered:false};
   sieges.push(s); pstate[toId].besieged=true;
-  if(prov(toId).owner===player) toast(`🏯 ${prov(toId).name} 포위됨 — 구원군을 보내 막아내라!`);
+  if(prov(toId).owner===player){ sfx('siege'); toast(`🏯 ${prov(toId).name} 포위됨 — 구원군을 보내 막아내라!`); }
   return s;
 }
 function marchLoss(r){ const h=r.hops||1; return Math.max(0,Math.round(r.troops*Math.max(0.7,1-0.03*(h-1)))); } // 먼 원군일수록 행군 손실
@@ -2821,7 +2857,7 @@ function confirmRelief(){
   if(s){ let tot=0; c.cands.forEach(o=>{const give=Math.min(c.sel[o.id]||0,pstate[o.id].troops); if(give<=0)return;
       pstate[o.id].troops-=give; pstate[o.id].acted=true; tot+=give;
       s.reliefs.push({from:o.id,fac:player,troops:give,hops:o.hops,arrive:turn+Math.max(1,o.hops)}); });
-    if(tot>0)toast(`🏇 구원군 ${fmt(tot)} 출진 — ${prov(c.target).name}으로 향합니다`);
+    if(tot>0){ sfx('relief'); toast(`🏇 구원군 ${fmt(tot)} 출진 — ${prov(c.target).name}으로 향합니다`); }
     render(); }
   advanceModals();
 }
@@ -3488,9 +3524,9 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='3.1.2';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='3.2.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
-function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;}
+function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;updateSoundBtn();}
 async function checkVersion(){
   if(location.protocol==='file:')return;   // 로컬 파일 직접 열기 시엔 서버가 없어 생략
   try{
