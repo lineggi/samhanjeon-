@@ -634,7 +634,7 @@ const SCENARIOS=[
   str:{baekje:1.32,goguryeo:1.0,silla:0.85,gaya:0.85,china:1.05,wa:0.85},
   own:{yodong:'china',bisa:'china',ansi:'china',sinseong:'china',baegam:'china',gaemo:'china',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'china',pyeongyang:'goguryeo',hanseong:'baekje',gwanmi:'baekje',michuhol:'baekje',ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',geumseong:'silla',myeonghwal:'silla',busan:'silla',samnyeon:'baekje',gwansan:'baekje',daeya:'gaya',danghang:'baekje',bukhan:'baekje',maeso:'baekje',golbeol:'silla',geumgwan:'gaya',daegaya:'gaya',ara:'gaya',seongsan:'gaya',dara:'gaya',youzhou:'china',linyu:'china',yongseong:'china',cheongju:'china',deungju:'china',tsushima:'wa',iki:'wa',fukuoka:'wa',mujin:'baekje',balla:'baekje',haseulla:'goguryeo',siljik:'silla'},
   gens:[
-   ['근초고왕','baekje','hanseong',92,86,90],['소수림왕','goguryeo','gungnae',82,68,86],['고흥','baekje','sabi',66,50,90],['근구수','baekje','ungjin',88,90,80],['막고해','baekje','sabi',82,84,78],['고국원왕','goguryeo','pyeongyang',80,80,76],['고무','goguryeo','yodong',80,84,70],['내물왕','silla','geumseong',78,66,82],['거질미왕','gaya','geumgwan',76,78,72],['하지왕','gaya','daegaya',74,80,70],['모용수','china','yongseong',88,90,82],['모용평','china','youzhou',76,74,78],['오토모','wa','fukuoka',76,82,66],
+   ['근초고왕','baekje','hanseong',92,86,90],['고구부','goguryeo','gungnae',82,68,86],['고흥','baekje','sabi',66,50,90],['근구수','baekje','ungjin',88,90,80],['막고해','baekje','sabi',82,84,78],['고국원왕','goguryeo','pyeongyang',80,80,76],['고무','goguryeo','yodong',80,84,70],['내물왕','silla','geumseong',78,66,82],['거질미왕','gaya','geumgwan',76,78,72],['하지왕','gaya','daegaya',74,80,70],['모용수','china','yongseong',88,90,82],['모용평','china','youzhou',76,74,78],['오토모','wa','fukuoka',76,82,66],
   ],
   events:[
    {id:'g_intro',turn:1,title:'백제의 전성, 근초고왕',
@@ -959,6 +959,7 @@ const PORTRAITS={
   '성충':'assets/portraits/baekje/성충.webp',
   '소가':'assets/portraits/wa/소가.webp',
   '소수림왕':'assets/portraits/goguryeo/소수림왕.webp',
+  '고구부':'assets/portraits/goguryeo/소수림왕.webp',
   '실성':'assets/portraits/silla/실성.webp',
   '아신왕':'assets/portraits/baekje/아신왕.webp',
   '알천':'assets/portraits/silla/알천.webp',
@@ -996,6 +997,7 @@ const HERO_TITLE={
   '광개토대왕':{real:'고담덕',title:'광개토대왕'},
   '고국원왕':{real:'고사유',title:'고국원왕'},
   '소수림왕':{real:'고구부',title:'소수림왕'},
+  '고구부':{real:'고구부',title:'태자'},   // 371년엔 아직 태자(훗날 소수림왕)
   '고거련':{real:'고거련',title:'장수왕'},
   '양원왕':{real:'고평성',title:'양원왕'},
   // 백제(부여씨)
@@ -3284,6 +3286,7 @@ const CODEX_BIO={
   '양원왕':'내우외환 속에서 고구려를 지켜낸 왕.',
   '고연수':'안시성 전투에서 고구려 구원군을 이끈 장군.',
   '소수림왕':'율령 반포·불교 수용·태학 설립으로 국가 체제를 정비한 개혁군주.',
+  '고구부':'고국원왕의 태자. 훗날 소수림왕이 되어 고구려를 중흥시킨다.',
   '고국원왕':'전연과 백제에 맞서다 평양성에서 화살에 전사한 비운의 왕.',
   '고무':'요동의 성들을 지켜낸 고구려의 노장.',
   '고거련':'79년을 재위하며 남진으로 한강 유역을 장악한 장수왕.',
@@ -3559,7 +3562,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='3.3.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='3.3.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;updateSoundBtn();}
 async function checkVersion(){
