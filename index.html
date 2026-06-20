@@ -343,7 +343,7 @@ svg{width:100%;height:100%;display:block}
     <div class="menuwrap">
       <button class="btn sm" id="menubtn" title="메뉴" onclick="toggleMenu(event)">☰ 메뉴</button>
       <div class="menupop" id="menupop">
-        <button id="autobtn" onclick="toggleAuto();closeMenu()">🔁 자동 일임: 끔</button>
+        <button id="autobtn" onclick="toggleAuto();closeMenu()">🔁 자동 진행: 끔</button>
         <button id="soundbtn" onclick="toggleSound()">🔇 사운드: 끔</button>
         <button id="diplobtn" onclick="showDiplomacy();closeMenu()">🕊 외교</button>
         <button id="savebtn" onclick="saveGame();closeMenu()">💾 저장하기</button>
@@ -430,8 +430,11 @@ let factionBuff={}, factionCd={}, diploUsed=false, autoDelegate=false;
 /* 전권 일임(AI 위임): 미행동 내 성에 내정 + 압도적 우세 시 자동 공략(즉시 결판) */
 function delegateInternal(silent){
   if(!scenario){if(!silent)toast('먼저 게임을 시작하세요');return 0;}
-  let n=0; const rep=[];
-  ownedBy(player).slice().forEach(p=>{const st=pstate[p.id]; if(st.acted)return; const id=p.id;
+  let n=0; const rep=[]; let _guard=0;
+  while(_guard++<80){
+   const pend=ownedBy(player).filter(p=>!pstate[p.id].acted);   // 처리 중 새로 점령한 성도 빠짐없이 포함(반복)
+   if(!pend.length)break;
+   pend.forEach(p=>{const st=pstate[p.id]; if(st.acted)return; const id=p.id;
     // 1) 압도적 우세한 인접 적 자동 공략(동맹 제외), 충분한 병력일 때만
     if(st.troops>3000){
       const tgt=adj(id).map(prov).filter(t=>t.owner&&t.owner!==player&&getRel(player,t.owner)!=='ally')
@@ -445,7 +448,8 @@ function delegateInternal(silent){
     else if(st.gold>=400&&p.wall<3){st.gold-=400;p.wall++;st.acted=true;n++;rep.push({name:p.name,act:`🧱 축성 (성벽 ${p.wall})`});}
     else if(st.gold>=350&&(st.farm||0)<2){st.gold-=350;st.farm=(st.farm||0)+1;st.food=Math.min(foodCap(p),(st.food||0)+800);st.acted=true;n++;rep.push({name:p.name,act:`🌾 둔전 Lv${st.farm}`});}
     else {st.acted=true;rep.push({name:p.name,act:'<span style="color:#7a6a4a">대기(자원 부족)</span>'});}
-  });
+   });
+  }
   render();
   if(!silent)delegateReport(rep);   // 각 성 행동 보고
   return n;
@@ -459,8 +463,8 @@ function delegateReport(rep){
     <button class="btn" onclick="closeCenter()">확인 ▶</button>`;
   $('centerOverlay').classList.add('on');
 }
-function toggleAuto(){autoDelegate=!autoDelegate; toast(autoDelegate?'자동 일임을 켰습니다 — 매 턴 내정을 알아서 처리합니다':'자동 일임을 껐습니다'); render();}
-function updateAutoBtn(){const b=$('autobtn');if(b){b.textContent=`🔁 자동 일임: ${autoDelegate?'켬':'끔'}`;b.style.color=autoDelegate?'var(--gold)':'';}}
+function toggleAuto(){autoDelegate=!autoDelegate; toast(autoDelegate?'자동 진행을 켰습니다 — 매 턴 내정을 알아서 처리합니다':'자동 진행을 껐습니다'); render();}
+function updateAutoBtn(){const b=$('autobtn');if(b){b.textContent=`🔁 자동 진행: ${autoDelegate?'켬':'끔'}`;b.style.color=autoDelegate?'var(--gold)':'';}}
 /* 상단 메뉴 드롭다운 */
 function toggleMenu(e){if(e)e.stopPropagation();const m=$('menupop');if(m)m.classList.toggle('on');}
 function closeMenu(){const m=$('menupop');if(m)m.classList.remove('on');}
@@ -616,6 +620,8 @@ const EDGES=[
  // 전남·강원
  ['mujin','balla'],['balla','juryu'],['mujin','hwangsan'],
  ['haseulla','siljik'],['siljik','myeonghwal'],['haseulla','bukhan'],
+ // 근접 성 연결 보강(지도상 맞붙은 성끼리 ≤24px — 인접 공격 가능)
+ ['myeonghwal','busan'],['daeya','daegaya'],['sabi','hwangsan'],['myeonghwal','golbeol'],['ungjin','garim'],['michuhol','bukhan'],['daeya','ara'],['daeya','seongsan'],['ungjin','gwansan'],['gwanmi','bukhan'],['sabi','imjon'],['ungjin','samnyeon'],['hwangsan','samnyeon'],['juryu','garim'],['hanseong','maeso'],['imjon','danghang'],
 ];
 
 /* ============ 시대 ============ */
@@ -789,7 +795,25 @@ let soundOn=(()=>{try{return localStorage.getItem('samhanjeon_sound')==='1';}cat
 let _actx=null;
 function audioCtx(){ if(!_actx){try{_actx=new (window.AudioContext||window.webkitAudioContext)();}catch(_){_actx=null;}} if(_actx&&_actx.state==='suspended'){try{_actx.resume();}catch(_){}} return _actx; }
 function updateSoundBtn(){ const b=$('soundbtn'); if(b)b.textContent=soundOn?'🔊 사운드: 켬':'🔇 사운드: 끔'; }
-function toggleSound(){ soundOn=!soundOn; try{localStorage.setItem('samhanjeon_sound',soundOn?'1':'0');}catch(_){} if(soundOn){audioCtx();sfx('ui');} updateSoundBtn(); toast(soundOn?'🔊 사운드 켬':'🔇 사운드 끔'); }
+function toggleSound(){ soundOn=!soundOn; try{localStorage.setItem('samhanjeon_sound',soundOn?'1':'0');}catch(_){} if(soundOn){audioCtx();sfx('ui');startBGM();}else stopBGM(); updateSoundBtn(); toast(soundOn?'🔊 사운드 켬':'🔇 사운드 끔'); }
+/* 절차적 배경음악(에셋0) — 잔잔한 5음계 패드+선율 루프 */
+let _bgm={timer:null,gain:null,step:0};
+function _midi(n){return 440*Math.pow(2,(n-69)/12);}
+function _bgmNote(mid,dur,type,vol,when){ const ax=audioCtx(); if(!ax||!_bgm.gain)return; const o=ax.createOscillator(),g=ax.createGain(); o.type=type; o.frequency.value=_midi(mid);
+  g.gain.setValueAtTime(0.0001,when); g.gain.exponentialRampToValueAtTime(vol,when+0.35); g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
+  o.connect(g).connect(_bgm.gain); o.start(when); o.stop(when+dur+0.05); }
+function startBGM(){ const ax=audioCtx(); if(!ax||!soundOn||_bgm.timer)return;
+  _bgm.gain=ax.createGain(); _bgm.gain.gain.value=0.0001; _bgm.gain.connect(ax.destination);
+  _bgm.gain.gain.exponentialRampToValueAtTime(0.6,ax.currentTime+2.5); _bgm.step=0;   // 마스터 페이드인
+  const SCALE=[0,3,5,7,10]; const tick=()=>{ if(!soundOn||!_bgm.timer)return; const ax=audioCtx(); if(!ax)return; const t=ax.currentTime, root=45;
+    if(_bgm.step%4===0)_bgmNote(root+(_bgm.step%8===0?0:5),3.6,'sine',0.06,t);                 // 저음 드론
+    _bgmNote(root+12+SCALE[(Math.random()*5)|0]+(Math.random()<0.35?12:0),1.7,'triangle',0.045,t+0.02); // 선율
+    if(Math.random()<0.5)_bgmNote(root+12+SCALE[(Math.random()*5)|0],1.5,'triangle',0.03,t+0.85);
+    _bgm.step++; };
+  _bgm.timer=setInterval(tick,1500); tick(); }
+function stopBGM(){ if(_bgm.timer){clearInterval(_bgm.timer);_bgm.timer=null;} const ax=audioCtx(); if(ax&&_bgm.gain){try{_bgm.gain.gain.cancelScheduledValues(ax.currentTime);_bgm.gain.gain.setValueAtTime(_bgm.gain.gain.value,ax.currentTime);_bgm.gain.gain.linearRampToValueAtTime(0.0001,ax.currentTime+0.6);}catch(_){}} }
+/* 새로고침 시 사운드가 켜진 상태면 첫 사용자 입력에서 오디오·BGM 시작 */
+try{ window.addEventListener('pointerdown',()=>{ if(soundOn){audioCtx();startBGM();} },{once:true}); }catch(_){}
 function _tone(freq,dur,type,vol,when,slideTo){ const ax=audioCtx(); if(!ax)return; const t0=when||ax.currentTime;
   const o=ax.createOscillator(),g=ax.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,t0);
   if(slideTo)o.frequency.exponentialRampToValueAtTime(Math.max(40,slideTo),t0+dur);
@@ -1334,7 +1358,7 @@ function renderMap(){
   // 육지(한반도+만주+산동+왜)
   MAP_PATHS.forEach(d=>{ h+=`<path d="${d}" fill="rgba(120,95,55,.13)" stroke="#5a4a30" stroke-width="0.8" opacity=".8"/>`; });
   // 영토 음영(소속색 번짐) — 육지로 클립. 내 세력 영역은 더 진하고 넓게 강조
-  h+=`<g clip-path="url(#landclip)" filter="url(#terrblur)">`;
+  h+=`<g clip-path="url(#landclip)"${LOWFX?'':' filter="url(#terrblur)"'}>`;   // 모바일은 블러 필터 생략(팬 시 재래스터 비용 제거)
   provinces.forEach(p=>{ if(!p.owner)return; const c=D[p.id]; const me=p.owner===player;
     h+=`<circle cx="${c.x}" cy="${c.y}" r="${me?40:31}" fill="${fcolor(p.owner)}" opacity="${me?0.52:0.24}"/>`; });
   h+=`</g>`;
@@ -1527,6 +1551,7 @@ function renderPanel(){
         <button class="btn sm danger" style="grid-column:1/3" ${acted?'disabled':''} title="인접한 적 성을 골라 공략한다" onclick="startAttack('${p.id}')">⚔ 출병 — 적 성 공략</button>
         <button class="btn sm" ${acted||!friendly?'disabled':''} title="${friendly?'인접 아군 성으로 병력 이동':'인접한 아군 성이 없다'}" onclick="startMove('${p.id}')">⇄ 병력 이동</button>
         <button class="btn sm" ${acted||!g?'disabled':''} title="${g?'다른 아군 성으로 장수 이동(먼 성은 여러 턴)':'이 성에 장수가 없다'}" onclick="startGenMove('${p.id}')">⇄ 장수 이동</button>
+        <button class="btn sm" style="grid-column:1/3" ${acted||!friendly||(st.food||0)<=0?'disabled':''} title="${friendly?'인접 아군 성으로 군량 이동':'인접한 아군 성이 없다'}" onclick="startFoodMove('${p.id}')">⇄ 군량 이동 <small style="font-weight:400">(보유 ${fmt(Math.round(st.food||0))})</small></button>
       </div>
       <div class="actsec">🚩 내정</div>
       <div class="actions">
@@ -1534,13 +1559,14 @@ function renderPanel(){
         <button class="btn sm" ${acted||st.gold<150||st.train>=100?'disabled':''} title="${st.train>=100?'이미 최고 훈련도':st.gold<150?'금이 부족하다':'사기·훈련도 상승'}" onclick="doTrain('${p.id}')">🥁 훈련 +15<br><small style="font-weight:400">금 150</small></button>
         <button class="btn sm" ${acted||st.gold<400||p.wall>=4?'disabled':''} title="${p.wall>=4?'이미 최대 성벽':st.gold<400?'금이 부족하다':'수비력 강화'}" onclick="doBuildWall('${p.id}')">🧱 축성 ${p.wall>=4?'(최대)':'+1'}<br><small style="font-weight:400">금 400</small></button>
         <button class="btn sm" ${acted||st.gold<350?'disabled':''} title="${st.gold<350?'금이 부족하다':'군량 생산 +20%'}" onclick="doBuildFarm('${p.id}')">🌾 둔전 Lv${(st.farm||0)+1}<br><small style="font-weight:400">금 350</small></button>
+        <button class="btn sm" style="grid-column:1/3" ${acted||(st.pop||0)<800?'disabled':''} title="${(st.pop||0)<800?'백성이 부족하다':'백성과 교역해 금을 번다(백성 소폭 소모)'}" onclick="doTrade('${p.id}')">💰 교역 — 금 +${fmt(120+Math.round((st.pop||0)*0.05))}<br><small style="font-weight:400">백성 약간 소모</small></button>
       </div>`;
     if(acted)act+=`<div class="hint" style="display:block;color:#8fb89a">✔ 이 성은 이번 턴 명령을 마쳤습니다.</div>`;
     act+=`</div>`;
   }else{act=`<div class="hint" style="display:block">🚩 적의 성입니다. 인접한 <b style="color:var(--paper)">아군 성</b>을 골라 <b style="color:#e3a09c">⚔ 출병</b>으로 공략하세요.</div>`;}
   let mb='';
   if(attackMode)mb=`<div class="modebar">⚔<span>공격할 <b>인접 적 성</b>을 지도에서 고르세요</span><span class="mb-x" onclick="cancelMode()">취소</span></div>`;
-  else if(moveMode)mb=`<div class="modebar move">⇄<span>병력을 옮길 <b>인접 아군 성</b>을 고르세요</span><span class="mb-x" onclick="cancelMode()">취소</span></div>`;
+  else if(moveMode)mb=`<div class="modebar move">⇄<span>${moveKind==='food'?'군량을':'병력을'} 옮길 <b>인접 아군 성</b>을 고르세요</span><span class="mb-x" onclick="cancelMode()">취소</span></div>`;
   else if(genMoveMode)mb=`<div class="modebar move">장<span>장수를 보낼 <b>아군 성</b>을 고르세요 <small style="color:#9c8c6a">· 먼 성은 여러 턴</small></span><span class="mb-x" onclick="cancelMode()">취소</span></div>`;
   pb.innerHTML=undoHTML+mb+`<div class="panel-info">${info}</div>`+act;
 }
@@ -1576,6 +1602,7 @@ function doBuildWall(id){const st=pstate[id],p=prov(id);if(st.acted||st.gold<400
 function doBuildFarm(id){const st=pstate[id],p=prov(id);if(st.acted||st.gold<350)return;pushUndo();st.gold-=350;st.farm=(st.farm||0)+1;st.food=Math.min(foodCap(p),(st.food||0)+800);st.acted=true;toast(`${p.name}에 둔전을 열었습니다 — 둔전 Lv${st.farm}·군량 생산 +20%`);render();}
 function doRecruit(id){const st=pstate[id];if(st.acted||st.gold<300||st.pop<2000||(st.food||0)<4000){if(st.pop<2000)toast('백성이 부족해 징용할 수 없습니다');else if((st.food||0)<4000)toast('군량이 부족해 새 병사를 먹일 수 없습니다');return;}pushUndo();st.gold-=300;st.pop-=2000;st.troops+=2000;st.food-=4000;st.train=Math.max(30,st.train-8);st.acted=true;toast('백성을 징용했습니다 — 병력 +2000 (백성 −2000·군량 −4000)');render();}
 function doTrain(id){const st=pstate[id];if(st.acted||st.gold<150)return;pushUndo();st.gold-=150;st.train=Math.min(100,st.train+15);st.acted=true;toast('군을 훈련했습니다 — 훈련도 +15');render();}
+function doTrade(id){const st=pstate[id];if(st.acted||(st.pop||0)<800)return;pushUndo();const gain=120+Math.round((st.pop||0)*0.05);st.gold+=gain;st.pop=Math.max(0,st.pop-Math.round(st.pop*0.04)-200);st.acted=true;toast(`교역으로 금 +${fmt(gain)}을 벌었습니다 (백성 소폭 감소)`);sfx('ui');render();}
 function startAttack(id){if(pstate[id].acted)return;moveMode=false;genMoveMode=false;attackMode=true;toast('공격할 인접한 적 성을 고르세요');render();}
 /* 협공: 표적과 길이 닿은(인접) 또 다른 아군 성들 — 출병 안 한 + 병력 보유 */
 const WALL=['buyeo','sinseong','yodong','baegam','ansi','bisa']; // 천리장성 라인
@@ -1698,9 +1725,13 @@ function confirmAttackTroops(){
   base.commit=d.amt;
   launchBattle(d.from,d.to,base);
 }
+let moveKind='troops';   // 이동 종류: 병력/군량
 function startMove(id){if(pstate[id].acted)return;
   if(!adj(id).some(t=>prov(t).owner===player)){toast('병력을 옮길 인접 아군 성이 없습니다');return;}
-  attackMode=false;genMoveMode=false;moveMode=true;toast('병력을 옮길 인접 아군 성을 고르세요');render();}
+  attackMode=false;genMoveMode=false;moveKind='troops';moveMode=true;toast('병력을 옮길 인접 아군 성을 고르세요');render();}
+function startFoodMove(id){if(pstate[id].acted)return;
+  if(!adj(id).some(t=>prov(t).owner===player)){toast('군량을 옮길 인접 아군 성이 없습니다');return;}
+  attackMode=false;genMoveMode=false;moveKind='food';moveMode=true;toast('군량을 옮길 인접 아군 성을 고르세요');render();}
 function startGenMove(id){if(pstate[id].acted)return;
   if(!genAt(id)){toast('이 성에는 보낼 장수가 없습니다');return;}
   if(ownedBy(player).length<2){toast('장수를 보낼 다른 아군 성이 없습니다');return;}
@@ -1741,20 +1772,22 @@ function processMarchQueue(){
 let moveDlg=null;
 function moveClamp(v){return Math.max(moveDlg.min,Math.min(moveDlg.max,Math.round(v)));}
 function openMoveDialog(fromId,toId){
-  const max=pstate[fromId].troops;
+  const food=moveKind==='food';
+  const max=food?Math.round(pstate[fromId].food||0):pstate[fromId].troops;
   const min=Math.min(100,max);
   const def=Math.max(min,Math.min(max,Math.round(max*0.5/100)*100));
-  moveDlg={from:fromId,to:toId,min,max,amt:def};
+  moveDlg={from:fromId,to:toId,min,max,amt:def,kind:moveKind};
   renderMoveDialog();
   $('centerOverlay').classList.add('on');
 }
 function renderMoveDialog(){
-  const d=moveDlg, from=prov(d.from), to=prov(d.to), toT=pstate[d.to].troops;
+  const d=moveDlg, from=prov(d.from), to=prov(d.to), food=d.kind==='food', toT=food?Math.round(pstate[d.to].food||0):pstate[d.to].troops;
+  const lbl=food?'군량':'병력', col=food?'#7bbf63':'var(--gold)';
   const unit=(label,delta)=>`<button class="btn sm ${delta<0?'danger':''}" ${moveClamp(d.amt+delta)===d.amt?'disabled':''} onclick="moveAdjust(${delta})">${label}</button>`;
-  $('centerBox').innerHTML=`<h1 style="font-size:30px">병력 이동<small>${from.name} ➜ ${to.name}</small></h1>
-    <p style="margin-bottom:2px">출발 성 병력 <b style="color:var(--gold)">${fmt(d.max)}</b></p>
-    <div style="font-family:'Pretendard';font-size:46px;color:var(--gold);line-height:1.1;margin:6px 0">${fmt(d.amt)}</div>
-    <input type="range" min="${d.min}" max="${d.max}" step="100" value="${d.amt}" oninput="moveSet(+this.value)" style="width:90%;accent-color:var(--gold);margin:6px 0">
+  $('centerBox').innerHTML=`<h1 style="font-size:30px">${food?'군량 이동':'병력 이동'}<small>${from.name} ➜ ${to.name}</small></h1>
+    <p style="margin-bottom:2px">출발 성 ${lbl} <b style="color:${col}">${fmt(d.max)}</b></p>
+    <div style="font-family:'Pretendard';font-size:46px;color:${col};line-height:1.1;margin:6px 0">${fmt(d.amt)}</div>
+    <input type="range" min="${d.min}" max="${d.max}" step="100" value="${d.amt}" oninput="moveSet(+this.value)" style="width:90%;accent-color:${col};margin:6px 0">
     <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:10px 0">
       ${unit('-만',-10000)}${unit('-천',-1000)}${unit('-백',-100)}${unit('+백',100)}${unit('+천',1000)}${unit('+만',10000)}
     </div>
@@ -1763,7 +1796,7 @@ function renderMoveDialog(){
       <button class="btn sm" onclick="moveSet('half')">절반</button>
       <button class="btn sm" onclick="moveSet('max')">전부</button>
     </div>
-    <p style="font-size:13px;color:#9c8c6a;margin-top:8px">이동 후 — ${from.name} <b>${fmt(d.max-d.amt)}</b> · ${to.name} <b>${fmt(toT+d.amt)}</b></p>
+    <p style="font-size:13px;color:#9c8c6a;margin-top:8px">이동 후 ${lbl} — ${from.name} <b>${fmt(d.max-d.amt)}</b> · ${to.name} <b>${fmt(toT+d.amt)}</b></p>
     <div style="display:flex;gap:12px;justify-content:center;margin-top:14px">
       <button class="btn" onclick="confirmMove()">출진 ▶</button>
       <button class="btn danger" onclick="cancelMove()">취소</button>
@@ -1778,17 +1811,19 @@ function moveSet(v){
   renderMoveDialog();
 }
 function cancelMove(){$('centerOverlay').classList.remove('on');moveMode=false;moveDlg=null;render();}
-function confirmMove(){const d=moveDlg;$('centerOverlay').classList.remove('on');moveDlg=null;doMove(d.from,d.to,d.amt);}
-function doMove(fromId,toId,moved){
+function confirmMove(){const d=moveDlg;$('centerOverlay').classList.remove('on');moveDlg=null;doMove(d.from,d.to,d.amt,d.kind);}
+function doMove(fromId,toId,moved,kind){
   moveMode=false;
-  moved=Math.min(Math.round(moved),pstate[fromId].troops);
-  if(moved<=0){toast('옮길 병력이 없습니다');render();return;}
+  const food=kind==='food';
+  moved=Math.min(Math.round(moved),food?Math.round(pstate[fromId].food||0):pstate[fromId].troops);
+  if(moved<=0){toast(food?'옮길 군량이 없습니다':'옮길 병력이 없습니다');render();return;}
   pushUndo();
   render();
   marchArmy(fromId,toId,player,()=>{
-    pstate[fromId].troops-=moved; pstate[toId].troops+=moved; pstate[fromId].acted=true;
-    selected=toId; render();
-    toast(`${prov(toId).name}(으)로 병력 ${fmt(moved)}을(를) 옮겼습니다`);
+    if(food){ pstate[fromId].food=Math.max(0,(pstate[fromId].food||0)-moved); pstate[toId].food=Math.min(foodCap(prov(toId)),(pstate[toId].food||0)+moved); }
+    else { pstate[fromId].troops-=moved; pstate[toId].troops+=moved; }
+    pstate[fromId].acted=true; selected=toId; render();
+    toast(`${prov(toId).name}(으)로 ${food?'군량':'병력'} ${fmt(moved)}을(를) 옮겼습니다`);
   },1600);
 }
 
@@ -3524,7 +3559,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='3.2.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='3.3.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;updateSoundBtn();}
 async function checkVersion(){
