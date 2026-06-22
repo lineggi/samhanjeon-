@@ -339,7 +339,7 @@ svg{width:100%;height:100%;display:block}
     <div class="stat"><span class="k">영토</span><span class="v" id="terrv">0</span></div>
     <div class="fbadge" id="fbadge"><span class="dot"></span><span id="fname">—</span></div>
     <button class="btn sm" id="skillbtn" title="세력 특기" onclick="activateSkill(player)" style="display:none"></button>
-    <button class="btn sm" id="autobtn" title="자동 진행 — 매 턴 내정을 자동 처리하고, 압도적 우세 시 공략까지" onclick="toggleAuto()">🔁 자동 진행: 끔</button>
+    <button class="btn sm" id="autobtn" title="자동 진행 — 클릭하면 이번 턴 내정을 자동 처리하고 성별 내역을 보여줍니다" onclick="delegateInternal()">🔁 자동 진행</button>
     <div class="menuwrap">
       <button class="btn sm" id="menubtn" title="메뉴" onclick="toggleMenu(event)">☰ 메뉴</button>
       <div class="menupop" id="menupop">
@@ -454,16 +454,15 @@ function delegateInternal(silent){
   return n;
 }
 function delegateReport(rep){
-  if(!rep.length){toast('지금은 일임할 일이 없습니다');return;}
+  if(!rep.length){toast('지금은 자동 처리할 일이 없습니다');return;}
   const rows=rep.map(r=>`<div style="display:flex;gap:8px;padding:6px 10px;border-bottom:1px dashed #241a10;font-size:13px">
     <b style="color:var(--paper);min-width:84px">${r.name}</b><span style="color:#cdb87f">${r.act}</span></div>`).join('');
-  $('centerBox').innerHTML=`<h1 style="font-size:28px">🤖 위임 보고<small>각 성의 처리 내역 (${rep.length}성)</small></h1>
+  $('centerBox').innerHTML=`<h1 style="font-size:28px">🔁 자동 진행 보고<small>각 성의 처리 내역 (${rep.length}성)</small></h1>
     <div style="text-align:left;max-width:380px;margin:14px auto;max-height:56vh;overflow-y:auto">${rows}</div>
     <button class="btn" onclick="closeCenter()">확인 ▶</button>`;
   $('centerOverlay').classList.add('on');
 }
-function toggleAuto(){autoDelegate=!autoDelegate; closeMenu(); if(autoDelegate){const n=delegateInternal(true); toast(`자동 진행을 켰습니다 — 매 턴 내정을 알아서 처리합니다${n?` (이번 턴 ${n}성 처리)`:''}`);}else toast('자동 진행을 껐습니다'); render();}
-function updateAutoBtn(){const b=$('autobtn');if(b){b.textContent=`🔁 자동 진행: ${autoDelegate?'켬':'끔'}`;b.style.color=autoDelegate?'var(--gold)':'';}}
+function updateAutoBtn(){const b=$('autobtn');if(b){b.textContent='🔁 자동 진행';b.style.color='';}}
 /* 상단 메뉴 드롭다운 */
 function toggleMenu(e){if(e)e.stopPropagation();const m=$('menupop');if(m)m.classList.toggle('on');}
 function closeMenu(){const m=$('menupop');if(m)m.classList.remove('on');}
@@ -3127,7 +3126,6 @@ function finishTurn(){
     st.acted=false;});
   selected=null; render();
   const over=checkVictory();
-  if(autoDelegate&&!over)delegateInternal(true);   // 자동 일임
   saveGame(true);   // 매 턴 자동 저장(새로고침해도 이어하기 가능)
   if(!over){
     const evs=takeDueEvents();                         // 역사 이벤트(효과 적용)
@@ -3620,7 +3618,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='3.4.4';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='3.4.5';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;updateSoundBtn();}
 async function checkVersion(){
