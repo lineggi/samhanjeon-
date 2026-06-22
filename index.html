@@ -633,7 +633,7 @@ const SCENARIOS=[
   str:{baekje:1.32,goguryeo:1.0,silla:0.85,gaya:0.85,china:1.05,wa:0.85},
   own:{yodong:'china',bisa:'china',ansi:'china',sinseong:'china',baegam:'china',gaemo:'china',buyeo:'goguryeo',gungnae:'goguryeo',hwando:'goguryeo',jolbon:'goguryeo',chaek:'goguryeo',okjeo:'goguryeo',bakjak:'goguryeo',ogol:'china',pyeongyang:'goguryeo',hanseong:'baekje',gwanmi:'baekje',michuhol:'baekje',ungjin:'baekje',sabi:'baekje',imjon:'baekje',juryu:'baekje',garim:'baekje',hwangsan:'baekje',geumseong:'silla',myeonghwal:'silla',busan:'silla',samnyeon:'baekje',gwansan:'baekje',daeya:'gaya',danghang:'baekje',bukhan:'baekje',maeso:'baekje',golbeol:'silla',geumgwan:'gaya',daegaya:'gaya',ara:'gaya',seongsan:'gaya',dara:'gaya',youzhou:'china',linyu:'china',yongseong:'china',cheongju:'china',deungju:'china',tsushima:'wa',iki:'wa',fukuoka:'wa',mujin:'baekje',balla:'baekje',haseulla:'goguryeo',siljik:'silla'},
   gens:[
-   ['근초고왕','baekje','hanseong',92,86,90],['고구부','goguryeo','gungnae',82,68,86],['고흥','baekje','sabi',66,50,90],['근구수','baekje','ungjin',88,90,80],['막고해','baekje','sabi',82,84,78],['고국원왕','goguryeo','pyeongyang',80,80,76],['고무','goguryeo','yodong',80,84,70],['내물왕','silla','geumseong',78,66,82],['거질미왕','gaya','geumgwan',76,78,72],['하지왕','gaya','daegaya',74,80,70],['모용수','china','yongseong',88,90,82],['모용평','china','youzhou',76,74,78],['오토모','wa','fukuoka',76,82,66],
+   ['근초고왕','baekje','hanseong',92,86,90],['고구부','goguryeo','gungnae',82,68,86],['고흥','baekje','sabi',66,50,90],['근구수','baekje','ungjin',88,90,80],['막고해','baekje','sabi',82,84,78],['고국원왕','goguryeo','pyeongyang',80,80,76],['고무','goguryeo','bakjak',80,84,70],['내물왕','silla','geumseong',78,66,82],['거질미왕','gaya','geumgwan',76,78,72],['하지왕','gaya','daegaya',74,80,70],['모용수','china','yongseong',88,90,82],['모용평','china','youzhou',76,74,78],['오토모','wa','fukuoka',76,82,66],
   ],
   events:[
    {id:'g_intro',turn:1,title:'백제의 전성, 근초고왕',
@@ -668,9 +668,9 @@ const SCENARIOS=[
    tsushima:'wa',iki:'wa',fukuoka:'wa',mujin:'baekje',balla:'baekje',haseulla:'goguryeo',siljik:'silla'
   },
   gens:[
-   ['광개토대왕','goguryeo','gungnae',97,92,88],['전지왕','baekje','hanseong',76,72,76],['눌지','silla','geumseong',78,70,82],['박제상','silla','myeonghwal',80,58,90],['모용희','china','youzhou',72,78,66],['고거련','goguryeo','pyeongyang',80,72,84],['모두루','goguryeo','yodong',82,80,72],['고무','goguryeo','ansi',80,86,70],
+   ['광개토대왕','goguryeo','gungnae',97,92,88],['전지왕','baekje','hanseong',76,72,76],['눌지','silla','geumseong',78,70,82],['박제상','silla','myeonghwal',80,58,90],['모용희','china','youzhou',72,78,66],['고거련','goguryeo','pyeongyang',80,72,84],['모두루','goguryeo','bisa',82,80,72],['고무','goguryeo','bakjak',80,86,70],
    ['아신왕','baekje','hanseong',80,82,78],['진무','baekje','ungjin',83,82,74],['해충','baekje','sabi',75,70,82],
-   ['내물왕','silla','geumseong',78,64,82],['실성','silla','daeya',76,74,74],
+   ['내물왕','silla','geumseong',78,64,82],['실성','silla','siljik',76,74,74],
    ['이시품왕','gaya','geumgwan',78,78,76],['하지왕','gaya','daegaya',76,82,70],
    ['모용성','china','yongseong',83,85,72],['풍발','china','cheongju',78,80,74],
    ['오토모','wa','fukuoka',77,82,66],['사데히코','wa','tsushima',75,80,64],
@@ -3620,7 +3620,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='3.4.3';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='3.4.4';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;updateSoundBtn();}
 async function checkVersion(){
