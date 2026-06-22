@@ -339,11 +339,10 @@ svg{width:100%;height:100%;display:block}
     <div class="stat"><span class="k">영토</span><span class="v" id="terrv">0</span></div>
     <div class="fbadge" id="fbadge"><span class="dot"></span><span id="fname">—</span></div>
     <button class="btn sm" id="skillbtn" title="세력 특기" onclick="activateSkill(player)" style="display:none"></button>
-    <button class="btn sm" id="delegbtn" title="전권 일임 — 내정을 자동 처리하고, 압도적 우세 시 공략까지" onclick="delegateInternal()">🤖 일임</button>
+    <button class="btn sm" id="autobtn" title="자동 진행 — 매 턴 내정을 자동 처리하고, 압도적 우세 시 공략까지" onclick="toggleAuto()">🔁 자동 진행: 끔</button>
     <div class="menuwrap">
       <button class="btn sm" id="menubtn" title="메뉴" onclick="toggleMenu(event)">☰ 메뉴</button>
       <div class="menupop" id="menupop">
-        <button id="autobtn" onclick="toggleAuto();closeMenu()">🔁 자동 진행: 끔</button>
         <button id="soundbtn" onclick="toggleSound()">🔇 사운드: 끔</button>
         <button id="diplobtn" onclick="showDiplomacy();closeMenu()">🕊 외교</button>
         <button id="savebtn" onclick="saveGame();closeMenu()">💾 저장하기</button>
@@ -463,7 +462,7 @@ function delegateReport(rep){
     <button class="btn" onclick="closeCenter()">확인 ▶</button>`;
   $('centerOverlay').classList.add('on');
 }
-function toggleAuto(){autoDelegate=!autoDelegate; toast(autoDelegate?'자동 진행을 켰습니다 — 매 턴 내정을 알아서 처리합니다':'자동 진행을 껐습니다'); render();}
+function toggleAuto(){autoDelegate=!autoDelegate; closeMenu(); if(autoDelegate){const n=delegateInternal(true); toast(`자동 진행을 켰습니다 — 매 턴 내정을 알아서 처리합니다${n?` (이번 턴 ${n}성 처리)`:''}`);}else toast('자동 진행을 껐습니다'); render();}
 function updateAutoBtn(){const b=$('autobtn');if(b){b.textContent=`🔁 자동 진행: ${autoDelegate?'켬':'끔'}`;b.style.color=autoDelegate?'var(--gold)':'';}}
 /* 상단 메뉴 드롭다운 */
 function toggleMenu(e){if(e)e.stopPropagation();const m=$('menupop');if(m)m.classList.toggle('on');}
@@ -799,18 +798,34 @@ function toggleSound(){ soundOn=!soundOn; try{localStorage.setItem('samhanjeon_s
 /* 절차적 배경음악(에셋0) — 잔잔한 5음계 패드+선율 루프 */
 let _bgm={timer:null,gain:null,step:0};
 function _midi(n){return 440*Math.pow(2,(n-69)/12);}
-function _bgmNote(mid,dur,type,vol,when){ const ax=audioCtx(); if(!ax||!_bgm.gain)return; const o=ax.createOscillator(),g=ax.createGain(); o.type=type; o.frequency.value=_midi(mid);
-  g.gain.setValueAtTime(0.0001,when); g.gain.exponentialRampToValueAtTime(vol,when+0.35); g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
+function _bgmNote(mid,dur,type,vol,when,atk){ const ax=audioCtx(); if(!ax||!_bgm.gain)return; const o=ax.createOscillator(),g=ax.createGain(); o.type=type; o.frequency.value=_midi(mid);
+  g.gain.setValueAtTime(0.0001,when); g.gain.exponentialRampToValueAtTime(vol,when+(atk||0.35)); g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
   o.connect(g).connect(_bgm.gain); o.start(when); o.stop(when+dur+0.05); }
+/* 전쟁 북(taiko) — 저음 펀치 */
+function _bgmDrum(when,vol){ const ax=audioCtx(); if(!ax||!_bgm.gain)return; const o=ax.createOscillator(),g=ax.createGain(); o.type='sine';
+  o.frequency.setValueAtTime(165,when); o.frequency.exponentialRampToValueAtTime(46,when+0.16);
+  g.gain.setValueAtTime(vol,when); g.gain.exponentialRampToValueAtTime(0.0001,when+0.42);
+  o.connect(g).connect(_bgm.gain); o.start(when); o.stop(when+0.46); }
 function startBGM(){ const ax=audioCtx(); if(!ax||!soundOn||_bgm.timer)return;
   _bgm.gain=ax.createGain(); _bgm.gain.gain.value=0.0001; _bgm.gain.connect(ax.destination);
-  _bgm.gain.gain.exponentialRampToValueAtTime(0.6,ax.currentTime+2.5); _bgm.step=0;   // 마스터 페이드인
-  const SCALE=[0,3,5,7,10]; const tick=()=>{ if(!soundOn||!_bgm.timer)return; const ax=audioCtx(); if(!ax)return; const t=ax.currentTime, root=45;
-    if(_bgm.step%4===0)_bgmNote(root+(_bgm.step%8===0?0:5),3.6,'sine',0.06,t);                 // 저음 드론
-    _bgmNote(root+12+SCALE[(Math.random()*5)|0]+(Math.random()<0.35?12:0),1.7,'triangle',0.045,t+0.02); // 선율
-    if(Math.random()<0.5)_bgmNote(root+12+SCALE[(Math.random()*5)|0],1.5,'triangle',0.03,t+0.85);
+  _bgm.gain.gain.exponentialRampToValueAtTime(0.62,ax.currentTime+3); _bgm.step=0;   // 마스터 페이드인
+  // 웅장한 단조 화성 진행 (Am–F–G–Am 풍) + 펜타토닉 단음계 선율
+  const ROOTS=[45,41,43,45], PENTA=[0,3,5,7,10]; const BEATS=4;
+  const tick=()=>{ if(!soundOn||!_bgm.timer)return; const ax=audioCtx(); if(!ax)return; const t=ax.currentTime;
+    const beat=_bgm.step, root=ROOTS[((beat/BEATS)|0)%ROOTS.length], barStart=(beat%BEATS===0);
+    // 전쟁 북: 1박 강타, 3박 중타
+    if(beat%BEATS===0)_bgmDrum(t,0.5); else if(beat%2===0)_bgmDrum(t,0.26);
+    if(barStart){                                                        // 코드 전환마다 베이스 드론 + 화음 패드 재트리거
+      _bgmNote(root-12,8.4,'sine',0.11,t,0.5);                            // 심저음 드론
+      _bgmNote(root,8.4,'triangle',0.06,t,0.6);                          // 근음
+      _bgmNote(root+7,8,'sawtooth',0.022,t+0.03,1.2);                    // 5도 패드
+      _bgmNote(root+12,8,'triangle',0.03,t+0.03,1.2);                    // 옥타브 패드
+    }
+    // 소아리 선율 (펜타토닉, 간헐적 옥타브 점프)
+    _bgmNote(root+12+PENTA[(Math.random()*5)|0]+(Math.random()<0.4?12:0),1.9,'triangle',0.05,t+0.05);
+    if(Math.random()<0.45)_bgmNote(root+12+PENTA[(Math.random()*5)|0],1.4,'triangle',0.03,t+0.98);
     _bgm.step++; };
-  _bgm.timer=setInterval(tick,1500); tick(); }
+  _bgm.timer=setInterval(tick,2000); tick(); }
 function stopBGM(){ if(_bgm.timer){clearInterval(_bgm.timer);_bgm.timer=null;} const ax=audioCtx(); if(ax&&_bgm.gain){try{_bgm.gain.gain.cancelScheduledValues(ax.currentTime);_bgm.gain.gain.setValueAtTime(_bgm.gain.gain.value,ax.currentTime);_bgm.gain.gain.linearRampToValueAtTime(0.0001,ax.currentTime+0.6);}catch(_){}} }
 /* 새로고침 시 사운드가 켜진 상태면 첫 사용자 입력에서 오디오·BGM 시작 */
 try{ window.addEventListener('pointerdown',()=>{ if(soundOn){audioCtx();startBGM();} },{once:true}); }catch(_){}
@@ -1204,7 +1219,7 @@ function renderTutorialModal(){
       ${step('🚩','① 내 성을 누른다','지도에서 <b>밝게 빛나는 성</b>이 내 성. 누르면 오른쪽(모바일은 아래)에 명령 버튼이 뜬다.')}
       ${step('🚩','② 힘을 키운다','<b>징용</b>(병력)·<b>훈련</b>(사기)·<b>축성</b>(수비)·<b>둔전</b>(군량). 성마다 매 턴 <b>한 번</b> 명령할 수 있다.')}
       ${step('⚔','③ 출병해 공략한다','<b>⚔ 출병</b>을 누르고 <b>인접한 적 성</b>을 고른다. 보낼 병력 수도 직접 정한다.')}
-      ${step('⏭','④ 턴을 마친다','할 일을 끝내면 <b>턴 종료</b>. 번거로우면 <b>🤖 일임</b>이 알아서 내정을 처리한다.')}
+      ${step('⏭','④ 턴을 마친다','할 일을 끝내면 <b>턴 종료</b>. 번거로우면 <b>🔁 자동 진행</b>이 알아서 내정을 처리한다.')}
       ${step('🏁','목표','전체 성의 <b>2/3</b>를 차지하면 천하 통일 — 승리!')}
     </div>
     <button class="btn" style="margin-top:18px" onclick="dismissTutorial()">시작 ▶</button>`;
@@ -1492,7 +1507,7 @@ function renderPanel(){
       ${startAdvice()}
       <div class="g-step"><span class="g-n">1</span><span class="g-t"><b>내 성</b>(밝게 빛나는 성)을 눌러 <b>모병·훈련·축성</b>으로 힘을 키운다</span></div>
       <div class="g-step"><span class="g-n">2</span><span class="g-t"><b>⚔ 출병</b>으로 인접한 <b>적 성</b>을 공략한다 (보낼 병력 선택 가능)</span></div>
-      <div class="g-step"><span class="g-n">3</span><span class="g-t">할 일을 마치면 <b>턴 종료</b> — 귀찮으면 <b>🤖 일임</b>이 알아서 해준다</span></div>
+      <div class="g-step"><span class="g-n">3</span><span class="g-t">할 일을 마치면 <b>턴 종료</b> — 귀찮으면 <b>🔁 자동 진행</b>이 알아서 해준다</span></div>
       <div class="g-step" style="border:none"><span class="g-n">🏁</span><span class="g-t">전체 성의 <b>2/3</b>를 차지하면 천하 패권 달성!</span></div>
       ${scenario?`<div style="margin-top:10px;font-size:12px;color:#9c8c6a">현재 내 영토 <b style="color:var(--gold)">${mine}성</b>${pend>0?` · 이번 턴 행동할 성 <b style="color:var(--gold)">${pend}곳</b>`:' · 모든 성이 명을 받았다'}</div>`:''}
     </div>`;
@@ -3562,7 +3577,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='3.3.2';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='3.4.0';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;updateSoundBtn();}
 async function checkVersion(){
