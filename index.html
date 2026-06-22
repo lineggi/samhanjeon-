@@ -802,30 +802,60 @@ function _bgmNote(mid,dur,type,vol,when,atk){ const ax=audioCtx(); if(!ax||!_bgm
   g.gain.setValueAtTime(0.0001,when); g.gain.exponentialRampToValueAtTime(vol,when+(atk||0.35)); g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
   o.connect(g).connect(_bgm.gain); o.start(when); o.stop(when+dur+0.05); }
 /* 전쟁 북(taiko) — 저음 펀치 */
-function _bgmDrum(when,vol){ const ax=audioCtx(); if(!ax||!_bgm.gain)return; const o=ax.createOscillator(),g=ax.createGain(); o.type='sine';
-  o.frequency.setValueAtTime(165,when); o.frequency.exponentialRampToValueAtTime(46,when+0.16);
-  g.gain.setValueAtTime(vol,when); g.gain.exponentialRampToValueAtTime(0.0001,when+0.42);
-  o.connect(g).connect(_bgm.gain); o.start(when); o.stop(when+0.46); }
+/* 전장 바람·북 가죽용 브라운 노이즈 버퍼(저역이 풍부해 둔탁함) */
+let _nbuf=null,_nbufRate=0;
+function _noiseBuf(){ const ax=audioCtx(); if(!ax)return null; if(_nbuf&&_nbufRate===ax.sampleRate)return _nbuf;
+  const n=(ax.sampleRate*2)|0, b=ax.createBuffer(1,n,ax.sampleRate), d=b.getChannelData(0); let last=0;
+  for(let i=0;i<n;i++){ const w=Math.random()*2-1; last=(last+0.02*w)/1.02; d[i]=last*3.2; }
+  _nbuf=b; _nbufRate=ax.sampleRate; return b; }
+/* 실제 가죽 북(taiko): 피치 다운 몸통 + 밴드패스 노이즈 타격음 */
+function _bgmDrum(when,vol){ const ax=audioCtx(); if(!ax||!_bgm.gain)return;
+  const o=ax.createOscillator(),g=ax.createGain(); o.type='sine';
+  o.frequency.setValueAtTime(186,when); o.frequency.exponentialRampToValueAtTime(50,when+0.13);
+  g.gain.setValueAtTime(0.0001,when); g.gain.linearRampToValueAtTime(vol,when+0.005); g.gain.exponentialRampToValueAtTime(0.0001,when+0.5);
+  o.connect(g).connect(_bgm.gain); o.start(when); o.stop(when+0.55);
+  const buf=_noiseBuf(); if(buf){ const s=ax.createBufferSource(); s.buffer=buf; s.loop=true;
+    const f=ax.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1500; f.Q.value=0.7;
+    const ng=ax.createGain(); ng.gain.setValueAtTime(vol*0.6,when); ng.gain.exponentialRampToValueAtTime(0.0001,when+0.085);
+    s.connect(f).connect(ng).connect(_bgm.gain); s.start(when); s.stop(when+0.12); } }
+/* 전쟁 나팔(브라스): 디튠 톱니 3겹 → 로우패스(어택 오픈) + 비브라토 */
+function _bgmHorn(mid,dur,vol,when){ const ax=audioCtx(); if(!ax||!_bgm.gain)return; const base=_midi(mid);
+  const f=ax.createBiquadFilter(); f.type='lowpass'; f.Q.value=1.2;
+  f.frequency.setValueAtTime(280,when); f.frequency.linearRampToValueAtTime(1900,when+0.28); f.frequency.linearRampToValueAtTime(640,when+dur);
+  const g=ax.createGain(); g.gain.setValueAtTime(0.0001,when); g.gain.linearRampToValueAtTime(vol,when+0.2);
+  g.gain.setValueAtTime(vol,when+dur*0.6); g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
+  f.connect(g).connect(_bgm.gain);
+  const lfo=ax.createOscillator(),lg=ax.createGain(); lfo.frequency.value=5.2; lg.gain.value=base*0.011; lfo.connect(lg);
+  [0,8,-7].forEach(cent=>{ const o=ax.createOscillator(); o.type='sawtooth'; o.frequency.value=base*Math.pow(2,cent/1200); lg.connect(o.frequency); o.connect(f); o.start(when); o.stop(when+dur+0.05); });
+  lfo.start(when); lfo.stop(when+dur+0.05); }
+/* 전장 멀리 울리는 바람·함성 베드 */
+function _bgmWind(dur,vol,when){ const ax=audioCtx(); if(!ax||!_bgm.gain)return; const buf=_noiseBuf(); if(!buf)return;
+  const s=ax.createBufferSource(); s.buffer=buf; s.loop=true; const f=ax.createBiquadFilter(); f.type='lowpass'; f.frequency.value=260;
+  const g=ax.createGain(); g.gain.setValueAtTime(0.0001,when); g.gain.linearRampToValueAtTime(vol,when+1.4); g.gain.linearRampToValueAtTime(0.0001,when+dur);
+  s.connect(f).connect(g).connect(_bgm.gain); s.start(when); s.stop(when+dur+0.1); }
 function startBGM(){ const ax=audioCtx(); if(!ax||!soundOn||_bgm.timer)return;
   _bgm.gain=ax.createGain(); _bgm.gain.gain.value=0.0001; _bgm.gain.connect(ax.destination);
-  _bgm.gain.gain.exponentialRampToValueAtTime(0.62,ax.currentTime+3); _bgm.step=0;   // 마스터 페이드인
-  // 웅장한 단조 화성 진행 (Am–F–G–Am 풍) + 펜타토닉 단음계 선율
-  const ROOTS=[45,41,43,45], PENTA=[0,3,5,7,10]; const BEATS=4;
+  _bgm.gain.gain.exponentialRampToValueAtTime(0.5,ax.currentTime+3); _bgm.step=0;   // 마스터 페이드인
+  // 행진하는 전쟁 테마: 북 리듬 + 브라스 나팔 + 단조 화성(Am–F–G–Am)
+  const ROOTS=[45,41,43,45], BEAT=0.54, BPC=8;
   const tick=()=>{ if(!soundOn||!_bgm.timer)return; const ax=audioCtx(); if(!ax)return; const t=ax.currentTime;
-    const beat=_bgm.step, root=ROOTS[((beat/BEATS)|0)%ROOTS.length], barStart=(beat%BEATS===0);
-    // 전쟁 북: 1박 강타, 3박 중타
-    if(beat%BEATS===0)_bgmDrum(t,0.5); else if(beat%2===0)_bgmDrum(t,0.26);
-    if(barStart){                                                        // 코드 전환마다 베이스 드론 + 화음 패드 재트리거
-      _bgmNote(root-12,8.4,'sine',0.11,t,0.5);                            // 심저음 드론
-      _bgmNote(root,8.4,'triangle',0.06,t,0.6);                          // 근음
-      _bgmNote(root+7,8,'sawtooth',0.022,t+0.03,1.2);                    // 5도 패드
-      _bgmNote(root+12,8,'triangle',0.03,t+0.03,1.2);                    // 옥타브 패드
+    const beat=_bgm.step, phase=beat%BPC, root=ROOTS[((beat/BPC)|0)%ROOTS.length];
+    // 행진 북: 강-약-중-약 + 갤럽 약타
+    if(phase===0)_bgmDrum(t,0.62); else if(beat%2===0)_bgmDrum(t,0.40); else _bgmDrum(t,0.22);
+    _bgmDrum(t+BEAT*0.5,0.15);
+    if(phase===BPC-1) for(let k=0;k<4;k++)_bgmDrum(t+k*BEAT*0.25,0.16+k*0.07);   // 프레이즈 끝 연타(몰아치기)
+    if(phase===0){                                                               // 코드 전환: 드론·나팔·전장 바람
+      _bgmNote(root-12,BEAT*BPC,'triangle',0.06,t,0.7);                          // 심저음 드론
+      _bgmNote(root,BEAT*BPC,'triangle',0.04,t,0.8);
+      _bgmHorn(root,BEAT*4.4,0.11,t+0.04);                                       // 낮은 전쟁 나팔(근음)
+      _bgmHorn(root+7,BEAT*4.2,0.06,t+0.08);                                     // 5도
+      _bgmWind(BEAT*BPC+1.2,0.055,t);                                            // 전장 함성/바람
     }
-    // 소아리 선율 (펜타토닉, 간헐적 옥타브 점프)
-    _bgmNote(root+12+PENTA[(Math.random()*5)|0]+(Math.random()<0.4?12:0),1.9,'triangle',0.05,t+0.05);
-    if(Math.random()<0.45)_bgmNote(root+12+PENTA[(Math.random()*5)|0],1.4,'triangle',0.03,t+0.98);
+    if(phase===4&&Math.random()<0.85){                                           // 프레이즈 중반 나팔 호령(상행)
+      _bgmHorn(root+12+[0,7,12][(Math.random()*3)|0],BEAT*2.6,0.085,t+0.04);
+    }
     _bgm.step++; };
-  _bgm.timer=setInterval(tick,2000); tick(); }
+  _bgm.timer=setInterval(tick,BEAT*1000); tick(); }
 function stopBGM(){ if(_bgm.timer){clearInterval(_bgm.timer);_bgm.timer=null;} const ax=audioCtx(); if(ax&&_bgm.gain){try{_bgm.gain.gain.cancelScheduledValues(ax.currentTime);_bgm.gain.gain.setValueAtTime(_bgm.gain.gain.value,ax.currentTime);_bgm.gain.gain.linearRampToValueAtTime(0.0001,ax.currentTime+0.6);}catch(_){}} }
 /* 새로고침 시 사운드가 켜진 상태면 첫 사용자 입력에서 오디오·BGM 시작 */
 try{ window.addEventListener('pointerdown',()=>{ if(soundOn){audioCtx();startBGM();} },{once:true}); }catch(_){}
@@ -3577,7 +3607,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='3.4.0';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='3.4.1';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;updateSoundBtn();}
 async function checkVersion(){
