@@ -818,15 +818,28 @@ function _bgmDrum(when,vol){ const ax=audioCtx(); if(!ax||!_bgm.gain)return;
     const f=ax.createBiquadFilter(); f.type='lowpass'; f.frequency.value=520; f.Q.value=0.5;
     const ng=ax.createGain(); ng.gain.setValueAtTime(vol*0.32,when); ng.gain.exponentialRampToValueAtTime(0.0001,when+0.07);
     s.connect(f).connect(ng).connect(_bgm.gain); s.start(when); s.stop(when+0.12); } }
-/* 전쟁 나팔(브라스): 디튠 톱니 3겹 → 로우패스(어택 오픈) + 비브라토 */
+/* 전쟁 나팔(브라스): 숨 어택 + 음정 스쿱 + 지연 비브라토 + 사인 서브 + 브레스 노이즈 → 어쿠스틱 관악 */
 function _bgmHorn(mid,dur,vol,when){ const ax=audioCtx(); if(!ax||!_bgm.gain)return; const base=_midi(mid);
-  const f=ax.createBiquadFilter(); f.type='lowpass'; f.Q.value=0.8;
-  f.frequency.setValueAtTime(180,when); f.frequency.linearRampToValueAtTime(880,when+0.35); f.frequency.linearRampToValueAtTime(380,when+dur);
-  const g=ax.createGain(); g.gain.setValueAtTime(0.0001,when); g.gain.linearRampToValueAtTime(vol,when+0.28);
-  g.gain.setValueAtTime(vol,when+dur*0.6); g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
+  const f=ax.createBiquadFilter(); f.type='lowpass'; f.Q.value=0.7;
+  f.frequency.setValueAtTime(140,when); f.frequency.linearRampToValueAtTime(680,when+0.4); f.frequency.linearRampToValueAtTime(300,when+dur);
+  const g=ax.createGain(); g.gain.setValueAtTime(0.0001,when); g.gain.linearRampToValueAtTime(vol,when+0.34);   // 숨을 불어넣듯 느린 어택
+  g.gain.setValueAtTime(vol,when+dur*0.62); g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
   f.connect(g).connect(_bgm.gain);
-  const lfo=ax.createOscillator(),lg=ax.createGain(); lfo.frequency.value=4.6; lg.gain.value=base*0.006; lfo.connect(lg);
-  [0,8,-7].forEach(cent=>{ const o=ax.createOscillator(); o.type='sawtooth'; o.frequency.value=base*Math.pow(2,cent/1200); lg.connect(o.frequency); o.connect(f); o.start(when); o.stop(when+dur+0.05); });
+  // 지연 비브라토(음을 잡은 뒤 천천히 떨림)
+  const lfo=ax.createOscillator(),lg=ax.createGain(); lfo.frequency.value=4.4;
+  lg.gain.setValueAtTime(0,when); lg.gain.linearRampToValueAtTime(base*0.005,when+0.6); lfo.connect(lg);
+  // 두 겹 톱니(미세 디튠) + 시작 음정 스쿱(살짝 낮게 불었다 잡힘)
+  [4,-5].forEach(cent=>{ const o=ax.createOscillator(); o.type='sawtooth'; const tgt=base*Math.pow(2,cent/1200);
+    o.frequency.setValueAtTime(tgt*0.971,when); o.frequency.exponentialRampToValueAtTime(tgt,when+0.17);
+    lg.connect(o.frequency); o.connect(f); o.start(when); o.stop(when+dur+0.05); });
+  // 옥타브 아래 사인 서브(따뜻한 몸통, 필터 우회)
+  const sub=ax.createOscillator(),sg=ax.createGain(); sub.type='sine'; sub.frequency.value=base/2;
+  sg.gain.setValueAtTime(0.0001,when); sg.gain.linearRampToValueAtTime(vol*0.55,when+0.3); sg.gain.setValueAtTime(vol*0.55,when+dur*0.62); sg.gain.exponentialRampToValueAtTime(0.0001,when+dur);
+  sub.connect(sg).connect(_bgm.gain); sub.start(when); sub.stop(when+dur+0.05);
+  // 숨소리(브레스 노이즈) 짧게
+  const buf=_noiseBuf(); if(buf){ const s=ax.createBufferSource(); s.buffer=buf; s.loop=true; const nf=ax.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=820; nf.Q.value=0.5;
+    const ng=ax.createGain(); ng.gain.setValueAtTime(0.0001,when); ng.gain.linearRampToValueAtTime(vol*0.16,when+0.09); ng.gain.exponentialRampToValueAtTime(0.0001,when+0.4);
+    s.connect(nf).connect(ng).connect(_bgm.gain); s.start(when); s.stop(when+0.45); }
   lfo.start(when); lfo.stop(when+dur+0.05); }
 /* 전장 멀리 울리는 바람·함성 베드 */
 function _bgmWind(dur,vol,when){ const ax=audioCtx(); if(!ax||!_bgm.gain)return; const buf=_noiseBuf(); if(!buf)return;
@@ -3607,7 +3620,7 @@ function beginGame(){player=chosenF;turn=1;selected=null;turnEvents=[];firedEven
 }
 
 /* ============ 버전 / 업데이트 알림 ============ */
-const GAME_VERSION='3.4.2';   // 배포할 때마다 version.json과 함께 올림
+const GAME_VERSION='3.4.3';   // 배포할 때마다 version.json과 함께 올림
 const SAVE_VER=1;             // 저장 데이터 구조 버전(구조 바꾸면 +1)
 function showVersion(){const t=$('vertag');if(t)t.textContent='v'+GAME_VERSION;const sv=$('splashver');if(sv)sv.textContent='v'+GAME_VERSION;updateSoundBtn();}
 async function checkVersion(){
